@@ -1,0 +1,41 @@
+{
+  "name": "youtube-screenshot-helper",
+  "version": "1.0.0",
+  "description": "Enhanced screenshot tool for YouTube and video sites - hide controls and capture clean frames with a single keypress",
+  "main": "manifest.json",
+  "scripts": {
+    "build": "echo 'Extension ready for loading in Chrome'",
+    "package": "zip -r youtube-screenshot-helper.zip . -x '*.git*' 'node_modules/*' 'package*.json' 'README.md'",
+    "dev": "echo 'Load extension in Chrome Developer Mode from this directory'",
+    "lint": "echo 'Linting not configured yet'",
+    "test": "echo 'Tests not configured yet'"
+  },
+  "keywords": [
+    "youtube",
+    "screenshot",
+    "video",
+    "browser-extension",
+    "chrome-extension",
+    "vimeo",
+    "twitch",
+    "screen-capture"
+  ],
+  "author": "YouTube Screenshot Helper Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/youtube-screenshot-helper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/youtube-screenshot-helper/issues"
+  },
+  "homepage": "https://github.com/your-username/youtube-screenshot-helper#readme",
+  "devDependencies": {},
+  "dependencies": {},
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "youtube-screenshot-helper@example.com",
+      "strict_min_version": "109.0"
+    }
+  }
+}

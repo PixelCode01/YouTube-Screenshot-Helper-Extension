@@ -1,0 +1,502 @@
+/* YouTube Screenshot Helper - Popup Styles - GUARANTEED TEXT VISIBILITY */
+
+/* =============================================================================
+   CRITICAL: This CSS file has been rebuilt from scratch to ensure ALL text
+   is visible regardless of system theme, browser settings, or other overrides.
+   ============================================================================= */
+
+/* Universal reset */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Support both light and dark modes */
+html {
+  color-scheme: light dark;
+}
+
+/* Default body styles (light mode) */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  line-height: 1.5;
+  width: 380px;
+  min-height: 500px;
+  padding: 0;
+}
+
+/* Light mode text visibility guarantee */
+@media (prefers-color-scheme: light), (prefers-color-scheme: no-preference) {
+  h1, h2, h3, h4, h5, h6,
+  p, span, div, label, a, li,
+  .popup-content,
+  .popup-content *,
+  .current-page-info,
+  .current-page-info *,
+  .quick-settings,
+  .quick-settings *,
+  .detail-label,
+  .detail-value,
+  .site-text,
+  .setting-label {
+    color: #000000 !important;
+    background-color: transparent !important;
+    text-shadow: none !important;
+  }
+}
+
+/* Header text stays white in both themes */
+.popup-header,
+.popup-header * {
+  color: #ffffff !important;
+}
+
+/* Light mode button text */
+@media (prefers-color-scheme: light), (prefers-color-scheme: no-preference) {
+  .action-btn span {
+    color: inherit !important;
+  }
+
+  .action-btn.primary span {
+    color: #ffffff !important;
+  }
+
+  .action-btn.secondary span {
+    color: #333333 !important;
+  }
+
+  /* Footer text */
+  .popup-footer .link-btn {
+    color: #2196f3 !important;
+  }
+
+  .popup-footer .version {
+    color: #999999 !important;
+  }
+}
+
+/* Container styles - light mode default */
+.popup-container {
+  background: #ffffff !important;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e0e0e0;
+}
+
+/* Header section - keep colorful */
+.popup-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  color: #ffffff !important;
+  padding: 20px;
+}
+
+.popup-header,
+.popup-header * {
+  color: #ffffff !important;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo h1 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff !important;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4caf50;
+}
+
+/* Main content - light mode default */
+.popup-content {
+  padding: 20px;
+  background: #ffffff !important;
+}
+
+/* Page info section - light mode default */
+.current-page-info {
+  background: #f8f9fa !important;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid #e0e0e0;
+}
+
+.info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.info-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #000000 !important;
+}
+
+.site-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.site-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #4caf50;
+}
+
+.site-text {
+  color: #000000 !important;
+  font-weight: 500;
+}
+
+.page-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.detail-label {
+  color: #000000 !important;
+  font-weight: 500;
+}
+
+.detail-value {
+  color: #000000 !important;
+}
+
+/* Quick settings */
+.quick-settings {
+  margin-bottom: 20px;
+  background: transparent !important;
+}
+
+.quick-settings h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: #000000 !important;
+}
+
+.setting-item {
+  margin-bottom: 12px;
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #000000 !important;
+}
+
+.setting-label input[type="checkbox"] {
+  display: none;
+}
+
+.checkmark {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #000000 !important;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  background: #ffffff !important;
+}
+
+.setting-label input[type="checkbox"]:checked + .checkmark {
+  background: #2196f3 !important;
+  border-color: #2196f3 !important;
+}
+
+.setting-label input[type="checkbox"]:checked + .checkmark::after {
+  content: '✓';
+  color: #ffffff !important;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+/* Enhanced checkbox visibility in dark mode */
+@media (prefers-color-scheme: dark) {
+  .checkmark {
+    background: #555555 !important;
+    border: 2px solid #999999 !important;
+  }
+  
+  .setting-label input[type="checkbox"]:checked + .checkmark {
+    background: #60a5fa !important;
+    border-color: #60a5fa !important;
+  }
+  
+  .setting-label input[type="checkbox"]:checked + .checkmark::after {
+    color: #ffffff !important;
+    text-shadow: none !important;
+  }
+}
+
+/* Focus states for better accessibility */
+.setting-label input[type="checkbox"]:focus + .checkmark {
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .setting-label input[type="checkbox"]:focus + .checkmark {
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.6) !important;
+  }
+}
+
+/* Action buttons */
+.quick-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.action-btn.primary {
+  background: #2196f3 !important;
+  color: #ffffff !important;
+}
+
+.action-btn.secondary {
+  background: #f5f5f5 !important;
+  color: #000000 !important;
+  border: 1px solid #e0e0e0;
+}
+
+/* Footer - light mode default */
+.popup-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: #f8f9fa !important;
+  border-top: 1px solid #e0e0e0;
+}
+
+.popup-footer .link-btn {
+  color: #2196f3 !important;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.popup-footer .version {
+  color: #666666 !important;
+  font-size: 12px;
+}
+
+/* Notification */
+.notification {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  background: #333;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1000;
+  animation: slideDown 0.3s ease;
+}
+
+.notification.success {
+  background: #4caf50;
+}
+
+.notification.error {
+  background: #f44336;
+}
+
+.notification-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 10px;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  body {
+    width: 100vw;
+  }
+  
+  .quick-actions {
+    flex-direction: column;
+  }
+  
+  .action-btn {
+    width: 100%;
+  }
+}
+
+/* Dark mode support - Clean implementation */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #2a2a2a !important;
+    color: #f0f0f0 !important;
+  }
+  
+  .popup-container {
+    background: #3a3a3a !important;
+    border: 1px solid #555555;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+  
+  .current-page-info {
+    background: #4a4a4a !important;
+    border-color: #666666;
+  }
+  
+  .popup-content {
+    background: #3a3a3a !important;
+  }
+  
+  .popup-footer {
+    background: #4a4a4a !important;
+    border-top-color: #666666;
+  }
+  
+  .action-btn.secondary {
+    background: #555555 !important;
+    color: #f0f0f0 !important;
+    border-color: #777777;
+  }
+  
+  .action-btn.secondary:hover {
+    background: #666666 !important;
+    color: #ffffff !important;
+  }
+  
+  .checkmark {
+    background: #555555 !important;
+    border-color: #777777 !important;
+  }
+  
+  kbd {
+    background: #555555 !important;
+    border-color: #777777 !important;
+    color: #f0f0f0 !important;
+  }
+  
+  /* High contrast text for dark mode */
+  .current-page-info h3,
+  .quick-settings h3,
+  .shortcut-info h3 {
+    color: #ffffff !important;
+    font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  }
+
+  .setting-label {
+    color: #f0f0f0 !important;
+  }
+  
+  .detail-item .detail-label {
+    color: #e0e0e0 !important;
+    font-weight: 500;
+  }
+
+  .detail-item .detail-value {
+    color: #ffffff !important;
+    font-weight: 500;
+  }
+  
+  .site-text {
+    color: #f0f0f0 !important;
+    font-weight: 500;
+  }
+  
+  .shortcut-desc {
+    color: #e0e0e0 !important;
+  }
+  
+  /* Footer links in dark mode */
+  .popup-footer .link-btn {
+    color: #60a5fa !important;
+  }
+  
+  .popup-footer .version {
+    color: #a0a0a0 !important;
+  }
+  
+  /* Button text in dark mode */
+  .action-btn.primary span {
+    color: #ffffff !important;
+  }
+
+  .action-btn.secondary span {
+    color: #f0f0f0 !important;
+  }
+}
+

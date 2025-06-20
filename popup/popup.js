@@ -1,0 +1,357 @@
+// Popup script for YouTube Screenshot Helper
+console.log('YouTube Screenshot Helper: Popup loaded');
+
+class PopupManager {
+  constructor() {
+    this.currentTab = null;
+    this.settings = {};
+    this.init();
+  }
+
+  async init() {
+    try {
+      // Get current tab
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      this.currentTab = tabs[0];
+
+      // Load settings
+      await this.loadSettings();
+
+      // Setup UI
+      this.setupEventListeners();
+      this.updateUI();
+      
+      // Check extension status
+      await this.checkExtensionStatus();
+      
+    } catch (error) {
+      console.error('Popup initialization failed:', error);
+      this.showNotification('Failed to initialize popup', 'error');
+    }
+  }
+
+  async loadSettings() {
+    try {
+      const result = await chrome.storage.sync.get();
+      this.settings = {
+        enabledSites: ['youtube.com', 'vimeo.com', 'twitch.tv'],
+        fullscreenShortcut: 'shift+enter',
+        fullscreenOnly: false,
+        autoHideControls: true,
+        uploadToCloud: false,
+        annotationMode: false,
+        cloudService: 'none',
+        screenshotQuality: 0.9,
+        filenameTemplate: '', // Empty means use title builder
+        debugMode: false,
+        showNotifications: true,
+        captureDelay: 100,
+        preventDefault: true,
+        // Theme settings
+        themePreference: 'auto',
+        // Title builder settings
+        includeYoutube: true,
+        includeVideoTitle: true,
+        includeChannelName: false,
+        includePlaylistName: false,
+        includeChapter: false,
+        includeTimestamp: true,
+        includeDate: true,
+        includeTime: false,
+        titleSeparator: ' - ',
+        // Folder organization settings
+        organizeFolders: 'none',
+        customFolderPattern: '{channel}/{date}',
+        // New settings
+        showFullscreenPopup: false,
+        fullscreenPopupDuration: 3,
+        useCustomPath: false,
+        customDownloadPath: '',
+        ...result
+      };
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+  }
+
+  setupEventListeners() {
+    // Capture screenshot button
+    document.getElementById('captureBtn').addEventListener('click', () => {
+      this.captureScreenshot();
+    });
+
+    // Settings button
+    document.getElementById('settingsBtn').addEventListener('click', () => {
+      chrome.runtime.openOptionsPage();
+      window.close();
+    });
+
+    // Quick settings toggles
+    document.getElementById('fullscreenOnlyToggle').addEventListener('change', (e) => {
+      this.updateSetting('fullscreenOnly', e.target.checked);
+    });
+
+    document.getElementById('autoHideToggle').addEventListener('change', (e) => {
+      this.updateSetting('autoHideControls', e.target.checked);
+    });
+
+    document.getElementById('annotationToggle').addEventListener('change', (e) => {
+      this.updateSetting('annotationMode', e.target.checked);
+    });
+
+    // Help and feedback buttons
+    document.getElementById('helpBtn').addEventListener('click', () => {
+      chrome.tabs.create({ url: 'https://github.com/your-repo/youtube-screenshot-helper#readme' });
+    });
+
+    document.getElementById('feedbackBtn').addEventListener('click', () => {
+      chrome.tabs.create({ url: 'https://github.com/your-repo/youtube-screenshot-helper/issues' });
+    });
+
+    // Notification close
+    document.querySelector('.notification-close').addEventListener('click', () => {
+      this.hideNotification();
+    });
+  }
+
+  updateUI() {
+    // Update quick settings checkboxes
+    document.getElementById('fullscreenOnlyToggle').checked = this.settings.fullscreenOnly;
+    document.getElementById('autoHideToggle').checked = this.settings.autoHideControls;
+    document.getElementById('annotationToggle').checked = this.settings.annotationMode;
+
+    // Update shortcuts display
+    document.getElementById('currentShortcut').textContent = 'Ctrl+Shift+S';
+    document.getElementById('alternativeShortcut').textContent = this.getKeyDisplayName(this.settings.fullscreenShortcut || 'shift+enter');
+
+    // Update current site info
+    if (this.currentTab && this.currentTab.url) {
+      const url = new URL(this.currentTab.url);
+      document.getElementById('currentSite').textContent = url.hostname;
+      
+      // Check if site is supported
+      const isSupported = this.settings.enabledSites.some(site => 
+        url.hostname.includes(site)
+      );
+      
+      const siteIndicator = document.querySelector('.site-indicator');
+      const siteText = document.querySelector('.site-text');
+      
+      if (isSupported) {
+        siteIndicator.classList.remove('unsupported');
+        siteText.textContent = 'Supported';
+      } else {
+        siteIndicator.classList.add('unsupported');
+        siteText.textContent = 'Not supported';
+      }
+    }
+  }
+
+  getKeyDisplayName(keyCode) {
+    const keyMap = {
+      'space': 'Spacebar',
+      'enter': 'Enter',
+      'shift+enter': 'Shift + Enter',
+      'shift+space': 'Shift + Spacebar',
+      'shift+keys': 'Shift + S',
+      'shift+keya': 'Shift + A',
+      'shift+keyb': 'Shift + B',
+      'shift+keyc': 'Shift + C',
+      'shift+keyd': 'Shift + D',
+      'shift+keye': 'Shift + E',
+      'shift+keyf': 'Shift + F',
+      'shift+keyg': 'Shift + G',
+      'Shift+KeyH': 'Shift+H',
+      'Shift+KeyI': 'Shift+I',
+      'Shift+KeyJ': 'Shift+J',
+      'Shift+KeyK': 'Shift+K',
+      'Shift+KeyL': 'Shift+L',
+      'Shift+KeyM': 'Shift+M',
+      'Shift+KeyN': 'Shift+N',
+      'Shift+KeyO': 'Shift+O',
+      'Shift+KeyP': 'Shift+P',
+      'Shift+KeyQ': 'Shift+Q',
+      'Shift+KeyR': 'Shift+R',
+      'Shift+KeyT': 'Shift+T',
+      'Shift+KeyU': 'Shift+U',
+      'Shift+KeyV': 'Shift+V',
+      'Shift+KeyW': 'Shift+W',
+      'Shift+KeyX': 'Shift+X',
+      'Shift+KeyY': 'Shift+Y',
+      'Shift+KeyZ': 'Shift+Z',
+      // Legacy support for non-shift keys
+      'KeyS': 'S',
+      'KeyA': 'A',
+      'KeyB': 'B',
+      'KeyC': 'C',
+      'KeyD': 'D',
+      'KeyE': 'E',
+      'KeyF': 'F',
+      'KeyG': 'G',
+      'KeyH': 'H',
+      'KeyI': 'I',
+      'KeyJ': 'J',
+      'KeyK': 'K',
+      'KeyL': 'L',
+      'KeyM': 'M',
+      'KeyN': 'N',
+      'KeyO': 'O',
+      'KeyP': 'P',
+      'KeyQ': 'Q',
+      'KeyR': 'R',
+      'KeyT': 'T',
+      'KeyU': 'U',
+      'KeyV': 'V',
+      'KeyW': 'W',
+      'KeyX': 'X',
+      'KeyY': 'Y',
+      'KeyZ': 'Z'
+    };
+    
+    return keyMap[keyCode] || keyCode;
+  }
+
+  async checkExtensionStatus() {
+    if (!this.currentTab) return;
+
+    try {
+      // Send message to content script to get status
+      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
+        action: 'getStatus'
+      });
+
+      this.updateStatusIndicator(response);
+      this.updatePageInfo(response);
+      
+    } catch (error) {
+      console.log('Content script not loaded or tab not supported');
+      this.updateStatusIndicator({ initialized: false });
+      this.updatePageInfo({ 
+        initialized: false, 
+        videoFound: false, 
+        fullscreen: false 
+      });
+    }
+  }
+
+  updateStatusIndicator(status) {
+    const statusDot = document.querySelector('.status-dot');
+    const statusText = document.querySelector('.status-text');
+    
+    if (status && status.initialized) {
+      statusDot.className = 'status-dot active';
+      statusText.textContent = 'Active';
+    } else {
+      statusDot.className = 'status-dot inactive';
+      statusText.textContent = 'Inactive';
+    }
+  }
+
+  updatePageInfo(status) {
+    // Update video status
+    const videoStatus = document.getElementById('videoStatus');
+    if (status && status.videoFound) {
+      videoStatus.textContent = 'Found';
+      videoStatus.style.color = '#4caf50';
+    } else {
+      videoStatus.textContent = 'Not found';
+      videoStatus.style.color = '#f44336';
+    }
+
+    // Update fullscreen status
+    const fullscreenStatus = document.getElementById('fullscreenStatus');
+    if (status && status.fullscreen) {
+      fullscreenStatus.textContent = 'Yes';
+      fullscreenStatus.style.color = '#4caf50';
+    } else {
+      fullscreenStatus.textContent = 'No';
+      fullscreenStatus.style.color = '#666';
+    }
+
+    // Enable/disable capture button based on conditions
+    const captureBtn = document.getElementById('captureBtn');
+    const canCapture = status && status.initialized && 
+                      (status.videoFound || !this.settings.fullscreenOnly || status.fullscreen);
+    
+    captureBtn.disabled = !canCapture;
+  }
+
+  async captureScreenshot() {
+    if (!this.currentTab) {
+      this.showNotification('No active tab found', 'error');
+      return;
+    }
+
+    try {
+      // Send message to content script
+      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
+        action: 'captureScreenshot'
+      });
+
+      if (response && response.success) {
+        this.showNotification('Screenshot captured successfully!', 'success');
+        window.close();
+      } else {
+        throw new Error(response?.error || 'Failed to capture screenshot');
+      }
+      
+    } catch (error) {
+      console.error('Screenshot capture failed:', error);
+      this.showNotification(error.message || 'Failed to capture screenshot', 'error');
+    }
+  }
+
+  async updateSetting(key, value) {
+    try {
+      this.settings[key] = value;
+      await chrome.storage.sync.set({ [key]: value });
+      
+      // Notify content script of settings change
+      if (this.currentTab) {
+        chrome.tabs.sendMessage(this.currentTab.id, {
+          action: 'updateSettings'
+        }).catch(() => {
+          // Content script might not be loaded, that's ok
+        });
+      }
+      
+      this.showNotification('Setting updated', 'success');
+      
+    } catch (error) {
+      console.error('Failed to update setting:', error);
+      this.showNotification('Failed to update setting', 'error');
+    }
+  }
+
+  showNotification(message, type = 'info') {
+    const notification = document.getElementById('notification');
+    const notificationText = document.querySelector('.notification-text');
+    
+    notificationText.textContent = message;
+    notification.className = `notification ${type}`;
+    notification.style.display = 'flex';
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      this.hideNotification();
+    }, 3000);
+  }
+
+  hideNotification() {
+    const notification = document.getElementById('notification');
+    notification.style.display = 'none';
+  }
+}
+
+// Initialize popup when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+  new PopupManager();
+});
+
+// Handle extension updates
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'popupUpdate') {
+    // Handle any updates from background script
+    console.log('Popup update received:', message);
+  }
+});
