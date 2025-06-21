@@ -1,6 +1,6 @@
 {
   "name": "youtube-screenshot-helper",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Enhanced screenshot tool for YouTube and video sites - hide controls and capture clean frames with a single keypress",
   "main": "manifest.json",
   "scripts": {
@@ -20,21 +20,21 @@
     "twitch",
     "screen-capture"
   ],
-  "author": "YouTube Screenshot Helper Team",
+  "author": "PixelCode01",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/youtube-screenshot-helper.git"
+    "url": "https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension.git"
   },
   "bugs": {
-    "url": "https://github.com/your-username/youtube-screenshot-helper/issues"
+    "url": "https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/issues"
   },
-  "homepage": "https://github.com/your-username/youtube-screenshot-helper#readme",
+  "homepage": "https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension#readme",
   "devDependencies": {},
   "dependencies": {},
   "browser_specific_settings": {
     "gecko": {
-      "id": "youtube-screenshot-helper@example.com",
+      "id": "youtube-screenshot-helper@pixelcode01.dev",
       "strict_min_version": "109.0"
     }
   }

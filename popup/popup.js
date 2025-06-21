@@ -105,7 +105,7 @@ class PopupManager {
     });
 
     document.getElementById('feedbackBtn').addEventListener('click', () => {
-      chrome.tabs.create({ url: 'https://github.com/your-repo/youtube-screenshot-helper/issues' });
+      chrome.tabs.create({ url: 'https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/issues' });
     });
 
     // Notification close
