@@ -35,25 +35,51 @@ class StorageManager {
       customDownloadPath: '',
       // Folder organization settings
       organizeFolders: 'none',
-      customFolderPattern: '{channel}/{date}'
+      customFolderPattern: '{channel}/{date}',
+      // Screenshot preview settings
+      disablePreviewByDefault: false
     };
   }
 
   async getSettings() {
     try {
+      console.log('=== STORAGE MANAGER: GET SETTINGS DEBUG ===');
+      
       // Check if extension context is still valid
       if (!this.isExtensionContextValid()) {
         console.warn('Extension context invalidated, using default settings');
         return this.defaultSettings;
       }
       
+      console.log('Fetching settings from chrome.storage.sync...');
       const settings = await chrome.storage.sync.get(this.defaultSettings);
-      return { ...this.defaultSettings, ...settings };
+      
+      console.log('Raw settings from storage:', settings);
+      console.log('Folder organization specific settings:');
+      console.log('- organizeFolders:', settings.organizeFolders);
+      console.log('- customFolderPattern:', settings.customFolderPattern);
+      console.log('- useCustomPath:', settings.useCustomPath);
+      console.log('- customDownloadPath:', settings.customDownloadPath);
+      
+      const mergedSettings = { ...this.defaultSettings, ...settings };
+      console.log('Final merged settings (folder org):', {
+        organizeFolders: mergedSettings.organizeFolders,
+        customFolderPattern: mergedSettings.customFolderPattern,
+        useCustomPath: mergedSettings.useCustomPath,
+        customDownloadPath: mergedSettings.customDownloadPath
+      });
+      console.log('=== STORAGE MANAGER: GET SETTINGS END ===');
+      
+      return mergedSettings;
     } catch (error) {
       console.error('Error getting settings:', error);
       
       // If extension context is invalidated, return defaults
-      if (error.message && error.message.includes('Extension context invalidated')) {
+      if (error.message && (
+          error.message.includes('Extension context invalidated') ||
+          error.message.includes('receiving end does not exist') ||
+          error.message.includes('Could not establish connection')
+        )) {
         console.warn('Extension context invalidated, using default settings');
         return this.defaultSettings;
       }
@@ -69,20 +95,19 @@ class StorageManager {
         return false;
       }
       
-      // Try to access runtime.id safely
-      if (!chrome.runtime.id) {
+      // Check if extension runtime is still connected
+      if (chrome.runtime.id === undefined) {
         return false;
       }
       
-      // Additional check for storage API
+      // Try to access chrome.storage to see if it's available
       if (!chrome.storage || !chrome.storage.sync) {
         return false;
       }
       
       return true;
     } catch (error) {
-      // Any error accessing chrome APIs means context is invalid
-      console.warn('Extension context check failed:', error.message);
+      console.error('Extension context validation failed:', error);
       return false;
     }
   }

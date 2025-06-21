@@ -5,6 +5,95 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YouTube Screenshot Helper - Settings</title>
   <link rel="stylesheet" href="options.css">
+  <style>
+    /* Enhanced folder organization styles */
+    .variable-btn, .preset-btn {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      text-align: center;
+    }
+    
+    .variable-btn:hover, .preset-btn:hover {
+      background: #e9ecef;
+      border-color: #adb5bd;
+      transform: translateY(-1px);
+    }
+    
+    .variable-btn:active, .preset-btn:active {
+      transform: translateY(0);
+      background: #dee2e6;
+    }
+    
+    .variable-btn {
+      color: #495057;
+      font-weight: 500;
+    }
+    
+    .preset-btn {
+      color: #0f5132;
+      background: #d1e7dd;
+      border-color: #a3cfbb;
+    }
+    
+    .preset-btn:hover {
+      background: #b6d5c1;
+      border-color: #8bb19c;
+    }
+    
+    .pattern-helpers {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 12px;
+    }
+    
+    /* Dark mode support for new elements */
+    [data-theme="dark"] .variable-btn,
+    [data-theme="dark"] .preset-btn {
+      background: #495057;
+      border-color: #6c757d;
+      color: #f8f9fa;
+    }
+    
+    [data-theme="dark"] .variable-btn:hover,
+    [data-theme="dark"] .preset-btn:hover {
+      background: #6c757d;
+      border-color: #adb5bd;
+    }
+    
+    [data-theme="dark"] .preset-btn {
+      background: #1e4a2e;
+      color: #a3cfbb;
+      border-color: #2d5a3d;
+    }
+    
+    [data-theme="dark"] .preset-btn:hover {
+      background: #2d5a3d;
+      border-color: #4a7a5a;
+    }
+    
+    [data-theme="dark"] .pattern-helpers {
+      background: #343a40;
+      border-color: #495057;
+    }
+    
+    [data-theme="dark"] .folder-preview {
+      background: linear-gradient(135deg, #495057 0%, #343a40 100%) !important;
+      border-color: #6c757d !important;
+    }
+    
+    [data-theme="dark"] #folderPreviewPath {
+      background: #212529 !important;
+      border-color: #495057 !important;
+      color: #a3cfbb !important;
+    }
+  </style>
 </head>
 <body>
   <!-- Theme Toggle button -->
@@ -202,8 +291,11 @@
                 <option value="playlist">By Playlist Name (fallback to Channel)</option>
                 <option value="video">By Video Title</option>
                 <option value="date">By Date (YYYY-MM-DD)</option>
-                <option value="channel-date">By Channel/Date</option>
-                <option value="custom">Custom Pattern</option>
+                <option value="channel-date">By Channel → Date</option>
+                <option value="channel-video">By Channel → Video Title</option>
+                <option value="date-channel">By Date → Channel</option>
+                <option value="channel-playlist">By Channel → Playlist</option>
+                <option value="custom">Custom Pattern (Advanced)</option>
               </select>
             </div>
           </div>
@@ -211,15 +303,46 @@
           <div class="setting-item" id="customFolderPatternContainer" style="display: none;">
             <div class="setting-info">
               <label for="customFolderPattern">Custom Folder Pattern</label>
-              <p class="setting-desc">Use variables like {channel}, {playlist}, {date}, {title}. Example: {channel}/{playlist}</p>
+              <p class="setting-desc">Create your own folder structure using variables. Use "/" to create subfolders.</p>
             </div>
             <div class="setting-control">
               <input type="text" id="customFolderPattern" placeholder="{channel}/{date}" value="{channel}/{date}">
+              <div class="pattern-helpers" style="margin-top: 10px;">
+                <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                  <strong>💡 Available Variables:</strong>
+                </div>
+                <div class="variable-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px;">
+                  <button type="button" class="variable-btn" data-variable="{channel}">📺 Channel</button>
+                  <button type="button" class="variable-btn" data-variable="{playlist}">📋 Playlist</button>
+                  <button type="button" class="variable-btn" data-variable="{title}">🎬 Video Title</button>
+                  <button type="button" class="variable-btn" data-variable="{date}">📅 Date</button>
+                  <button type="button" class="variable-btn" data-variable="{time}">⏰ Time</button>
+                  <button type="button" class="variable-btn" data-variable="{site}">🌐 Site</button>
+                </div>
+                <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                  <strong>📂 Quick Patterns:</strong>
+                </div>
+                <div class="preset-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px;">
+                  <button type="button" class="preset-btn" data-pattern="{channel}/{date}">Channel/Date</button>
+                  <button type="button" class="preset-btn" data-pattern="{channel}/{playlist}">Channel/Playlist</button>
+                  <button type="button" class="preset-btn" data-pattern="{channel}/{title}">Channel/Video</button>
+                  <button type="button" class="preset-btn" data-pattern="{date}/{channel}">Date/Channel</button>
+                  <button type="button" class="preset-btn" data-pattern="{channel}/{date}/{title}">Channel/Date/Video</button>
+                  <button type="button" class="preset-btn" data-pattern="{site}/{channel}/{playlist}">Site/Channel/Playlist</button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="folder-preview" id="folderPreview" style="margin-top: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px; font-family: monospace; display: none;">
-            <strong>Folder Preview:</strong> <span id="folderPreviewPath">Screenshots/Channel Name/Screenshot.png</span>
+          <div class="folder-preview" id="folderPreview" style="margin-top: 15px; padding: 15px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; border: 1px solid #dee2e6; font-family: monospace; display: none;">
+            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+              <span style="font-weight: bold; color: #495057;">📂 Folder Preview:</span>
+              <button type="button" id="refreshPreview" style="margin-left: auto; background: #007bff; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">Refresh</button>
+            </div>
+            <div id="folderPreviewPath" style="background: white; padding: 8px; border-radius: 4px; border: 1px solid #ced4da; color: #0f5132; font-weight: 500;">Downloads/TechChannel/2025-01-20/screenshot.png</div>
+            <div style="font-size: 11px; color: #6c757d; margin-top: 6px;">
+              💡 This shows where your next screenshot will be saved
+            </div>
           </div>
         </div>
 
@@ -241,11 +364,20 @@
 
           <div class="setting-item" id="customPathContainer" style="display: none;">
             <div class="setting-info">
-              <label for="customDownloadPath">Default Save Path</label>
-              <p class="setting-desc">Default folder path (leave empty to prompt each time)</p>
+              <label for="customDownloadPath">Custom Save Path</label>
+              <p class="setting-desc">
+                <strong>📁 Relative paths only</strong> - Files will be saved within your Downloads folder.<br>
+                <br>
+                <strong>✅ Examples:</strong><br>
+                • <code>Screenshots</code> → <code>Downloads/Screenshots/</code><br>
+                • <code>YouTube/Captures</code> → <code>Downloads/YouTube/Captures/</code><br>
+                • <code>Media/2025</code> → <code>Downloads/Media/2025/</code><br>
+                <br>
+                <strong>⚠️ Note:</strong> Absolute paths like <code>/home/user/Pictures/</code> or <code>C:\Users\Name\Pictures\</code> are not supported due to browser security restrictions.
+              </p>
             </div>
             <div class="setting-control">
-              <input type="text" id="customDownloadPath" placeholder="e.g. Screenshots/YouTube">
+              <input type="text" id="customDownloadPath" placeholder="e.g., Screenshots/YouTube or Media/Captures">
               <button class="btn btn-secondary" id="browsePathBtn" style="margin-left: 10px;">Browse</button>
             </div>
           </div>
@@ -431,9 +563,7 @@
             <div class="setting-control">
               <select id="cloudService">
                 <option value="none">None</option>
-                <option value="imgur">Imgur (Free, No Setup Required)</option>
                 <option value="google-drive">Google Drive (Requires Setup)</option>
-                <option value="onedrive">OneDrive (Requires Setup)</option>
               </select>
             </div>
           </div>
@@ -493,6 +623,23 @@
             </div>
             <div class="setting-control">
               <input type="number" id="captureDelay" min="0" max="1000" step="50" value="100">
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h2>📷 Screenshot Preview</h2>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="disablePreviewByDefault">Disable preview/annotation by default</label>
+              <p class="setting-desc">Skip the annotation interface and directly save screenshots (can still be enabled with Shift+click)</p>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="disablePreviewByDefault">
+                <span class="toggle-slider"></span>
+              </label>
             </div>
           </div>
         </div>

@@ -33,7 +33,7 @@ class ScreenshotManager {
     }
   }
 
-  async captureScreenshot() {
+  async captureScreenshot(forcePreview = false, skipAnnotation = false) {
     console.log('ScreenshotManager: Starting screenshot capture');
     
     try {
@@ -77,7 +77,7 @@ class ScreenshotManager {
 
       // Step 7: Process and download the screenshot
       if (dataUrl) {
-        await this.processScreenshot(dataUrl);
+        await this.processScreenshot(dataUrl, forcePreview, skipAnnotation);
         console.log('ScreenshotManager: Screenshot captured successfully');
       } else {
         throw new Error('Failed to capture screenshot');
@@ -225,7 +225,7 @@ class ScreenshotManager {
     return this.canvas.toDataURL('image/png', this.settings.screenshotQuality || 0.9);
   }
 
-  async processScreenshot(dataUrl) {
+  async processScreenshot(dataUrl, forcePreview = false, skipAnnotation = false) {
     // Refresh settings to get latest title builder preferences
     await this.updateSettings();
     
@@ -236,8 +236,11 @@ class ScreenshotManager {
     
     console.log('Generated filename:', filename);
     
-    // If annotation mode is enabled, show annotation interface
-    if (this.settings.annotationMode) {
+    // Determine whether to show preview/annotation interface
+    // Skip annotation if explicitly requested (e.g., for Shift+Enter)
+    const shouldShowPreview = !skipAnnotation && this.shouldShowPreview(forcePreview);
+    
+    if (shouldShowPreview) {
       this.showAnnotationInterface(dataUrl, filename);
     } else {
       // Direct download
@@ -252,44 +255,108 @@ class ScreenshotManager {
     this.showNotification(`Screenshot saved as: ${filename}`, 'success');
   }
 
+  shouldShowPreview(forcePreview = false) {
+    // If forced to show preview (e.g., Shift+click), always show
+    if (forcePreview) {
+      return true;
+    }
+    
+    // If preview is disabled by default, don't show annotation interface
+    if (this.settings.disablePreviewByDefault) {
+      return false;
+    }
+    
+    // Otherwise, show preview if annotation mode is enabled
+    return this.settings.annotationMode;
+  }
+
   async downloadScreenshot(dataUrl, filename) {
     try {
+      console.log('=== ScreenshotManager: DOWNLOAD DEBUG START ===');
       console.log('ScreenshotManager: Starting download process');
-      console.log('Settings:', this.settings);
+      console.log('Initial filename:', filename);
+      
+      // Validate settings are loaded
+      if (!this.settings) {
+        console.error('CRITICAL: Settings not loaded!');
+        this.settings = await window.storageManager.getSettings();
+        console.log('Reloaded settings:', this.settings);
+      }
+      
+      console.log('Current settings state:');
+      console.log('- organizeFolders:', this.settings.organizeFolders);
+      console.log('- useCustomPath:', this.settings.useCustomPath);
+      console.log('- customDownloadPath:', this.settings.customDownloadPath);
+      console.log('- customFolderPattern:', this.settings.customFolderPattern);
       
       // Generate folder path if folder organization is enabled
       let folderPath = '';
       if (this.settings.organizeFolders && this.settings.organizeFolders !== 'none') {
-        console.log('Folder organization enabled:', this.settings.organizeFolders);
+        console.log('✓ Folder organization enabled:', this.settings.organizeFolders);
         
         const metadata = this.extractVideoMetadata();
-        console.log('Extracted metadata:', metadata);
+        console.log('Extracted metadata:');
+        console.log('- site:', metadata.site);
+        console.log('- title:', metadata.title);
+        console.log('- channelName:', metadata.channelName);
+        console.log('- playlistName:', metadata.playlistName);
+        console.log('- currentTime:', metadata.currentTime);
         
         folderPath = this.generateFolderPath(metadata);
-        console.log('Generated folder path:', folderPath);
+        console.log('✓ Generated folder path:', folderPath);
+        
+        if (!folderPath) {
+          console.warn('WARNING: generateFolderPath returned empty string!');
+        }
       } else {
-        console.log('Folder organization disabled or set to none');
+        console.log('⚠️ Folder organization disabled or set to none');
       }
 
-      // Send message to background script to handle download
-      console.log('Sending download message to background script');
-      const response = await chrome.runtime.sendMessage({
+      // Prepare download message
+      const downloadMessage = {
         action: 'downloadScreenshot',
         dataUrl: dataUrl,
         filename: filename,
         folderPath: folderPath
-      });
+      };
+      
+      console.log('Sending download message to background script:');
+      console.log('- action:', downloadMessage.action);
+      console.log('- filename:', downloadMessage.filename);
+      console.log('- folderPath:', downloadMessage.folderPath);
+      console.log('- dataUrl length:', downloadMessage.dataUrl ? downloadMessage.dataUrl.length : 'null');
+      
+      const response = await chrome.runtime.sendMessage(downloadMessage);
+      
+      console.log('Background script response:', response);
 
-      if (!response.success) {
-        throw new Error(response.error);
+      if (!response || !response.success) {
+        throw new Error(response?.error || 'Unknown download error');
       }
       
-      console.log('Download completed successfully');
+      console.log('✓ Download completed successfully with ID:', response.downloadId);
+      console.log('=== ScreenshotManager: DOWNLOAD DEBUG END ===');
     } catch (error) {
-      console.error('Download failed:', error);
-      // Fallback to direct download
+      console.error('=== DOWNLOAD ERROR ===');
+      console.error('Error details:', error);
+      console.error('Error stack:', error.stack);
+      
+      // Check if this is an extension context invalidation error
+      if (error.message && (
+          error.message.includes('Extension context invalidated') ||
+          error.message.includes('receiving end does not exist') ||
+          error.message.includes('Could not establish connection')
+        )) {
+        console.log('Extension context invalidated - using fallback download');
+        this.showNotification('Extension was reloaded, using direct download fallback', 'warning');
+      } else {
+        console.log('Download failed - using fallback download');
+        this.showNotification('Download failed, using direct download fallback', 'warning');
+      }
+      
       console.log('Falling back to direct download');
       this.fallbackDownload(dataUrl, filename);
+      console.log('=== DOWNLOAD ERROR END ===');
     }
   }
 
@@ -299,87 +366,36 @@ class ScreenshotManager {
   async uploadToCloud(dataUrl, filename) {
     try {
       const service = this.settings.cloudService;
-      console.log(`Uploading to cloud service: ${service}`);
+      console.log(`🔄 Uploading to cloud service: ${service}`);
 
-      if (service === 'imgur') {
-        // Use simplified Imgur upload
-        const result = await this.uploadToImgur(dataUrl, filename);
-        if (result.success) {
-          this.showNotification(`Screenshot uploaded to Imgur: ${result.url}`, 'success');
-          console.log('Imgur upload successful:', result);
-          
-          // Copy URL to clipboard if possible
-          if (navigator.clipboard) {
-            try {
-              await navigator.clipboard.writeText(result.url);
-              this.showNotification('Image URL copied to clipboard!', 'info');
-            } catch (e) {
-              console.log('Failed to copy to clipboard:', e);
-            }
-          }
-          
-          return result;
-        } else {
-          throw new Error(result.error || 'Upload failed');
+      if (service === 'google-drive') {
+        // Google Drive upload (requires authentication)
+        if (!window.cloudStorageManager) {
+          throw new Error('Cloud storage manager not available. Please check extension setup.');
         }
+        
+        const result = await window.cloudStorageManager.uploadToGoogleDrive(dataUrl, filename);
+        this.showNotification('Screenshot uploaded to Google Drive!', 'success');
+        return result;
       } else {
-        throw new Error(`Cloud service ${service} not supported yet`);
+        throw new Error(`Cloud service "${service}" is not supported. Please select Google Drive.`);
       }
     } catch (error) {
-      console.error('Cloud upload failed:', error);
+      console.error('❌ Cloud upload failed:', error);
       this.showNotification(`Cloud upload failed: ${error.message}`, 'error');
       throw error;
     }
   }
 
-  async uploadToImgur(dataUrl, filename) {
-    try {
-      // Convert data URL to base64
-      const base64Data = dataUrl.split(',')[1];
-      
-      const response = await fetch('https://api.imgur.com/3/image', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Client-ID 546c25a59c58ad7', // Public Imgur client ID
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image: base64Data,
-          type: 'base64',
-          title: filename.replace('.png', ''),
-          description: `Screenshot captured with YouTube Screenshot Helper on ${new Date().toLocaleDateString()}`
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        return {
-          success: true,
-          url: result.data.link,
-          deleteUrl: `https://imgur.com/delete/${result.data.deletehash}`,
-          service: 'imgur',
-          id: result.data.id
-        };
-      } else {
-        throw new Error(result.data?.error || 'Invalid response from Imgur');
-      }
-    } catch (error) {
-      console.error('Imgur upload failed:', error);
-      return {
-        success: false,
-        error: error.message,
-        service: 'imgur'
-      };
-    }
-  }
+  // All Imgur upload methods removed - Imgur service no longer supported
 
   generateFolderPath(metadata) {
+    console.log('=== FOLDER PATH GENERATION DEBUG ===');
+    console.log('Input metadata:', metadata);
+    console.log('Settings organizeFolders:', this.settings.organizeFolders);
+    
     if (!this.settings.organizeFolders || this.settings.organizeFolders === 'none') {
+      console.log('✓ Folder organization is disabled, returning empty string');
       return '';
     }
 
@@ -388,36 +404,68 @@ class ScreenshotManager {
     switch (this.settings.organizeFolders) {
       case 'channel':
         folderName = metadata.channelName || 'Unknown Channel';
+        console.log('✓ Channel folder:', folderName);
         break;
       case 'playlist':
         folderName = metadata.playlistName || metadata.channelName || 'No Playlist';
+        console.log('✓ Playlist folder:', folderName);
         break;
       case 'video':
         folderName = metadata.title || 'Unknown Video';
+        console.log('✓ Video folder:', folderName);
         break;
       case 'date':
         folderName = new Date().toISOString().split('T')[0];
+        console.log('✓ Date folder:', folderName);
         break;
       case 'channel-date':
         const channelName = metadata.channelName || 'Unknown Channel';
         const date = new Date().toISOString().split('T')[0];
         folderName = `${channelName}/${date}`;
+        console.log('✓ Channel-Date folder:', folderName);
+        break;
+      case 'channel-video':
+        const channelName2 = metadata.channelName || 'Unknown Channel';
+        const videoTitle = metadata.title || 'Unknown Video';
+        folderName = `${channelName2}/${videoTitle}`;
+        console.log('✓ Channel-Video folder:', folderName);
+        break;
+      case 'date-channel':
+        const date2 = new Date().toISOString().split('T')[0];
+        const channelName3 = metadata.channelName || 'Unknown Channel';
+        folderName = `${date2}/${channelName3}`;
+        console.log('✓ Date-Channel folder:', folderName);
+        break;
+      case 'channel-playlist':
+        const channelName4 = metadata.channelName || 'Unknown Channel';
+        const playlistName = metadata.playlistName || 'No Playlist';
+        folderName = `${channelName4}/${playlistName}`;
+        console.log('✓ Channel-Playlist folder:', folderName);
         break;
       case 'custom':
         // Use custom folder pattern if specified
         if (this.settings.customFolderPattern) {
+          console.log('Using custom pattern:', this.settings.customFolderPattern);
           folderName = this.applyTemplate(this.settings.customFolderPattern, metadata);
           // Remove .png extension that applyTemplate adds
           folderName = folderName.replace('.png', '');
+          console.log('✓ Custom folder after template:', folderName);
+        } else {
+          console.warn('WARNING: Custom folder selected but no pattern provided!');
         }
         break;
       default:
+        console.error('ERROR: Unknown organization type:', this.settings.organizeFolders);
         return '';
     }
+
+    console.log('Raw folder name before cleaning:', folderName);
 
     // Clean folder name for file system compatibility
     // Split by forward slash to preserve folder hierarchy
     const pathParts = folderName.split('/');
+    console.log('Path parts before cleaning:', pathParts);
+    
     const cleanedParts = pathParts.map(part => 
       part
         .replace(/[<>:"|?*\\]/g, '_') // Remove illegal chars but keep forward slash
@@ -426,7 +474,11 @@ class ScreenshotManager {
         .substring(0, 50) // Limit each part length
     ).filter(part => part.length > 0); // Remove empty parts
     
+    console.log('Path parts after cleaning:', cleanedParts);
+    
     folderName = cleanedParts.join('/');
+    console.log('✓ Final cleaned folder path:', folderName);
+    console.log('=== FOLDER PATH GENERATION END ===');
 
     return folderName;
   }
@@ -467,6 +519,7 @@ class ScreenshotManager {
             <button class="tool-btn" data-tool="highlight" title="Highlight areas">🖍️ Highlight</button>
             <button class="tool-btn" data-tool="text" title="Add text">📝 Text</button>
             <button class="tool-btn" data-tool="pen" title="Free drawing">✏️ Pen</button>
+            <button class="tool-btn" data-tool="crop" title="Crop image">✂️ Crop</button>
           </div>
           <div class="tool-group">
             <label class="tool-group-label">Style:</label>
@@ -578,6 +631,16 @@ class ScreenshotManager {
         currentTool = btn.dataset.tool;
         overlay.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        
+        // Update canvas cursor based on tool
+        if (currentTool === 'crop') {
+          canvas.style.cursor = 'crosshair';
+          canvas.className = 'annotation-canvas crop-mode';
+        } else if (currentTool === 'pen') {
+          canvas.className = 'annotation-canvas pen-mode';
+        } else {
+          canvas.className = 'annotation-canvas arrow-mode';
+        }
       });
     });
 
@@ -605,8 +668,10 @@ class ScreenshotManager {
     canvas.addEventListener('mousedown', (e) => {
       isDrawing = true;
       const rect = canvas.getBoundingClientRect();
-      startX = e.clientX - rect.left;
-      startY = e.clientY - rect.top;
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      startX = (e.clientX - rect.left) * scaleX;
+      startY = (e.clientY - rect.top) * scaleY;
       
       // Store original image when starting to draw
       if (!originalImageData) {
@@ -623,8 +688,10 @@ class ScreenshotManager {
       if (!isDrawing) return;
       
       const rect = canvas.getBoundingClientRect();
-      const currentX = e.clientX - rect.left;
-      const currentY = e.clientY - rect.top;
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const currentX = (e.clientX - rect.left) * scaleX;
+      const currentY = (e.clientY - rect.top) * scaleY;
       
       // Set drawing properties
       const color = overlay.querySelector('.color-picker').value;
@@ -666,6 +733,41 @@ class ScreenshotManager {
         ctx.fill();
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1.0;
+      } else if (currentTool === 'crop') {
+        // Show crop preview
+        if (originalImageData) {
+          ctx.putImageData(originalImageData, 0, 0);
+        }
+        // Draw crop area with overlay
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Clear the crop selection area
+        const cropX = Math.min(startX, currentX);
+        const cropY = Math.min(startY, currentY);
+        const cropWidth = Math.abs(currentX - startX);
+        const cropHeight = Math.abs(currentY - startY);
+        
+        ctx.clearRect(cropX, cropY, cropWidth, cropHeight);
+        
+        // Draw crop border with dashed line
+        ctx.strokeStyle = '#ff0000';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeRect(cropX, cropY, cropWidth, cropHeight);
+        ctx.setLineDash([]); // Reset line dash
+        
+        // Draw corner handles
+        const handleSize = 8;
+        ctx.fillStyle = '#ff0000';
+        // Top-left
+        ctx.fillRect(cropX - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+        // Top-right  
+        ctx.fillRect(cropX + cropWidth - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
+        // Bottom-left
+        ctx.fillRect(cropX - handleSize/2, cropY + cropHeight - handleSize/2, handleSize, handleSize);
+        // Bottom-right
+        ctx.fillRect(cropX + cropWidth - handleSize/2, cropY + cropHeight - handleSize/2, handleSize, handleSize);
       } else if (currentTool === 'pen') {
         // Free drawing
         ctx.beginPath();
@@ -677,9 +779,48 @@ class ScreenshotManager {
       }
     });
 
-    canvas.addEventListener('mouseup', () => {
+    canvas.addEventListener('mouseup', (e) => {
       if (isDrawing) {
         isDrawing = false;
+        
+        // Handle crop tool
+        if (currentTool === 'crop') {
+          const rect = canvas.getBoundingClientRect();
+          const scaleX = canvas.width / rect.width;
+          const scaleY = canvas.height / rect.height;
+          const endX = (e.clientX - rect.left) * scaleX;
+          const endY = (e.clientY - rect.top) * scaleY;
+          
+          // Calculate crop dimensions
+          const cropX = Math.min(startX, endX);
+          const cropY = Math.min(startY, endY);
+          const cropWidth = Math.abs(endX - startX);
+          const cropHeight = Math.abs(endY - startY);
+          
+          if (cropWidth > 10 && cropHeight > 10) {
+            // Create new canvas with cropped content
+            const croppedCanvas = document.createElement('canvas');
+            const croppedCtx = croppedCanvas.getContext('2d');
+            croppedCanvas.width = cropWidth;
+            croppedCanvas.height = cropHeight;
+            
+            // Draw cropped portion
+            const tempCanvas = document.createElement('canvas');
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            tempCtx.putImageData(originalImageData, 0, 0);
+            
+            croppedCtx.drawImage(tempCanvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+            
+            // Update main canvas with cropped image
+            canvas.width = cropWidth;
+            canvas.height = cropHeight;
+            ctx.drawImage(croppedCanvas, 0, 0);
+            
+            storeOriginalImage();
+          }
+        }
         
         // Handle text tool
         if (currentTool === 'text') {
@@ -786,7 +927,13 @@ class ScreenshotManager {
   }
 
   async updateSettings() {
+    console.log('=== SCREENSHOT MANAGER: UPDATE SETTINGS ===');
+    console.log('Previous settings organizeFolders:', this.settings?.organizeFolders);
+    
     this.settings = await window.storageManager.getSettings();
+    
+    console.log('New settings organizeFolders:', this.settings?.organizeFolders);
+    console.log('=== SCREENSHOT MANAGER: UPDATE SETTINGS END ===');
   }
 
   // Video metadata extraction methods
@@ -835,7 +982,7 @@ class ScreenshotManager {
           title = document.title.replace(' - YouTube', '');
         }
       } else if (hostname.includes('vimeo.com')) {
-        // Vimeo title selectors
+        // Vimeo title selectors 
         const selectors = [
           '.player_title',
           'h1[data-test-id="title"]',
@@ -1144,6 +1291,8 @@ class ScreenshotManager {
 
     return filename;
   }
+
+  // Imgur history functionality removed - Imgur service no longer supported
 }
 
 // Initialize screenshot manager when DOM is ready

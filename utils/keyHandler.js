@@ -26,9 +26,7 @@ class KeyHandler {
     document.removeEventListener('keydown', this.boundKeyHandler, true);
     this.isListening = false;
     console.log('KeyHandler: Stopped listening for keypresses');
-  }
-
-  async handleKeyPress(event) {
+  }  async handleKeyPress(event) {
     // Refresh settings periodically
     if (!this.settings) {
       this.settings = await window.storageManager.getSettings();
@@ -63,12 +61,16 @@ class KeyHandler {
       event.stopPropagation();
       event.stopImmediatePropagation();
     }
-    
+
     console.log('KeyHandler: Triggering screenshot capture');
+    
+    // For Shift+Enter specifically, never show annotation interface
+    const isShiftEnter = event.code === 'Enter' && event.shiftKey;
+    const forcePreview = event.shiftKey && !isShiftEnter;
     
     // Trigger screenshot
     if (window.screenshotManager) {
-      window.screenshotManager.captureScreenshot();
+      window.screenshotManager.captureScreenshot(forcePreview, isShiftEnter);
     }
   }
 

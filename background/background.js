@@ -41,7 +41,9 @@ chrome.runtime.onInstalled.addListener((details) => {
       useCustomPath: false,
       // Fullscreen popup settings
       showFullscreenPopup: false,
-      fullscreenPopupDuration: 3000
+      fullscreenPopupDuration: 3000,
+      // Screenshot preview settings
+      disablePreviewByDefault: false
     });
     
     // Open options page on first install
@@ -59,7 +61,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   if (message.action === 'downloadScreenshot') {
     // Handle screenshot download
-    console.log('Download request received with filename:', message.filename, 'folderPath:', message.folderPath);
+    console.log('=== BACKGROUND SCRIPT: DOWNLOAD DEBUG START ===');
+    console.log('Download request received:');
+    console.log('- filename:', message.filename);
+    console.log('- folderPath:', message.folderPath);
+    console.log('- dataUrl length:', message.dataUrl ? message.dataUrl.length : 'null');
     
     let downloadOptions = {
       url: message.dataUrl,
@@ -67,47 +73,110 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       saveAs: false
     };
     
-    console.log('Download options:', downloadOptions);
+    console.log('Initial download options:', downloadOptions);
     
     // Check if user has custom download path configured
     chrome.storage.sync.get(['useCustomPath', 'customDownloadPath'], (result) => {
+      console.log('=== STORAGE RESULT ===');
       console.log('Storage result:', result);
+      console.log('useCustomPath:', result.useCustomPath);
+      console.log('customDownloadPath:', result.customDownloadPath);
       
-      // Handle folder organization and custom paths
+      // 🔍 SAVE PATH VALIDATION LOGGING
+      console.log('=== SAVE PATH VALIDATION START ===');
+      console.log('🔍 Analyzing save path configuration:');
+      console.log('  • useCustomPath type:', typeof result.useCustomPath);
+      console.log('  • useCustomPath value:', result.useCustomPath);
+      console.log('  • customDownloadPath type:', typeof result.customDownloadPath);
+      console.log('  • customDownloadPath value:', JSON.stringify(result.customDownloadPath));
+      console.log('  • customDownloadPath length:', result.customDownloadPath ? result.customDownloadPath.length : 0);
+      console.log('  • customDownloadPath empty check:', !result.customDownloadPath);
+      
+      // 🔧 IMPROVED CHROME EXTENSION PATH HANDLING
+      console.log('=== IMPROVED PATH HANDLING LOGIC ===');
+      
+      // 🔧 SIMPLIFIED PATH HANDLING - Only relative paths within Downloads folder
+      console.log('=== SIMPLIFIED PATH CONSTRUCTION ===');
+      
       let pathParts = [];
       
-      // If using custom path, add it to our path parts
+      // Handle custom download path (relative only)
       if (result.useCustomPath && result.customDownloadPath) {
-        pathParts.push(result.customDownloadPath.replace(/\\/g, '/').replace(/\/+$/, '')); // Normalize path
+        console.log('🎯 Using custom relative path within Downloads folder');
+        console.log(`📁 Custom path: "${result.customDownloadPath}"`);
+        
+        // Clean and normalize the custom path (UI already prevents absolute paths)
+        const cleanPath = result.customDownloadPath
+          .replace(/^[/\\]+/, '')  // Remove any leading slashes
+          .replace(/[/\\]+$/, '')  // Remove trailing slashes
+          .replace(/\\/g, '/');    // Normalize separators
+        
+        if (cleanPath) {
+          pathParts.push(cleanPath);
+          console.log(`✅ Added custom path: "${cleanPath}"`);
+        }
       }
       
-      // If there's a folder path from organization settings, add it
+      // Handle folder organization settings
       if (message.folderPath) {
-        pathParts.push(message.folderPath.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, ''));
+        const normalizedFolderPath = message.folderPath
+          .replace(/\\/g, '/')     // Normalize separators
+          .replace(/^\/+/, '')     // Remove leading slashes
+          .replace(/\/+$/, '');    // Remove trailing slashes
+        
+        if (normalizedFolderPath) {
+          pathParts.push(normalizedFolderPath);
+          console.log(`✅ Added folder organization path: "${normalizedFolderPath}"`);
+        }
       }
       
-      // Add the actual filename
+      // Add the filename at the end
       pathParts.push(downloadOptions.filename);
       
-      // Join all parts to create the final relative path
-      const finalFilename = pathParts.join('/');
+      // Construct the final path
+      const finalPath = pathParts.join('/');
+      downloadOptions.filename = finalPath;
       
-      console.log('Constructed final path:', finalFilename);
-      
-      // Update download options with final filename
-      downloadOptions.filename = finalFilename;
+      console.log('=== FINAL PATH RESULT ===');
+      console.log(`📁 Path parts: [${pathParts.map(p => `"${p}"`).join(', ')}]`);
+      console.log(`📄 Final filename: "${downloadOptions.filename}"`);
+      console.log(`💾 Will save to: Downloads/${downloadOptions.filename}`)
       
       // For Chrome extension downloads, we might need to use conflictAction
       downloadOptions.conflictAction = 'uniquify'; // This ensures files don't get overwritten
       
+      console.log('=== FINAL DOWNLOAD OPTIONS ===');
       console.log('Final download options:', downloadOptions);
+      console.log('=== SAVE PATH VALIDATION END ===');
       
+      console.log('Calling chrome.downloads.download...');
       chrome.downloads.download(downloadOptions, (downloadId) => {
         if (chrome.runtime.lastError) {
-          console.error('Download failed:', chrome.runtime.lastError);
+          console.error('=== DOWNLOAD FAILED ===');
+          console.error('Chrome runtime error:', chrome.runtime.lastError);
+          console.error('Error message:', chrome.runtime.lastError.message);
+          
+          // 🔍 DETAILED ERROR ANALYSIS
+          console.log('=== DETAILED ERROR ANALYSIS ===');
+          console.log('🔍 Error analysis for save path issue:');
+          console.log('  • Error message:', chrome.runtime.lastError.message);
+          console.log('  • Attempted filename:', downloadOptions.filename);
+          console.log('  • Used custom path:', result.useCustomPath);
+          console.log('  • Custom path value:', result.customDownloadPath);
+          console.log('  • saveAs setting:', downloadOptions.saveAs);
+          
+          if (chrome.runtime.lastError.message.includes('path') || 
+              chrome.runtime.lastError.message.includes('directory') ||
+              chrome.runtime.lastError.message.includes('folder')) {
+            console.log('  🎯 ERROR CONTAINS PATH-RELATED KEYWORDS!');
+            console.log('  🎯 This confirms the save path is the issue!');
+          }
+          
           sendResponse({ success: false, error: chrome.runtime.lastError.message });
         } else {
+          console.log('=== DOWNLOAD SUCCESS ===');
           console.log('Screenshot downloaded with ID:', downloadId);
+          console.log('=== BACKGROUND SCRIPT: DOWNLOAD DEBUG END ===');
           sendResponse({ success: true, downloadId });
         }
       });
@@ -122,7 +191,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true;
   }
+
 });
+
+// Background script Imgur upload function removed - Imgur service no longer supported
 
 // Handle keyboard shortcuts
 chrome.commands.onCommand.addListener((command, tab) => {

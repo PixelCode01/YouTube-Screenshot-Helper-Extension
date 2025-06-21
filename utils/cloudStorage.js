@@ -1,6 +1,6 @@
 /**
  * Cloud Storage Integration for YouTube Screenshot Helper
- * Supports Google Drive and OneDrive uploads
+ * Supports Google Drive uploads
  */
 
 class CloudStorageManager {
@@ -31,6 +31,8 @@ class CloudStorageManager {
         throw new Error('Google Drive client ID not configured. Please check cloudConfig.js');
       }
 
+      console.log('🔄 Starting Google Drive authentication...');
+      
       const redirectURL = chrome.identity.getRedirectURL();
       const clientId = window.CLOUD_CONFIG.GOOGLE_DRIVE_CLIENT_ID;
       const scopes = window.CLOUD_CONFIG.GOOGLE_DRIVE.scopes;
@@ -40,61 +42,37 @@ class CloudStorageManager {
         `&redirect_uri=${encodeURIComponent(redirectURL)}` +
         `&scope=${encodeURIComponent(scopes.join(' '))}`;
 
+      console.log('🔗 Auth URL:', authURL);
+      console.log('🔄 Launching Chrome identity auth flow...');
+
       const responseUrl = await chrome.identity.launchWebAuthFlow({
         url: authURL,
         interactive: true
       });
 
+      console.log('✅ Auth flow completed, response URL received');
+
       // Extract access token from response URL
       const token = this.extractTokenFromUrl(responseUrl);
       if (token) {
+        console.log('✅ Access token extracted successfully');
         this.authTokens.googleDrive = token;
         await this.saveAuthTokens();
         return token;
       }
-      throw new Error('Failed to extract access token');
+      throw new Error('Failed to extract access token from response');
     } catch (error) {
-      console.error('Google Drive authentication failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Authenticate with OneDrive
-   */
-  async authenticateOneDrive() {
-    try {
-      // Check if configuration is available
-      if (!window.CLOUD_CONFIG || !window.CLOUD_CONFIG.ONEDRIVE_CLIENT_ID || 
-          window.CLOUD_CONFIG.ONEDRIVE_CLIENT_ID === 'YOUR_ONEDRIVE_CLIENT_ID_HERE') {
-        throw new Error('OneDrive client ID not configured. Please check cloudConfig.js');
+      console.error('❌ Google Drive authentication failed:', error);
+      
+      // Handle specific Chrome identity errors
+      if (error.message && error.message.includes('Authorization page')) {
+        throw new Error('Authentication cancelled by user');
+      } else if (error.message && error.message.includes('network')) {
+        throw new Error('Network error during authentication. Please check your connection.');
+      } else if (error.message && error.message.includes('client ID')) {
+        throw new Error('Google Drive client ID not configured. Please check cloudConfig.js');
       }
-
-      const redirectURL = chrome.identity.getRedirectURL();
-      const clientId = window.CLOUD_CONFIG.ONEDRIVE_CLIENT_ID;
-      const scopes = window.CLOUD_CONFIG.ONEDRIVE.scopes;
-      const authURL = `${window.CLOUD_CONFIG.ONEDRIVE.authUrl}` +
-        `?client_id=${clientId}` +
-        `&response_type=token` +
-        `&redirect_uri=${encodeURIComponent(redirectURL)}` +
-        `&scope=${encodeURIComponent(scopes.join(' '))}` +
-        `&response_mode=fragment`;
-
-      const responseUrl = await chrome.identity.launchWebAuthFlow({
-        url: authURL,
-        interactive: true
-      });
-
-      // Extract access token from response URL
-      const token = this.extractTokenFromUrl(responseUrl);
-      if (token) {
-        this.authTokens.oneDrive = token;
-        await this.saveAuthTokens();
-        return token;
-      }
-      throw new Error('Failed to extract access token');
-    } catch (error) {
-      console.error('OneDrive authentication failed:', error);
+      
       throw error;
     }
   }
@@ -178,52 +156,6 @@ class CloudStorageManager {
   }
 
   /**
-   * Upload file to OneDrive
-   */
-  async uploadToOneDrive(dataUrl, filename, folderId = null) {
-    try {
-      let token = this.authTokens.oneDrive;
-      if (!token) {
-        token = await this.authenticateOneDrive();
-      }
-
-      // Convert data URL to blob
-      const blob = this.dataUrlToBlob(dataUrl);
-      
-      // Construct upload URL
-      const baseUrl = window.CLOUD_CONFIG.ONEDRIVE.apiUrl;
-      const uploadPath = folderId ? 
-        `${baseUrl}/items/${folderId}:/${filename}:/content` :
-        `${baseUrl}/root:/${filename}:/content`;
-
-      const response = await fetch(uploadPath, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'image/png'
-        },
-        body: blob
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Token expired, re-authenticate
-          delete this.authTokens.oneDrive;
-          await this.saveAuthTokens();
-          return await this.uploadToOneDrive(dataUrl, filename, folderId);
-        }
-        throw new Error(`Upload failed: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      console.error('OneDrive upload failed:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Convert data URL to Blob
    */
   dataUrlToBlob(dataUrl) {
@@ -245,10 +177,8 @@ class CloudStorageManager {
     switch (service) {
       case 'gdrive':
         return await this.uploadToGoogleDrive(dataUrl, filename);
-      case 'onedrive':
-        return await this.uploadToOneDrive(dataUrl, filename);
       default:
-        throw new Error(`Unsupported cloud service: ${service}`);
+        throw new Error(`Unsupported cloud service: ${service}. Only Google Drive is supported.`);
     }
   }
 
@@ -259,8 +189,6 @@ class CloudStorageManager {
     switch (service) {
       case 'gdrive':
         return !!this.authTokens.googleDrive;
-      case 'onedrive':
-        return !!this.authTokens.oneDrive;
       default:
         return false;
     }
@@ -273,9 +201,6 @@ class CloudStorageManager {
     switch (service) {
       case 'gdrive':
         delete this.authTokens.googleDrive;
-        break;
-      case 'onedrive':
-        delete this.authTokens.oneDrive;
         break;
     }
     await this.saveAuthTokens();

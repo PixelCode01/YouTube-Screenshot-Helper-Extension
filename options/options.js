@@ -4,6 +4,7 @@ console.log('YouTube Screenshot Helper: Options page loaded');
 class OptionsManager {
   constructor() {
     this.settings = {};
+    this.isConnecting = false; // Track cloud connection state
     this.defaults = {
       enabledSites: ['youtube.com', 'vimeo.com', 'twitch.tv'],
       fullscreenShortcut: 'shift+enter',
@@ -20,7 +21,7 @@ class OptionsManager {
       organizeFolders: 'none',
       customFolderPattern: '{channel}/{date}',
       uploadToCloud: false,
-      cloudService: 'gdrive',
+      cloudService: 'none',
       themePreference: 'auto',
       debugMode: false,
       fullscreenOnly: false,
@@ -33,7 +34,8 @@ class OptionsManager {
       fullscreenPopupDuration: 3,
       useCustomPath: false,
       customDownloadPath: '',
-      overrideSiteShortcuts: false
+      overrideSiteShortcuts: false,
+      disablePreviewByDefault: false
     };
     this.darkThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   }
@@ -72,15 +74,21 @@ class OptionsManager {
     });
 
     // Toggle switches - with null checks
-    this.setupToggle('uploadToCloud', () => this.updateCloudServiceVisibility());
+    this.setupToggle('uploadToCloud', () => {
+      this.updateCloudServiceVisibility();
+    });
     this.setupToggle('debugMode');
     this.setupToggle('fullscreenOnly');
     this.setupToggle('autoHideControls');
     this.setupToggle('annotationMode');
     this.setupToggle('preventDefault');
     this.setupToggle('showFullscreenPopup');
-    this.setupToggle('useCustomPath', () => this.updateCustomPathVisibility());
+    this.setupToggle('useCustomPath', () => {
+      console.log('💾 OPTIONS: useCustomPath toggled to:', this.settings.useCustomPath);
+      this.updateCustomPathVisibility();
+    });
     this.setupToggle('overrideSiteShortcuts');
+    this.setupToggle('disablePreviewByDefault');
 
     // Cloud storage controls
     this.setupControl('cloudService', 'change', (e) => {
@@ -88,11 +96,9 @@ class OptionsManager {
       this.updateCloudStatus();
     });
 
-    // Cloud connect button
-    const connectBtn = document.getElementById('connectCloudBtn');
-    if (connectBtn) {
-      connectBtn.addEventListener('click', () => this.connectToCloud());
-    }
+    this.setupButton('connectCloudBtn', () => {
+      this.connectToCloud();
+    });
 
     // Title builder toggles
     this.setupToggle('includeYoutube', () => this.updateTitlePreview());
@@ -103,6 +109,12 @@ class OptionsManager {
     this.setupToggle('includeTimestamp', () => this.updateTitlePreview());
     this.setupToggle('includeDate', () => this.updateTitlePreview());
     this.setupToggle('includeTime', () => this.updateTitlePreview());
+
+    // Title separator control
+    this.setupControl('titleSeparator', 'input', (e) => {
+      this.updateSetting('titleSeparator', e.target.value);
+      this.updateTitlePreview();
+    });
 
     // Other controls with null checks
     this.setupControl('themePreference', 'change', (e) => {
@@ -119,13 +131,58 @@ class OptionsManager {
     });
 
     this.setupControl('customDownloadPath', 'input', (e) => {
-      this.updateSetting('customDownloadPath', e.target.value);
+      const inputValue = e.target.value;
+      console.log('💾 OPTIONS: customDownloadPath changed to:', JSON.stringify(inputValue));
+      
+      // Check if user entered an absolute path
+      const isAbsolute = inputValue.startsWith('/') || inputValue.match(/^[a-zA-Z]:\\/);
+      
+      if (isAbsolute && inputValue.length > 0) {
+        // Block absolute paths and show warning
+        console.warn('❌ Absolute paths not allowed, converting to relative path');
+        
+        // Extract folder name from absolute path
+        const pathParts = inputValue.split(/[/\\]/).filter(part => part.length > 0);
+        const folderName = pathParts[pathParts.length - 1] || '';
+        
+        // Update input field with relative path
+        e.target.value = folderName;
+        
+        // Show warning message
+        this.showToast(`Absolute paths are not supported. Using "${folderName}" instead. Files will save to Downloads/${folderName}/`, 'warning');
+        
+        // Save the corrected relative path
+        this.updateSetting('customDownloadPath', folderName);
+      } else {
+        // Allow relative paths
+        this.updateSetting('customDownloadPath', inputValue);
+      }
     });
 
     this.setupControl('cloudService', 'change', (e) => {
       this.updateSetting('cloudService', e.target.value);
       this.updateCloudServiceVisibility();
     });
+
+    // Folder organization controls
+    this.setupControl('organizeFolders', 'change', (e) => {
+      console.log('💾 OPTIONS: organizeFolders changed to:', e.target.value);
+      this.updateSetting('organizeFolders', e.target.value);
+      this.updateFolderOrganizationVisibility();
+      this.updateFolderPreview();
+    });
+
+    this.setupControl('customFolderPattern', 'input', (e) => {
+      console.log('💾 OPTIONS: customFolderPattern changed to:', e.target.value);
+      this.updateSetting('customFolderPattern', e.target.value);
+      this.updateFolderPreview();
+    });
+
+    // Pattern builder helpers
+    this.setupPatternBuilderEvents();
+    
+    // Sites management
+    this.setupSitesTab();
 
     // Button event listeners
     this.setupButton('openShortcutsBtn', () => {
@@ -136,8 +193,16 @@ class OptionsManager {
       this.browsePath();
     });
 
-    this.setupButton('setupCloudBtn', () => {
-      this.setupCloudService();
+    this.setupButton('refreshPreview', () => {
+      this.updateFolderPreview();
+    });
+
+    this.setupButton('connectCloudBtn', () => {
+      this.connectToCloud();
+    });
+
+    this.setupButton('addSiteBtn', () => {
+      this.addSite();
     });
 
     // Theme toggle button
@@ -196,12 +261,38 @@ class OptionsManager {
   }
 
   async updateSetting(key, value) {
+    console.log(`💾 OPTIONS: updateSetting called with key="${key}", value=${JSON.stringify(value)}`);
+    
+    // Special logging for save path related settings
+    if (key === 'useCustomPath' || key === 'customDownloadPath') {
+      console.log(`🔍 SAVE PATH SETTING UPDATE:`);
+      console.log(`  • Key: ${key}`);
+      console.log(`  • Value: ${JSON.stringify(value)}`);
+      console.log(`  • Value type: ${typeof value}`);
+      console.log(`  • Current settings before update:`, this.settings);
+    }
+    
     this.settings[key] = value;
+    
     try {
       await chrome.storage.sync.set({ [key]: value });
-      console.log(`Setting updated: ${key} = ${value}`);
+      console.log(`✅ Setting updated successfully: ${key} = ${JSON.stringify(value)}`);
+      
+      // Validate the setting was actually saved
+      if (key === 'useCustomPath' || key === 'customDownloadPath') {
+        setTimeout(async () => {
+          const verification = await chrome.storage.sync.get([key]);
+          console.log(`🔍 SAVE PATH VERIFICATION: ${key} saved as:`, verification[key]);
+          if (verification[key] !== value) {
+            console.error(`❌ SAVE PATH VERIFICATION FAILED: Expected ${JSON.stringify(value)}, got ${JSON.stringify(verification[key])}`);
+          } else {
+            console.log(`✅ SAVE PATH VERIFICATION PASSED: ${key} correctly saved`);
+          }
+        }, 100);
+      }
+      
     } catch (error) {
-      console.error('Failed to save setting:', error);
+      console.error(`❌ Failed to save setting ${key}:`, error);
     }
   }
 
@@ -221,6 +312,9 @@ class OptionsManager {
     // Update conditional visibility
     this.updateCustomPathVisibility();
     this.updateCloudServiceVisibility();
+    this.updateFolderOrganizationVisibility();
+    this.updateFolderPreview();
+    this.populateSitesList();
   }
 
   updateCustomPathVisibility() {
@@ -236,12 +330,12 @@ class OptionsManager {
 
   updateCloudServiceVisibility() {
     const container = document.getElementById('cloudServiceContainer');
-    const setupBtn = document.getElementById('setupCloudBtn');
+    const connectBtn = document.getElementById('connectCloudBtn');
     if (container) {
       container.style.display = this.settings.uploadToCloud ? 'block' : 'none';
     }
-    if (setupBtn) {
-      setupBtn.style.display = this.settings.uploadToCloud ? 'inline-block' : 'none';
+    if (connectBtn) {
+      connectBtn.style.display = this.settings.uploadToCloud ? 'inline-block' : 'none';
     }
   }
 
@@ -317,27 +411,33 @@ class OptionsManager {
   // File browsing
   async browsePath() {
     try {
-      // Try to use the File System Access API if available
-      if ('showDirectoryPicker' in window) {
-        const dirHandle = await window.showDirectoryPicker();
+      // Show manual input prompt with guidance
+      const currentPath = this.settings.customDownloadPath || '';
+      const message = `Enter a relative folder path (within Downloads folder):\n\nExamples:\n• Screenshots\n• YouTube/Captures\n• Media/2025\n\nFiles will be saved to Downloads/[your-path]/`;
+      
+      const path = prompt(message, currentPath);
+      if (path !== null) {
+        // Check if user entered an absolute path
+        const isAbsolute = path.startsWith('/') || path.match(/^[a-zA-Z]:\\/);
+        
+        let finalPath = path;
+        if (isAbsolute && path.length > 0) {
+          // Extract folder name from absolute path
+          const pathParts = path.split(/[/\\]/).filter(part => part.length > 0);
+          finalPath = pathParts[pathParts.length - 1] || '';
+          
+          this.showToast(`Converted absolute path to relative: "${finalPath}". Files will save to Downloads/${finalPath}/`, 'warning');
+        }
+        
         const pathInput = document.getElementById('customDownloadPath');
         if (pathInput) {
-          pathInput.value = dirHandle.name;
-          this.updateSetting('customDownloadPath', dirHandle.name);
-        }
-      } else {
-        // Fallback: show manual input prompt
-        const path = prompt('Enter the folder path for downloads:', this.settings.customDownloadPath || '');
-        if (path !== null) {
-          const pathInput = document.getElementById('customDownloadPath');
-          if (pathInput) {
-            pathInput.value = path;
-            this.updateSetting('customDownloadPath', path);
-          }
+          pathInput.value = finalPath;
+          this.updateSetting('customDownloadPath', finalPath);
         }
       }
     } catch (error) {
       console.error('Error browsing path:', error);
+      this.showToast('Error selecting path. Please enter path manually.', 'error');
     }
   }
 
@@ -361,18 +461,14 @@ class OptionsManager {
       if (window.CLOUD_CONFIG) {
         const isConfigured = service === 'google-drive' ? 
           window.CLOUD_CONFIG.isConfigured('google') : 
-          window.CLOUD_CONFIG.isConfigured('onedrive');
+          false; // Only support Google Drive now
           
-        if (!isConfigured) {
-          const message = service === 'google-drive' ? 
-            window.CLOUD_CONFIG.getConfigurationMessage('google') :
-            window.CLOUD_CONFIG.getConfigurationMessage('onedrive');
+        if (!isConfigured && service === 'google-drive') {
+          const message = window.CLOUD_CONFIG.getConfigurationMessage('google');
           this.showToast(message, 'warning');
           
           // Open setup documentation
-          const setupUrl = service === 'google-drive' ? 
-            'https://developers.google.com/drive/api/quickstart/js' :
-            'https://docs.microsoft.com/en-us/onedrive/developer/';
+          const setupUrl = 'https://developers.google.com/drive/api/quickstart/js';
           chrome.tabs.create({ url: setupUrl });
           return;
         }
@@ -381,9 +477,6 @@ class OptionsManager {
       switch (service) {
         case 'google-drive':
           await this.setupGoogleDrive();
-          break;
-        case 'onedrive':
-          await this.setupOneDrive();
           break;
         case 'none':
           this.showToast('Cloud storage is disabled. Enable "Auto-Upload to Cloud" to configure.', 'info');
@@ -427,41 +520,11 @@ class OptionsManager {
     }
   }
 
-  async setupOneDrive() {
-    try {
-      // Load cloud storage manager if not available
-      if (!window.cloudStorageManager) {
-        const configScript = document.createElement('script');
-        configScript.src = '../utils/cloudConfig.js';
-        document.head.appendChild(configScript);
-        await new Promise(resolve => configScript.onload = resolve);
-        
-        const script = document.createElement('script');
-        script.src = '../utils/cloudStorage.js';
-        document.head.appendChild(script);
-        await new Promise(resolve => script.onload = resolve);
-      }
-
-      this.showToast('Connecting to OneDrive...', 'info');
-      const token = await window.cloudStorageManager.authenticateOneDrive();
-      
-      if (token) {
-        this.showToast('OneDrive connected successfully!', 'success');
-        this.updateCloudConnectionStatus('onedrive', true);
-      } else {
-        throw new Error('Authentication failed');
-      }
-    } catch (error) {
-      console.error('OneDrive setup failed:', error);
-      this.showToast('OneDrive setup failed. Please try again.', 'error');
-    }
-  }
-
   updateCloudConnectionStatus(service, connected) {
     const button = document.getElementById('setupCloudBtn');
     if (button) {
       button.textContent = connected ? 
-        `${service === 'google-drive' ? 'Google Drive' : 'OneDrive'} Connected` : 
+        'Google Drive Connected' : 
         'Setup Cloud Service';
       button.disabled = connected;
     }
@@ -533,6 +596,140 @@ class OptionsManager {
     previewElement.textContent = filename + '.png';
   }
 
+  // Folder Organization Methods
+  setupPatternBuilderEvents() {
+    // Variable buttons - insert variable into custom pattern input
+    document.querySelectorAll('.variable-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const variable = btn.dataset.variable;
+        const patternInput = document.getElementById('customFolderPattern');
+        if (patternInput && variable) {
+          const currentValue = patternInput.value || '';
+          const cursorPos = patternInput.selectionStart || currentValue.length;
+          const newValue = currentValue.slice(0, cursorPos) + variable + currentValue.slice(cursorPos);
+          patternInput.value = newValue;
+          patternInput.focus();
+          // Move cursor after inserted variable
+          patternInput.setSelectionRange(cursorPos + variable.length, cursorPos + variable.length);
+          // Trigger input event to update preview
+          patternInput.dispatchEvent(new Event('input'));
+        }
+      });
+    });
+
+    // Preset buttons - set entire pattern
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const pattern = btn.dataset.pattern;
+        const patternInput = document.getElementById('customFolderPattern');
+        if (patternInput && pattern) {
+          patternInput.value = pattern;
+          patternInput.focus();
+          // Trigger input event to update preview
+          patternInput.dispatchEvent(new Event('input'));
+        }
+      });
+    });
+  }
+
+  updateFolderOrganizationVisibility() {
+    const customPatternContainer = document.getElementById('customFolderPatternContainer');
+    const folderPreview = document.getElementById('folderPreview');
+    const organizeFolders = this.settings.organizeFolders || 'none';
+    
+    // Show/hide custom pattern input
+    if (customPatternContainer) {
+      customPatternContainer.style.display = organizeFolders === 'custom' ? 'block' : 'none';
+    }
+    
+    // Show/hide folder preview based on organization setting
+    if (folderPreview) {
+      folderPreview.style.display = organizeFolders !== 'none' ? 'block' : 'none';
+    }
+  }
+
+  updateFolderPreview() {
+    const previewPath = document.getElementById('folderPreviewPath');
+    if (!previewPath) return;
+
+    const organizeFolders = this.settings.organizeFolders || 'none';
+    
+    // Mock metadata for preview
+    const mockData = {
+      channel: 'TechChannel',
+      playlist: 'Tutorial Series',
+      title: 'Amazing Video Tutorial',
+      date: new Date().toISOString().split('T')[0], // Current date YYYY-MM-DD
+      time: new Date().toTimeString().slice(0, 5).replace(':', '-'), // Current time HH-MM
+      site: 'YouTube'
+    };
+
+    let folderPath = '';
+    
+    switch (organizeFolders) {
+      case 'none':
+        folderPath = '';
+        break;
+      case 'channel':
+        folderPath = mockData.channel;
+        break;
+      case 'playlist':
+        folderPath = mockData.playlist;
+        break;
+      case 'video':
+        folderPath = mockData.title;
+        break;
+      case 'date':
+        folderPath = mockData.date;
+        break;
+      case 'channel-date':
+        folderPath = `${mockData.channel}/${mockData.date}`;
+        break;
+      case 'channel-video':
+        folderPath = `${mockData.channel}/${mockData.title}`;
+        break;
+      case 'date-channel':
+        folderPath = `${mockData.date}/${mockData.channel}`;
+        break;
+      case 'channel-playlist':
+        folderPath = `${mockData.channel}/${mockData.playlist}`;
+        break;
+      case 'custom':
+        const customPattern = this.settings.customFolderPattern || '{channel}/{date}';
+        folderPath = this.applyTemplate(customPattern, mockData);
+        break;
+      default:
+        folderPath = '';
+    }
+
+    // Clean and construct preview path
+    if (folderPath) {
+      // Clean folder path for display
+      folderPath = folderPath
+        .replace(/[<>:"|?*\\]/g, '_')
+        .replace(/\s+/g, ' ')
+        .trim();
+      previewPath.textContent = `Downloads/${folderPath}/screenshot.png`;
+    } else {
+      previewPath.textContent = 'Downloads/screenshot.png';
+    }
+  }
+
+  // Template helper method for custom patterns
+  applyTemplate(template, data) {
+    if (!template) return '';
+    
+    return template
+      .replace(/\{channel\}/g, data.channel || 'Unknown Channel')
+      .replace(/\{playlist\}/g, data.playlist || 'Playlist')
+      .replace(/\{title\}/g, data.title || 'Video Title')
+      .replace(/\{date\}/g, data.date || new Date().toISOString().split('T')[0])
+      .replace(/\{time\}/g, data.time || new Date().toTimeString().slice(0, 5).replace(':', '-'))
+      .replace(/\{site\}/g, data.site || 'Website');
+  }
+
   // Cloud Storage Methods
   updateCloudServiceVisibility() {
     const cloudServiceContainer = document.getElementById('cloudServiceContainer');
@@ -560,17 +757,25 @@ class OptionsManager {
     
     if (!statusContainer) return;
     
-    // For now, use simple service (Imgur) which doesn't need authentication
-    if (service === 'imgur' || service === 'none') {
+    // Only 'none' doesn't need authentication now
+    if (service === 'none') {
       if (statusIndicator) statusIndicator.textContent = '✅';
-      if (statusText) statusText.textContent = 'Ready to use';
+      if (statusText) statusText.textContent = 'Disabled';
       if (connectBtn) {
         connectBtn.style.display = 'none';
       }
       statusContainer.className = 'cloud-status connected';
-    } else {
+    } else if (service === 'google-drive') {
       if (statusIndicator) statusIndicator.textContent = '❌';
       if (statusText) statusText.textContent = 'Not configured';
+      if (connectBtn) {
+        connectBtn.style.display = 'inline-block';
+        connectBtn.textContent = 'Configure Google Drive';
+      }
+      statusContainer.className = 'cloud-status error';
+    } else {
+      if (statusIndicator) statusIndicator.textContent = '❌';
+      if (statusText) statusText.textContent = 'Unknown service';
       if (connectBtn) {
         connectBtn.style.display = 'inline-block';
         connectBtn.textContent = 'Configure';
@@ -587,30 +792,237 @@ class OptionsManager {
     
     if (!statusContainer) return;
     
-    // Update UI to show connecting state
-    if (statusIndicator) statusIndicator.textContent = '🔄';
-    if (statusText) statusText.textContent = 'Connecting...';
-    statusContainer.className = 'cloud-status connecting';
+    console.log(`🔄 Connecting to cloud service: ${service}`);
+    
+    // Prevent multiple simultaneous connections
+    if (this.isConnecting) {
+      this.showToast('Connection already in progress, please wait...', 'warning');
+      return;
+    }
+    
+    this.isConnecting = true;
     
     try {
-      // For simplified implementation, just show configuration info
-      if (service === 'google' || service === 'onedrive') {
-        this.showToast('Cloud storage requires manual configuration. Please see the documentation for setup instructions.', 'info');
+      // Update UI to show connecting state
+      if (statusIndicator) statusIndicator.textContent = '🔄';
+      if (statusText) statusText.textContent = 'Connecting...';
+      statusContainer.className = 'cloud-status connecting';
+      
+      // Load required scripts
+      await this.ensureCloudScriptsLoaded();
+      
+      // Check configuration first
+      if (!this.validateCloudConfiguration(service)) {
+        if (service === 'google-drive') {
+          const configUrl = 'https://developers.google.com/drive/api/quickstart/js';
+          this.showToast(`${service} client ID not configured. Opening setup instructions...`, 'warning');
+          chrome.tabs.create({ url: configUrl });
+        }
         
-        // Reset status
-        if (statusIndicator) statusIndicator.textContent = '❌';
+        if (statusIndicator) statusIndicator.textContent = '⚠️';
         if (statusText) statusText.textContent = 'Requires configuration';
-        statusContainer.className = 'cloud-status error';
+        statusContainer.className = 'cloud-status warning';
+        return;
       }
+      
+      // Authenticate with timeout
+      this.showToast(`Connecting to ${service}...`, 'info');
+      const token = await this.authenticateWithTimeout(service, 30000);
+      
+      if (token) {
+        console.log(`✅ ${service} connected successfully`);
+        if (statusIndicator) statusIndicator.textContent = '✅';
+        if (statusText) statusText.textContent = 'Connected';
+        statusContainer.className = 'cloud-status connected';
+        this.showToast(`${service} connected successfully!`, 'success');
+        
+        // Update connection status
+        this.updateCloudConnectionStatus(service, true);
+      } else {
+        throw new Error('Authentication failed - no token received');
+      }
+      
     } catch (error) {
-      console.error('Cloud connection failed:', error);
-      this.showToast('Failed to connect to cloud service', 'error');
+      console.error(`❌ ${service} connection failed:`, error);
+      
+      // Handle specific error types
+      let errorMessage = error.message;
+      if (error.message.includes('timeout')) {
+        errorMessage = 'Connection timed out. Please try again.';
+      } else if (error.message.includes('User cancelled')) {
+        errorMessage = 'Authentication was cancelled.';
+      } else if (error.message.includes('client ID')) {
+        errorMessage = 'Service not configured. Please check setup instructions.';
+      }
       
       if (statusIndicator) statusIndicator.textContent = '❌';
       if (statusText) statusText.textContent = 'Connection failed';
       statusContainer.className = 'cloud-status error';
+      this.showToast(`${service} connection failed: ${errorMessage}`, 'error');
+      
+    } finally {
+      this.isConnecting = false;
     }
   }
+  
+  async ensureCloudScriptsLoaded() {
+    // Load cloud config if not available
+    if (!window.CLOUD_CONFIG) {
+      await this.loadScript('../utils/cloudConfig.js');
+    }
+    
+    // Load cloud storage manager if not available  
+    if (!window.cloudStorageManager) {
+      await this.loadScript('../utils/cloudStorage.js');
+    }
+  }
+  
+  loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error(`Failed to load ${src}`));
+      document.head.appendChild(script);
+    });
+  }
+  
+  validateCloudConfiguration(service) {
+    if (!window.CLOUD_CONFIG) {
+      console.error('Cloud config not loaded');
+      return false;
+    }
+    
+    const isConfigured = service === 'google-drive' ? 
+      window.CLOUD_CONFIG.isConfigured('google') : 
+      false; // Only Google Drive is supported now
+      
+    console.log(`Configuration check for ${service}: ${isConfigured}`);
+    return isConfigured;
+  }
+  
+  async authenticateWithTimeout(service, timeoutMs = 30000) {
+    return new Promise(async (resolve, reject) => {
+      // Set up timeout
+      const timeoutId = setTimeout(() => {
+        console.error(`Authentication timeout for ${service}`);
+        reject(new Error(`Authentication timed out after ${timeoutMs/1000} seconds`));
+      }, timeoutMs);
+      
+      try {
+        let token;
+        if (service === 'google-drive') {
+          token = await window.cloudStorageManager.authenticateGoogleDrive();
+        } else {
+          throw new Error(`Unsupported service: ${service}`);
+        }
+        
+        clearTimeout(timeoutId);
+        resolve(token);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        reject(error);
+      }
+    });
+  }
+
+  // Sites Management Methods
+  setupSitesTab() {
+    // Add site button handler already set up in setupEventListeners
+    
+    // Remove site functionality
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('remove-site-btn')) {
+        const site = e.target.dataset.site;
+        this.removeSite(site);
+      }
+    });
+  }
+
+  populateSitesList() {
+    const sitesList = document.getElementById('sitesList');
+    if (!sitesList) return;
+
+    const enabledSites = this.settings.enabledSites || ['youtube.com', 'vimeo.com', 'twitch.tv'];
+    const defaultSites = ['youtube.com', 'vimeo.com', 'twitch.tv'];
+
+    sitesList.innerHTML = '';
+
+    enabledSites.forEach(site => {
+      const siteItem = document.createElement('div');
+      siteItem.className = 'site-item';
+      
+      const isDefault = defaultSites.includes(site);
+      if (isDefault) {
+        siteItem.classList.add('default');
+      }
+
+      siteItem.innerHTML = `
+        <span class="site-name">${site}</span>
+        <div class="site-controls">
+          <span class="site-status">${isDefault ? 'Built-in support' : 'Custom site'}</span>
+          ${!isDefault ? `<button class="btn btn-danger btn-sm remove-site-btn" data-site="${site}" title="Remove site">Remove</button>` : ''}
+        </div>
+      `;
+
+      sitesList.appendChild(siteItem);
+    });
+  }
+
+  addSite() {
+    const newSiteInput = document.getElementById('newSiteInput');
+    if (!newSiteInput) return;
+
+    const newSite = newSiteInput.value.trim().toLowerCase();
+    
+    if (!newSite) {
+      this.showToast('Please enter a valid domain', 'error');
+      return;
+    }
+
+    // Basic domain validation
+    const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    if (!domainRegex.test(newSite)) {
+      this.showToast('Please enter a valid domain format (e.g., example.com)', 'error');
+      return;
+    }
+
+    const currentSites = this.settings.enabledSites || [];
+    
+    if (currentSites.includes(newSite)) {
+      this.showToast('Site already exists in the list', 'warning');
+      return;
+    }
+
+    // Add the new site
+    const updatedSites = [...currentSites, newSite];
+    this.updateSetting('enabledSites', updatedSites);
+    
+    // Clear input and refresh list
+    newSiteInput.value = '';
+    this.populateSitesList();
+    
+    this.showToast(`Added ${newSite} to enabled sites`, 'success');
+  }
+
+  removeSite(site) {
+    const currentSites = this.settings.enabledSites || [];
+    const defaultSites = ['youtube.com', 'vimeo.com', 'twitch.tv'];
+    
+    // Don't allow removing default sites
+    if (defaultSites.includes(site)) {
+      this.showToast('Cannot remove built-in sites', 'error');
+      return;
+    }
+
+    const updatedSites = currentSites.filter(s => s !== site);
+    this.updateSetting('enabledSites', updatedSites);
+    
+    this.populateSitesList();
+    this.showToast(`Removed ${site} from enabled sites`, 'success');
+  }
+
+  // Cloud history functions removed - only Google Drive supported now
 }
 
 // Initialize when DOM is ready

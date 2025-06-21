@@ -568,9 +568,33 @@ body[data-theme='dark'] .preview-output {
   color: #333333;
 }
 
+.site-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .site-status {
   color: #666666;
   font-size: 14px;
+}
+
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.remove-site-btn {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.remove-site-btn:hover {
+  background: #c82333;
 }
 
 body[data-theme='dark'] .site-item {
