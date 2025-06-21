@@ -10,15 +10,13 @@
     "tabs",
     "downloads",
     "identity",
-    "notifications"
+    "notifications",
+    "scripting"
   ],
   
   "host_permissions": [
-    "https://www.youtube.com/*",
-    "https://youtube.com/*",
-    "https://vimeo.com/*",
-    "https://twitch.tv/*",
-    "https://www.twitch.tv/*"
+    "https://*/*",
+    "http://*/*"
   ],
   
   "background": {

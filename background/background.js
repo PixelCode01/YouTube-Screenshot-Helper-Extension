@@ -53,6 +53,8 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 // Handle messages from content scripts and extension pages
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Background: Received message:', message.action, 'from tab:', sender.tab?.id);
+  
   if (message.action === 'ping') {
     // Respond to ping for testing
     sendResponse({status: 'ok', timestamp: Date.now()});
@@ -187,11 +189,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   if (message.action === 'getSettings') {
     chrome.storage.sync.get(null, (settings) => {
-      sendResponse(settings);
+      if (chrome.runtime.lastError) {
+        console.error('Background: Error getting settings:', chrome.runtime.lastError);
+        sendResponse({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        sendResponse(settings);
+      }
     });
     return true;
   }
 
+  // Handle unknown actions gracefully
+  console.warn('Background: Unknown message action:', message.action);
+  sendResponse({ success: false, error: 'Unknown action: ' + message.action });
+  return true;
 });
 
 // Background script Imgur upload function removed - Imgur service no longer supported
@@ -208,22 +219,95 @@ chrome.commands.onCommand.addListener((command, tab) => {
 });
 
 // Handle tab updates to inject content scripts if needed
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
-    // Check if we should inject into this tab
-    chrome.storage.sync.get(['enabledSites'], (result) => {
+    try {
+      // Check if we should inject into this tab
+      const result = await chrome.storage.sync.get(['enabledSites']);
       const enabledSites = result.enabledSites || ['youtube.com', 'vimeo.com', 'twitch.tv'];
-      const shouldInject = enabledSites.some(site => tab.url.includes(site));
+      const url = new URL(tab.url);
       
-      if (shouldInject) {
-        // Send a ping to check if content script is already loaded
-        chrome.tabs.sendMessage(tabId, { action: 'ping' }, (response) => {
-          if (chrome.runtime.lastError) {
-            // Content script not loaded, inject it
-            console.log('Injecting content script into tab:', tabId);
-          }
-        });
+      // Check if this is a custom site (not a built-in site)
+      const builtInSites = ['youtube.com', 'vimeo.com', 'twitch.tv'];
+      const isBuiltInSite = builtInSites.some(site => url.hostname.includes(site));
+      const isEnabledCustomSite = enabledSites.some(site => 
+        url.hostname.includes(site) && !builtInSites.includes(site)
+      );
+      
+      if (isEnabledCustomSite) {
+        // This is a custom site, check if content script is already loaded
+        try {
+          const response = await chrome.tabs.sendMessage(tabId, { action: 'ping' });
+          console.log('Content script already active on custom site:', url.hostname);
+        } catch (error) {
+          // Content script not loaded, inject it
+          console.log('Injecting content script into custom site:', url.hostname);
+          await injectContentScripts(tabId);
+        }
       }
+    } catch (error) {
+      console.error('Error checking/injecting content script:', error);
+    }
+  }
+});
+
+// Function to inject content scripts programmatically
+async function injectContentScripts(tabId) {
+  try {
+    // Inject scripts in the correct order
+    const scripts = [
+      'utils/storage.js',
+      'utils/keyHandler.js',
+      'utils/cloudConfig.js',
+      'utils/cloudStorage.js',
+      'utils/screenshot.js',
+      'content/content.js',
+      'content/youtube.js'
+    ];
+    
+    // Inject CSS first
+    await chrome.scripting.insertCSS({
+      target: { tabId },
+      files: ['styles/content.css']
     });
+    
+    // Inject JavaScript files
+    for (const script of scripts) {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: [script]
+      });
+    }
+    
+    console.log('Successfully injected content scripts into tab:', tabId);
+  } catch (error) {
+    console.error('Failed to inject content scripts:', error);
+  }
+}
+
+// Handle extension icon clicks for custom sites
+chrome.action.onClicked.addListener(async (tab) => {
+  if (tab.url) {
+    try {
+      // Check if this might be a custom site that needs script injection
+      const result = await chrome.storage.sync.get(['enabledSites']);
+      const enabledSites = result.enabledSites || ['youtube.com', 'vimeo.com', 'twitch.tv'];
+      const url = new URL(tab.url);
+      
+      const isEnabledSite = enabledSites.some(site => url.hostname.includes(site));
+      
+      if (isEnabledSite) {
+        // Try to ping content script
+        try {
+          await chrome.tabs.sendMessage(tab.id, { action: 'ping' });
+        } catch (error) {
+          // Content script not loaded, inject it
+          console.log('Injecting content script via extension click:', url.hostname);
+          await injectContentScripts(tab.id);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling extension click:', error);
+    }
   }
 });

@@ -26,7 +26,9 @@ class KeyHandler {
     document.removeEventListener('keydown', this.boundKeyHandler, true);
     this.isListening = false;
     console.log('KeyHandler: Stopped listening for keypresses');
-  }  async handleKeyPress(event) {
+  }
+
+  async handleKeyPress(event) {
     // Refresh settings periodically
     if (!this.settings) {
       this.settings = await window.storageManager.getSettings();
@@ -64,13 +66,48 @@ class KeyHandler {
 
     console.log('KeyHandler: Triggering screenshot capture');
     
-    // For Shift+Enter specifically, never show annotation interface
+    // Get the configured fullscreen shortcut
+    const configuredKey = this.settings.fullscreenShortcut || this.settings.shortcutKey || 'shift+enter';
+    
+    // Check if this is Shift+Enter
     const isShiftEnter = event.code === 'Enter' && event.shiftKey;
-    const forcePreview = event.shiftKey && !isShiftEnter;
+    
+    // Shift+Enter behavior depends on annotation settings
+    let forcePreview = false;
+    let skipAnnotation = false;
+    
+    if (isShiftEnter && configuredKey === 'shift+enter') {
+      // For Shift+Enter: check annotation settings
+      if (this.settings.annotationMode === true && !this.settings.disablePreviewByDefault) {
+        // Annotation is enabled, show annotation interface
+        forcePreview = true;
+        skipAnnotation = false;
+      } else {
+        // Annotation is disabled, skip annotation interface
+        forcePreview = false;
+        skipAnnotation = true;
+      }
+    } else {
+      // For other keys, respect normal annotation settings (no forcing)
+      forcePreview = false;
+      skipAnnotation = false;
+    }
+    
+    console.log('=== KEY HANDLER DEBUG ===');
+    console.log('KeyHandler: Event details:');
+    console.log('  - event.code:', event.code);
+    console.log('  - event.shiftKey:', event.shiftKey);
+    console.log('  - configuredKey:', configuredKey);
+    console.log('  - isShiftEnter:', isShiftEnter);
+    console.log('  - forcePreview:', forcePreview);
+    console.log('  - skipAnnotation:', skipAnnotation);
+    console.log('=== END KEY HANDLER DEBUG ===');
     
     // Trigger screenshot
     if (window.screenshotManager) {
-      window.screenshotManager.captureScreenshot(forcePreview, isShiftEnter);
+      window.screenshotManager.captureScreenshot(forcePreview, skipAnnotation);
+    } else {
+      console.error('KeyHandler: ScreenshotManager not available');
     }
   }
 

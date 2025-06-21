@@ -129,17 +129,24 @@ class PopupManager {
       const url = new URL(this.currentTab.url);
       document.getElementById('currentSite').textContent = url.hostname;
       
-      // Check if site is supported
-      const isSupported = this.settings.enabledSites.some(site => 
+      // Check if site is supported (built-in or custom)
+      const isBuiltInSite = ['youtube.com', 'vimeo.com', 'twitch.tv'].some(site => 
         url.hostname.includes(site)
       );
+      const isCustomSite = this.settings.enabledSites.some(site => 
+        url.hostname.includes(site) && !['youtube.com', 'vimeo.com', 'twitch.tv'].includes(site)
+      );
+      const isSupported = isBuiltInSite || isCustomSite;
       
       const siteIndicator = document.querySelector('.site-indicator');
       const siteText = document.querySelector('.site-text');
       
-      if (isSupported) {
+      if (isBuiltInSite) {
         siteIndicator.classList.remove('unsupported');
-        siteText.textContent = 'Supported';
+        siteText.textContent = 'Built-in support';
+      } else if (isCustomSite) {
+        siteIndicator.classList.remove('unsupported');
+        siteText.textContent = 'Custom site';
       } else {
         siteIndicator.classList.add('unsupported');
         siteText.textContent = 'Not supported';
@@ -270,10 +277,17 @@ class PopupManager {
 
     // Enable/disable capture button based on conditions
     const captureBtn = document.getElementById('captureBtn');
-    const canCapture = status && status.initialized && 
+    const canCapture = status && 
                       (status.videoFound || !this.settings.fullscreenOnly || status.fullscreen);
     
-    captureBtn.disabled = !canCapture;
+    // For custom sites without detected video, still allow capture attempt
+    if (status && status.enabledSite && !status.videoFound) {
+      captureBtn.disabled = false;
+      captureBtn.title = 'Try to capture (video not detected but site is enabled)';
+    } else {
+      captureBtn.disabled = !canCapture;
+      captureBtn.title = canCapture ? 'Capture screenshot' : 'Video not found or conditions not met';
+    }
   }
 
   async captureScreenshot() {

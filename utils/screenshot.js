@@ -37,8 +37,75 @@ class ScreenshotManager {
     console.log('ScreenshotManager: Starting screenshot capture');
     
     try {
-      // Step 1: Check if video is playing and pause it
-      const video = this.findVideoElement();
+      // Step 1: Check site configuration
+      const siteConfig = await this.checkSiteConfiguration();
+      
+      // Step 2: Find video element (with enhanced waiting for educational platforms)
+      let video = this.findVideoElement();
+      
+      if (!video) {
+        console.log('ScreenshotManager: No video found immediately, checking if this is an educational platform...');
+        
+        // Check if this looks like an educational platform
+        const hostname = window.location.hostname.toLowerCase();
+        const isEducationalPlatform = hostname.includes('iit') || 
+                                    hostname.includes('nptel') || 
+                                    hostname.includes('swayam') || 
+                                    hostname.includes('mooc') || 
+                                    hostname.includes('edu') ||
+                                    hostname.includes('learn') ||
+                                    hostname.includes('course') ||
+                                    hostname.includes('lecture') ||
+                                    hostname.includes('university') ||
+                                    hostname.includes('academic');
+        
+        // Special handling for IIT Madras seek platform
+        const isIITMadras = hostname.includes('seek.onlinedegree.iitm.ac.in') ||
+                           hostname.includes('iitm.ac.in') ||
+                           hostname.includes('seek.') && hostname.includes('iit');
+        
+        const waitTime = (isEducationalPlatform || isIITMadras) ? 10000 : 3000; // Even longer wait for IIT Madras
+        console.log(`ScreenshotManager: Educational platform detected: ${isEducationalPlatform}, IIT Madras: ${isIITMadras}, waiting ${waitTime}ms...`);
+        
+        video = await this.waitForVideoElement(waitTime);
+      }
+      
+      if (!video) {
+        let errorMessage;
+        if (!siteConfig.isEnabledSite) {
+          errorMessage = `This site (${siteConfig.hostname}) is not in your enabled sites list. Add it to custom sites in extension settings to use the screenshot feature.`;
+        } else {
+          errorMessage = `No video element found on this page. This might be because:
+• The video player hasn't loaded yet - try waiting a moment
+• The video is embedded in a way the extension can't detect
+• The site uses a custom video player not yet supported
+• Try refreshing the page and waiting for the video to load
+
+Site: ${siteConfig.hostname}
+
+🏛️ IIT Madras Debugging Info:
+${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hostname.includes('iitm.ac.in') ? 
+  '• Ultra-aggressive detection was enabled for IIT Madras\n• Extended 10-second wait period was used\n• Fallback to any video element was attempted\n• Check console for detailed video analysis' : 
+  '• Standard educational platform detection was used\n• Consider manually adding video selectors if needed'}`;
+        }
+        
+        console.error('ScreenshotManager:', errorMessage);
+        this.showNotification(errorMessage, 'error');
+        
+        // Log debugging info
+        console.log('ScreenshotManager: Debugging info:');
+        console.log('- Total video elements:', document.querySelectorAll('video').length);
+        console.log('- Total iframes:', document.querySelectorAll('iframe').length);
+        console.log('- Page URL:', window.location.href);
+        console.log('- Page title:', document.title);
+        console.log('- Site enabled:', siteConfig.isEnabledSite);
+        
+        throw new Error('No video element found');
+      }
+
+      console.log('ScreenshotManager: Video element found, proceeding with capture');
+
+      // Step 3: Check if video is playing and pause it
       let wasPlaying = false;
       
       if (video && !video.paused) {
@@ -47,27 +114,27 @@ class ScreenshotManager {
         console.log('ScreenshotManager: Video paused (was playing)');
       }
 
-      // Step 2: Hide controls if auto-hide is enabled
+      // Step 4: Hide controls if auto-hide is enabled
       let hiddenElements = [];
       if (this.settings.autoHideControls) {
         hiddenElements = this.hideVideoControls();
         console.log('ScreenshotManager: Controls hidden');
       }
 
-      // Step 3: Wait a moment for UI to settle
+      // Step 5: Wait a moment for UI to settle
       const delay = this.settings.captureDelay || 100;
       await this.sleep(delay);
 
-      // Step 4: Capture the screenshot
+      // Step 6: Capture the screenshot
       const dataUrl = await this.captureVideoFrame(video);
       
-      // Step 5: Restore hidden elements
+      // Step 7: Restore hidden elements
       if (hiddenElements.length > 0) {
         this.restoreVideoControls(hiddenElements);
         console.log('ScreenshotManager: Controls restored');
       }
 
-      // Step 6: Resume video if it was playing
+      // Step 8: Resume video if it was playing
       if (wasPlaying && video) {
         setTimeout(() => {
           video.play();
@@ -75,7 +142,7 @@ class ScreenshotManager {
         }, 200); // Small delay to ensure controls are restored
       }
 
-      // Step 7: Process and download the screenshot
+      // Step 9: Process and download the screenshot
       if (dataUrl) {
         await this.processScreenshot(dataUrl, forcePreview, skipAnnotation);
         console.log('ScreenshotManager: Screenshot captured successfully');
@@ -90,7 +157,7 @@ class ScreenshotManager {
   }
 
   findVideoElement() {
-    // Try different selectors for various video sites
+    // Enhanced video selectors for comprehensive detection
     const selectors = [
       // YouTube selectors
       '.video-stream',
@@ -107,42 +174,281 @@ class ScreenshotManager {
       'video[data-a-target="video-player"]',
       '.video-player video',
       
-      // Generic fallback
+      // Educational platform selectors (common patterns)
+      '.lesson-video video',
+      '.course-video video',
+      '.lecture-video video',
+      '.video-lesson video',
+      '#lesson-player video',
+      '.player-wrapper video',
+      '.video-frame video',
+      '.media-wrapper video',
+      '.content-video video',
+      '.stream-video video',
+      
+      // Indian educational platform specific selectors
+      '.nptel-player video',
+      '.swayam-player video',
+      '.mooc-player video',
+      '.learning-player video',
+      '.edu-video video',
+      '.course-player video',
+      '#videoPlayer video',
+      '#courseVideo video',
+      '#lectureVideo video',
+      '.video-player-container video',
+      '.lecture-player video',
+      '.module-video video',
+      '.chapter-video video',
+      
+      // IIT Madras seek platform specific selectors
+      '.seek-video video',
+      '.seek-player video',
+      '.player-seek video',
+      '.video-seek video',
+      '.course-video-player video',
+      '.online-degree-video video',
+      '.degree-video video',
+      '.iitm-video video',
+      '.iitm-player video',
+      '.video-content-player video',
+      '.course-content-video video',
+      '.lesson-player-container video',
+      '.video-lesson-player video',
+      '.streaming-video video',
+      '.media-video video',
+      '.embed-video video',
+      '.iframe-video video',
+      
+      // Generic container patterns for IIT platforms
+      '[class*="video"] video',
+      '[class*="player"] video',
+      '[id*="video"] video',
+      '[id*="player"] video',
+      
+      // IIT/Academic platform patterns
+      '.academic-video video',
+      '.university-video video',
+      '.iit-video video',
+      '.lecture-content video',
+      '.study-video video',
+      '.education-video video',
+      '.online-course video',
+      '.e-learning video',
+      
+      // Video.js and common video players
+      '.video-js video',
+      '.vjs-tech',
+      '.videojs video',
+      '.plyr video',
+      '.plyr__video',
+      '.jwplayer video',
+      '.flowplayer video',
+      
+      // Generic video selectors for custom sites
+      'video[src]',
+      'video[poster]',
+      'video[width]',
+      'video[height]',
+      'video[controls]',
+      'video[autoplay]',
+      'video[preload]',
+      '.video-container video',
+      '.player-container video',
+      '.video-wrapper video',
+      '.media-player video',
+      '.media-container video',
+      '#player video',
+      '.player video',
+      '#video-player video',
+      '.video-element video',
+      
+      // LMS and educational platform patterns
+      '.video-content video',
+      '.lesson-content video',
+      '.course-content video',
+      '.learning-video video',
+      '.tutorial-video video',
+      '.training-video video',
+      
+      // Iframe embedded videos (look inside iframes)
+      'iframe video',
+      
+      // Generic fallback - any video element
       'video'
     ];
 
-    // First try to find playing videos
+    console.log('ScreenshotManager: Looking for video elements...');
+    console.log('ScreenshotManager: Current URL:', window.location.href);
+
+    // Enhanced detection with better logging
+    const allVideos = document.querySelectorAll('video');
+    console.log('ScreenshotManager: Total video elements found:', allVideos.length);
+
+    // Log details about all video elements found
+    allVideos.forEach((video, index) => {
+      console.log(`Video ${index + 1}:`, {
+        element: video,
+        src: video.src || video.currentSrc || 'no src',
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        clientWidth: video.clientWidth,
+        clientHeight: video.clientHeight,
+        paused: video.paused,
+        readyState: video.readyState,
+        networkState: video.networkState,
+        duration: video.duration,
+        currentTime: video.currentTime,
+        classList: Array.from(video.classList),
+        id: video.id,
+        parentElement: video.parentElement?.tagName,
+        style: {
+          display: getComputedStyle(video).display,
+          visibility: getComputedStyle(video).visibility,
+          opacity: getComputedStyle(video).opacity
+        }
+      });
+    });
+
+    // First try to find playing videos with proper dimensions
     for (const selector of selectors) {
       const videos = document.querySelectorAll(selector);
       for (const video of videos) {
         if (video && video.videoWidth && video.videoHeight && !video.paused) {
-          console.log('Found playing video:', video);
+          console.log('Found playing video with dimensions:', video.videoWidth + 'x' + video.videoHeight, 'using selector:', selector);
           return video;
         }
       }
     }
 
-    // Then try any video with dimensions
+    // Then try any video with dimensions (even if paused)
     for (const selector of selectors) {
       const videos = document.querySelectorAll(selector);
       for (const video of videos) {
         if (video && video.videoWidth && video.videoHeight) {
-          console.log('Found video with dimensions:', video);
+          console.log('Found video with dimensions:', video.videoWidth + 'x' + video.videoHeight, 'using selector:', selector);
           return video;
         }
       }
     }
 
-    // Finally try any video element
-    const allVideos = document.querySelectorAll('video');
+    // Try videos that are loaded (readyState >= 1) even without dimensions yet
     for (const video of allVideos) {
-      if (video && (video.videoWidth > 0 || video.clientWidth > 100)) {
-        console.log('Found fallback video:', video);
+      if (video && video.readyState >= 1 && video.clientWidth > 100 && video.clientHeight > 50) {
+        console.log('Found loaded video by readyState:', {
+          readyState: video.readyState,
+          clientSize: video.clientWidth + 'x' + video.clientHeight
+        });
         return video;
       }
     }
 
-    console.log('No video element found');
+    // Try videos with visible dimensions (even if not fully loaded)
+    for (const video of allVideos) {
+      if (video && (video.videoWidth > 0 || video.clientWidth > 100)) {
+        const style = getComputedStyle(video);
+        if (style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0') {
+          console.log('Found fallback video:', {
+            videoSize: video.videoWidth + 'x' + video.videoHeight,
+            clientSize: video.clientWidth + 'x' + video.clientHeight,
+            display: style.display,
+            visibility: style.visibility
+          });
+          return video;
+        }
+      }
+    }
+
+    // Final attempt: try any video element that's not hidden
+    for (const video of allVideos) {
+      const style = getComputedStyle(video);
+      if (style.display !== 'none' && style.visibility !== 'hidden') {
+        console.log('Found any visible video (last resort):', video);
+        return video;
+      }
+    }
+
+    // Educational platform specific fallback: try videos with any indication of being active
+    const hostname = window.location.hostname.toLowerCase();
+    const isEducationalPlatform = hostname.includes('iit') || hostname.includes('nptel') || 
+                                hostname.includes('swayam') || hostname.includes('mooc') || 
+                                hostname.includes('edu') || hostname.includes('learn') ||
+                                hostname.includes('course') || hostname.includes('lecture');
+    
+    const isIITMadras = hostname.includes('seek.onlinedegree.iitm.ac.in') ||
+                       hostname.includes('iitm.ac.in') ||
+                       hostname.includes('seek.') && hostname.includes('iit');
+    
+    if (isEducationalPlatform || isIITMadras) {
+      console.log(`ScreenshotManager: Educational platform detected (${hostname}), trying more lenient video detection...`);
+      
+      for (const video of allVideos) {
+        // For educational platforms, accept videos with any of these conditions:
+        if (video.readyState >= 1 || // Has loaded metadata
+            video.networkState !== HTMLMediaElement.NETWORK_EMPTY || // Has network activity
+            video.currentTime > 0 || // Has played
+            video.duration > 0 || // Has duration  
+            (video.src || video.currentSrc) || // Has a source
+            video.clientWidth > 30 || // Has some width (very lenient)
+            video.offsetWidth > 30 || // Or offset width
+            video.getBoundingClientRect().width > 30) { // Or computed width
+          
+          console.log('ScreenshotManager: Found educational platform video (lenient detection):', {
+            hostname: hostname,
+            readyState: video.readyState,
+            networkState: video.networkState,
+            hasSource: !!(video.src || video.currentSrc),
+            clientWidth: video.clientWidth,
+            offsetWidth: video.offsetWidth,
+            boundingWidth: video.getBoundingClientRect().width,
+            currentTime: video.currentTime,
+            duration: video.duration,
+            classList: Array.from(video.classList),
+            id: video.id,
+            tagName: video.tagName
+          });
+          
+          return video;
+        }
+      }
+      
+      // Ultra-lenient fallback for IIT Madras - accept ANY video element that exists
+      if (isIITMadras && allVideos.length > 0) {
+        console.log('ScreenshotManager: IIT Madras ultra-lenient fallback - using first video found');
+        const video = allVideos[0];
+        console.log('ScreenshotManager: IIT Madras fallback video:', {
+          element: video,
+          src: video.src || video.currentSrc || 'no source',
+          parent: video.parentElement?.tagName,
+          classList: Array.from(video.classList),
+          id: video.id,
+          clientRect: video.getBoundingClientRect()
+        });
+        return video;
+      }
+    }
+
+    // Check for videos inside iframes
+    const iframes = document.querySelectorAll('iframe');
+    console.log('ScreenshotManager: Checking', iframes.length, 'iframes for videos');
+    
+    for (const iframe of iframes) {
+      try {
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (iframeDoc) {
+          const iframeVideos = iframeDoc.querySelectorAll('video');
+          console.log('Found', iframeVideos.length, 'videos in iframe:', iframe.src);
+          if (iframeVideos.length > 0) {
+            return iframeVideos[0]; // Return first video found in iframe
+          }
+        }
+      } catch (e) {
+        // Cross-origin iframe, can't access content
+        console.log('Cannot access iframe content (cross-origin):', iframe.src);
+      }
+    }
+
+    console.log('ScreenshotManager: No suitable video element found');
     return null;
   }
 
@@ -211,7 +517,73 @@ class ScreenshotManager {
 
   async captureVideoFrame(video) {
     if (!video) {
-      throw new Error('No video element found');
+      // If no video found, try to capture the whole page or ask user to add site
+      console.log('ScreenshotManager: No video element found, attempting page capture');
+      throw new Error('No video element found on this page. Try adding this site to custom sites in settings.');
+    }
+
+    // Check if video has valid dimensions
+    if (!video.videoWidth || !video.videoHeight) {
+      // Video exists but no dimensions - might be loading
+      console.log('ScreenshotManager: Video found but no dimensions, checking for IIT Madras...');
+      
+      const hostname = window.location.hostname.toLowerCase();
+      const isIITMadras = hostname.includes('seek.onlinedegree.iitm.ac.in') ||
+                         hostname.includes('iitm.ac.in') ||
+                         (hostname.includes('seek.') && hostname.includes('iit'));
+      
+      if (isIITMadras) {
+        console.log('ScreenshotManager: IIT Madras detected - using client dimensions as fallback');
+        
+        // For IIT Madras, try using client dimensions
+        const clientWidth = video.clientWidth || video.offsetWidth || 640;
+        const clientHeight = video.clientHeight || video.offsetHeight || 360;
+        
+        console.log('ScreenshotManager: Using client dimensions:', clientWidth + 'x' + clientHeight);
+        
+        // Set canvas dimensions to client size
+        this.canvas.width = clientWidth;
+        this.canvas.height = clientHeight;
+        
+        try {
+          // Draw video frame to canvas using client dimensions
+          this.context.drawImage(video, 0, 0, clientWidth, clientHeight);
+          
+          // Convert to data URL
+          const dataUrl = this.canvas.toDataURL('image/png', this.settings.screenshotQuality || 0.9);
+          
+          console.log('ScreenshotManager: IIT Madras fallback capture successful');
+          return dataUrl;
+        } catch (error) {
+          console.log('ScreenshotManager: IIT Madras fallback capture failed:', error.message);
+          // Continue to normal error handling
+        }
+      }
+      
+      // Wait a bit for video to load
+      await this.sleep(1000);
+      
+      if (!video.videoWidth || !video.videoHeight) {
+        // One more attempt for IIT Madras with minimal dimensions
+        if (isIITMadras) {
+          console.log('ScreenshotManager: IIT Madras final attempt with minimal dimensions');
+          
+          this.canvas.width = 640;
+          this.canvas.height = 360;
+          
+          try {
+            this.context.drawImage(video, 0, 0, 640, 360);
+            const dataUrl = this.canvas.toDataURL('image/png', this.settings.screenshotQuality || 0.9);
+            
+            console.log('ScreenshotManager: IIT Madras minimal dimensions capture successful');
+            return dataUrl;
+          } catch (error) {
+            console.log('ScreenshotManager: IIT Madras minimal dimensions capture failed:', error.message);
+          }
+        }
+        
+        throw new Error('Video found but not ready. Please wait for the video to load and try again.');
+      }
     }
 
     // Set canvas dimensions to match video
@@ -229,6 +601,13 @@ class ScreenshotManager {
     // Refresh settings to get latest title builder preferences
     await this.updateSettings();
     
+    console.log('=== SCREENSHOT PROCESSING DEBUG ===');
+    console.log('processScreenshot called with:');
+    console.log('  - forcePreview:', forcePreview);
+    console.log('  - skipAnnotation:', skipAnnotation);
+    console.log('  - settings.annotationMode:', this.settings.annotationMode);
+    console.log('  - settings.disablePreviewByDefault:', this.settings.disablePreviewByDefault);
+    
     // Extract video metadata
     const metadata = this.extractVideoMetadata();
     
@@ -240,9 +619,16 @@ class ScreenshotManager {
     // Skip annotation if explicitly requested (e.g., for Shift+Enter)
     const shouldShowPreview = !skipAnnotation && this.shouldShowPreview(forcePreview);
     
+    console.log('=== ANNOTATION DECISION ===');
+    console.log('  - !skipAnnotation:', !skipAnnotation);
+    console.log('  - shouldShowPreview result:', shouldShowPreview);
+    console.log('  - Final action:', shouldShowPreview ? 'SHOW ANNOTATION' : 'DIRECT DOWNLOAD');
+    
     if (shouldShowPreview) {
+      console.log('📝 Showing annotation interface');
       this.showAnnotationInterface(dataUrl, filename);
     } else {
+      console.log('💾 Direct download - skipping annotation');
       // Direct download
       await this.downloadScreenshot(dataUrl, filename);
       
@@ -256,18 +642,25 @@ class ScreenshotManager {
   }
 
   shouldShowPreview(forcePreview = false) {
-    // If forced to show preview (e.g., Shift+click), always show
+    console.log('ScreenshotManager: shouldShowPreview check - forcePreview:', forcePreview);
+    console.log('ScreenshotManager: Settings - annotationMode:', this.settings.annotationMode, 'disablePreviewByDefault:', this.settings.disablePreviewByDefault);
+    
+    // If forced to show preview (e.g., specific Shift+Enter combination), always show
     if (forcePreview) {
+      console.log('ScreenshotManager: Forcing preview due to forcePreview=true');
       return true;
     }
     
     // If preview is disabled by default, don't show annotation interface
-    if (this.settings.disablePreviewByDefault) {
+    if (this.settings.disablePreviewByDefault === true) {
+      console.log('ScreenshotManager: Preview disabled by default setting');
       return false;
     }
     
-    // Otherwise, show preview if annotation mode is enabled
-    return this.settings.annotationMode;
+    // Only show preview if annotation mode is explicitly enabled
+    const shouldShow = this.settings.annotationMode === true;
+    console.log('ScreenshotManager: Final shouldShowPreview result:', shouldShow);
+    return shouldShow;
   }
 
   async downloadScreenshot(dataUrl, filename) {
@@ -824,14 +1217,8 @@ class ScreenshotManager {
         
         // Handle text tool
         if (currentTool === 'text') {
-          const text = prompt('Enter text:');
-          if (text) {
-            const color = overlay.querySelector('.color-picker').value;
-            const lineWidth = overlay.querySelector('.line-width-select').value;
-            ctx.fillStyle = color;
-            ctx.font = `${lineWidth * 4}px Arial`;
-            ctx.fillText(text, startX, startY);
-          }
+          // Create a text input overlay for better UX
+          this.createTextInput(overlay, canvas, ctx, startX, startY);
         }
         
         // Store the new state as original for next drawing
@@ -927,13 +1314,9 @@ class ScreenshotManager {
   }
 
   async updateSettings() {
-    console.log('=== SCREENSHOT MANAGER: UPDATE SETTINGS ===');
-    console.log('Previous settings organizeFolders:', this.settings?.organizeFolders);
-    
+    // Refresh settings from storage - this is called when settings change
     this.settings = await window.storageManager.getSettings();
-    
-    console.log('New settings organizeFolders:', this.settings?.organizeFolders);
-    console.log('=== SCREENSHOT MANAGER: UPDATE SETTINGS END ===');
+    console.log('ScreenshotManager: Settings updated', this.settings);
   }
 
   // Video metadata extraction methods
@@ -1292,7 +1675,230 @@ class ScreenshotManager {
     return filename;
   }
 
-  // Imgur history functionality removed - Imgur service no longer supported
+  createTextInput(overlay, canvas, ctx, x, y) {
+    // Create text input overlay
+    const textOverlay = document.createElement('div');
+    textOverlay.style.cssText = `
+      position: absolute;
+      left: ${x}px;
+      top: ${y}px;
+      z-index: 10002;
+      background: white;
+      border: 2px solid #2196F3;
+      border-radius: 4px;
+      padding: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    `;
+    
+    const textInput = document.createElement('input');
+    textInput.type = 'text';
+    textInput.placeholder = 'Enter text...';
+    textInput.style.cssText = `
+      border: none;
+      outline: none;
+      font-size: 14px;
+      min-width: 150px;
+      background: transparent;
+    `;
+    
+    const confirmBtn = document.createElement('button');
+    confirmBtn.textContent = '✓';
+    confirmBtn.style.cssText = `
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 4px 8px;
+      margin-left: 8px;
+      cursor: pointer;
+    `;
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.textContent = '✕';
+    cancelBtn.style.cssText = `
+      background: #f44336;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 4px 8px;
+      margin-left: 4px;
+      cursor: pointer;
+    `;
+    
+    textOverlay.appendChild(textInput);
+    textOverlay.appendChild(confirmBtn);
+    textOverlay.appendChild(cancelBtn);
+    
+    // Position the text input correctly
+    const canvasRect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / canvasRect.width;
+    const scaleY = canvas.height / canvasRect.height;
+    
+    textOverlay.style.left = (canvasRect.left + (x / scaleX)) + 'px';
+    textOverlay.style.top = (canvasRect.top + (y / scaleY)) + 'px';
+    
+    document.body.appendChild(textOverlay);
+    textInput.focus();
+    
+    const addText = () => {
+      const text = textInput.value.trim();
+      if (text) {
+        const color = overlay.querySelector('.color-picker').value;
+        const lineWidth = parseInt(overlay.querySelector('.line-width-select').value);
+        
+        ctx.fillStyle = color;
+        ctx.font = `${lineWidth * 8}px Arial`;
+        ctx.fillText(text, x, y);
+        
+        console.log('Text added:', text, 'at position:', x, y);
+      }
+      document.body.removeChild(textOverlay);
+    };
+    
+    const cancelText = () => {
+      document.body.removeChild(textOverlay);
+    };
+    
+    confirmBtn.addEventListener('click', addText);
+    cancelBtn.addEventListener('click', cancelText);
+    
+    textInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addText();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        cancelText();
+      }
+    });
+  }
+
+  async waitForVideoElement(maxWaitTime = 5000) {
+    console.log('ScreenshotManager: Waiting for video element to load...');
+    
+    const startTime = Date.now();
+    const pollInterval = 150; // Check more frequently (every 150ms)
+    
+    // Check if this is IIT Madras for ultra-aggressive detection
+    const hostname = window.location.hostname.toLowerCase();
+    const isIITMadras = hostname.includes('seek.onlinedegree.iitm.ac.in') ||
+                       hostname.includes('iitm.ac.in') ||
+                       (hostname.includes('seek.') && hostname.includes('iit'));
+    
+    if (isIITMadras) {
+      console.log('ScreenshotManager: IIT Madras detected - using ultra-aggressive video detection');
+    }
+    
+    return new Promise((resolve) => {
+      const checkForVideo = () => {
+        // Try multiple detection strategies
+        let video = this.findVideoElement();
+        
+        // If main detection didn't work, try more aggressive detection
+        if (!video) {
+          // Check for any video elements that might be loading
+          const allVideos = document.querySelectorAll('video');
+          console.log(`ScreenshotManager: Found ${allVideos.length} video elements, analyzing...`);
+          
+          for (const videoEl of allVideos) {
+            // Standard criteria
+            if (videoEl.readyState >= 1 || // Has metadata
+                videoEl.networkState !== HTMLMediaElement.NETWORK_EMPTY || // Network activity
+                videoEl.currentTime > 0 || // Has played
+                videoEl.duration > 0 || // Has duration
+                videoEl.src || videoEl.currentSrc || // Has source
+                (videoEl.clientWidth > 50 && videoEl.clientHeight > 50)) { // Has visible size
+              
+              console.log('ScreenshotManager: Found potentially ready video:', {
+                readyState: videoEl.readyState,
+                networkState: videoEl.networkState,
+                currentTime: videoEl.currentTime,
+                duration: videoEl.duration,
+                hasSource: !!(videoEl.src || videoEl.currentSrc),
+                clientSize: `${videoEl.clientWidth}x${videoEl.clientHeight}`,
+                videoSize: `${videoEl.videoWidth}x${videoEl.videoHeight}`
+              });
+              
+              video = videoEl;
+              break;
+            }
+          }
+          
+          // Ultra-aggressive detection for IIT Madras - accept ANY video element
+          if (!video && isIITMadras && allVideos.length > 0) {
+            console.log('ScreenshotManager: IIT Madras ultra-aggressive - accepting any video element');
+            video = allVideos[0];
+            console.log('ScreenshotManager: IIT Madras fallback video selected:', {
+              element: video.tagName,
+              src: video.src || video.currentSrc || 'no source',
+              classList: Array.from(video.classList),
+              id: video.id,
+              readyState: video.readyState,
+              clientRect: video.getBoundingClientRect()
+            });
+          }
+        }
+        
+        if (video) {
+          console.log('ScreenshotManager: Video element found after waiting');
+          resolve(video);
+          return;
+        }
+        
+        const elapsed = Date.now() - startTime;
+        if (elapsed >= maxWaitTime) {
+          console.log('ScreenshotManager: Timeout waiting for video element');
+          
+          // Final attempt: log detailed info about what we found
+          const allVideos = document.querySelectorAll('video');
+          if (allVideos.length > 0) {
+            console.log('ScreenshotManager: Videos found but none suitable:');
+            allVideos.forEach((v, i) => {
+              console.log(`Video ${i + 1}:`, {
+                readyState: v.readyState,
+                networkState: v.networkState,
+                videoSize: `${v.videoWidth}x${v.videoHeight}`,
+                clientSize: `${v.clientWidth}x${v.clientHeight}`,
+                src: v.src || v.currentSrc || 'no source',
+                classList: Array.from(v.classList),
+                id: v.id,
+                parentElement: v.parentElement?.tagName,
+                style: getComputedStyle(v).display
+              });
+            });
+            
+            // For IIT Madras, try one last time with the first video found
+            if (isIITMadras) {
+              console.log('ScreenshotManager: IIT Madras final fallback - using first video regardless');
+              resolve(allVideos[0]);
+              return;
+            }
+          }
+          
+          resolve(null);
+          return;
+        }
+        
+        setTimeout(checkForVideo, pollInterval);
+      };
+      
+      checkForVideo();
+    });
+  }
+
+  async checkSiteConfiguration() {
+    const hostname = window.location.hostname;
+    const isEnabledSite = await window.storageManager.isCurrentSiteEnabled();
+    
+    console.log('ScreenshotManager: Site configuration check:');
+    console.log('- Hostname:', hostname);
+    console.log('- Is enabled site:', isEnabledSite);
+    
+    return {
+      hostname,
+      isEnabledSite
+    };
+  }
 }
 
 // Initialize screenshot manager when DOM is ready

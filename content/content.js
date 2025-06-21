@@ -16,10 +16,15 @@ class ScreenshotExtension {
       // Get initial settings
       this.settings = await window.storageManager.getSettings();
       
+      // Set up storage change listener for settings updates
+      this.setupStorageListener();
+      
       // Check if extension should be active on this site
       const isEnabledSite = await window.storageManager.isCurrentSiteEnabled();
       if (!isEnabledSite) {
-        console.log('YouTube Screenshot Helper: Not enabled for this site');
+        console.log('YouTube Screenshot Helper: Not enabled for this site - waiting for click to activate');
+        // Don't return here - wait for user to click extension
+        this.isInitialized = true;
         return;
       }
 
@@ -29,6 +34,9 @@ class ScreenshotExtension {
       
       // Setup fullscreen change listener
       this.setupFullscreenListener();
+      
+      // Wait for video content to load on custom sites
+      this.waitForVideoContent();
       
       this.isInitialized = true;
       console.log('YouTube Screenshot Helper: Initialized successfully');
@@ -73,7 +81,16 @@ class ScreenshotExtension {
         break;
         
       case 'captureScreenshot':
-        if (this.isInitialized && window.screenshotManager) {
+        // If not initialized yet (custom site), initialize now
+        if (!this.isInitialized) {
+          console.log('YouTube Screenshot Helper: Initializing for custom site via user action');
+          this.setupMessageListeners();
+          this.setupMutationObserver();
+          this.setupFullscreenListener();
+          this.isInitialized = true;
+        }
+        
+        if (window.screenshotManager) {
           try {
             await window.screenshotManager.captureScreenshot();
             sendResponse({ success: true });
@@ -92,11 +109,15 @@ class ScreenshotExtension {
         break;
         
       case 'getStatus':
+        const videoFound = !!this.findVideoElement();
+        const isEnabledSite = await window.storageManager.isCurrentSiteEnabled();
+        
         sendResponse({
           initialized: this.isInitialized,
           site: window.location.hostname,
           fullscreen: this.isInFullscreen(),
-          videoFound: !!this.findVideoElement()
+          videoFound: videoFound,
+          enabledSite: isEnabledSite
         });
         break;
         
@@ -129,7 +150,34 @@ class ScreenshotExtension {
       this.handleVimeoChanges(mutations);
     } else if (hostname.includes('twitch.tv')) {
       this.handleTwitchChanges(mutations);
+    } else {
+      // Handle custom/generic sites
+      this.handleGenericSiteChanges(mutations);
     }
+  }
+
+  handleGenericSiteChanges(mutations) {
+    // For custom sites, look for any new video elements
+    mutations.forEach(mutation => {
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            // Check if the added node is a video or contains videos
+            let videos = [];
+            if (node.tagName === 'VIDEO') {
+              videos.push(node);
+            } else if (node.querySelector) {
+              videos = Array.from(node.querySelectorAll('video'));
+            }
+            
+            videos.forEach(video => {
+              console.log('YouTube Screenshot Helper: New video element detected on custom site');
+              this.attachVideoListeners(video);
+            });
+          }
+        });
+      }
+    });
   }
 
   handleYouTubeChanges(mutations) {
@@ -158,6 +206,31 @@ class ScreenshotExtension {
   handleTwitchChanges(mutations) {
     // Handle Twitch-specific DOM changes
     console.log('Twitch DOM changes detected');
+  }
+
+  waitForVideoContent() {
+    // For custom sites, wait for video elements to appear
+    let attempts = 0;
+    const maxAttempts = 30; // 30 seconds max wait time
+    
+    const checkForVideo = () => {
+      const videoElement = this.findVideoElement();
+      if (videoElement) {
+        console.log('YouTube Screenshot Helper: Video found on page');
+        this.attachVideoListeners(videoElement);
+        return;
+      }
+      
+      attempts++;
+      if (attempts < maxAttempts) {
+        setTimeout(checkForVideo, 1000); // Check every second
+      } else {
+        console.log('YouTube Screenshot Helper: No video found after waiting');
+      }
+    };
+    
+    // Start checking after a brief delay
+    setTimeout(checkForVideo, 1000);
   }
 
   attachVideoListeners(video) {
@@ -455,6 +528,16 @@ class ScreenshotExtension {
             }, 400);
         }, duration);
     }
+  }
+
+  setupStorageListener() {
+    // Listen for storage changes to update settings in real-time
+    chrome.storage.onChanged.addListener(async (changes, namespace) => {
+      if (namespace === 'sync') {
+        console.log('YouTube Screenshot Helper: Storage changed, updating settings');
+        await this.updateSettings();
+      }
+    });
   }
 }
 

@@ -209,6 +209,19 @@ class OptionsManager {
     this.setupButton('themeToggle', () => {
       this.toggleTheme();
     });
+
+    // Data management buttons
+    this.setupButton('exportBtn', () => {
+      this.exportSettings();
+    });
+
+    this.setupButton('importBtn', () => {
+      this.importSettings();
+    });
+
+    this.setupButton('resetBtn', () => {
+      this.resetToDefaults();
+    });
   }
 
   setupControl(id, event, handler) {
@@ -1020,6 +1033,121 @@ class OptionsManager {
     
     this.populateSitesList();
     this.showToast(`Removed ${site} from enabled sites`, 'success');
+  }
+
+  // Data Management Methods
+  exportSettings() {
+    try {
+      // Create a settings object with current settings
+      const settingsToExport = { ...this.settings };
+      
+      // Add metadata
+      const exportData = {
+        version: '1.0',
+        timestamp: new Date().toISOString(),
+        settings: settingsToExport
+      };
+      
+      // Create and download the file
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(dataBlob);
+      link.download = `youtube-screenshot-helper-settings-${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      
+      // Clean up
+      URL.revokeObjectURL(link.href);
+      
+      this.showToast('Settings exported successfully', 'success');
+    } catch (error) {
+      console.error('Failed to export settings:', error);
+      this.showToast('Failed to export settings', 'error');
+    }
+  }
+
+  importSettings() {
+    const fileInput = document.getElementById('importFile');
+    if (!fileInput) {
+      this.showToast('Import file input not found', 'error');
+      return;
+    }
+    
+    fileInput.onchange = (event) => {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importData = JSON.parse(e.target.result);
+          
+          // Validate the import data structure
+          if (!importData.settings) {
+            this.showToast('Invalid settings file format', 'error');
+            return;
+          }
+          
+          // Merge imported settings with defaults to ensure all required keys exist
+          const importedSettings = { ...this.defaults, ...importData.settings };
+          
+          // Update each setting
+          Object.keys(importedSettings).forEach(key => {
+            this.settings[key] = importedSettings[key];
+          });
+          
+          // Save all settings to storage
+          chrome.storage.sync.set(this.settings).then(() => {
+            // Update UI to reflect imported settings
+            this.updateUI();
+            this.updateTitlePreview();
+            this.showToast('Settings imported successfully', 'success');
+          }).catch(error => {
+            console.error('Failed to save imported settings:', error);
+            this.showToast('Failed to save imported settings', 'error');
+          });
+          
+        } catch (error) {
+          console.error('Failed to parse settings file:', error);
+          this.showToast('Invalid settings file', 'error');
+        }
+      };
+      
+      reader.readAsText(file);
+      
+      // Reset file input
+      fileInput.value = '';
+    };
+    
+    // Trigger file dialog
+    fileInput.click();
+  }
+
+  resetToDefaults() {
+    if (confirm('Are you sure you want to reset all settings to their default values? This action cannot be undone.')) {
+      try {
+        // Reset settings to defaults
+        this.settings = { ...this.defaults };
+        
+        // Clear storage and set defaults
+        chrome.storage.sync.clear().then(() => {
+          return chrome.storage.sync.set(this.settings);
+        }).then(() => {
+          // Update UI to reflect reset settings
+          this.updateUI();
+          this.updateTitlePreview();
+          this.showToast('Settings reset to defaults successfully', 'success');
+        }).catch(error => {
+          console.error('Failed to reset settings:', error);
+          this.showToast('Failed to reset settings', 'error');
+        });
+        
+      } catch (error) {
+        console.error('Failed to reset settings:', error);
+        this.showToast('Failed to reset settings', 'error');
+      }
+    }
   }
 
   // Cloud history functions removed - only Google Drive supported now
