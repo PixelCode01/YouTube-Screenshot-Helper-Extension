@@ -27,11 +27,6 @@
 - **🌙 Theme Support**: Auto, light, or dark mode
 - **📏 Quality Control**: Adjustable screenshot quality and capture delay
 
-### 🎓 Educational Platform Support
-- **🏛️ IIT Madras SEEK Platform**: Specialized support with ultra-aggressive video detection
-- **📚 NPTEL & SWAYAM**: Enhanced compatibility for Indian educational platforms
-- **🎓 MOOCs & Universities**: Extended wait times and fallback detection for slow-loading players
-
 ## 🚀 Installation
 
 ### From Chrome Web Store
@@ -114,12 +109,6 @@ Build filenames with multiple components:
 - **YouTube** (youtube.com) - Full feature support
 - **Vimeo** (vimeo.com) - Complete compatibility
 - **Twitch** (twitch.tv) - Live streams and VODs
-
-### 🎓 Educational Platforms
-- **IIT Madras SEEK** - Specialized video detection
-- **NPTEL** - Enhanced loading support
-- **SWAYAM** - Extended compatibility
-- **Generic .edu domains** - Basic support
 
 ### 🔧 Custom Sites
 Add any video site through the settings:
