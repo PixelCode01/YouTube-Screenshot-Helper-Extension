@@ -111,7 +111,11 @@ Add any video site through the settings:
 2. Add your domain (e.g., `example.com`)
 3. Configure custom video selectors if needed
 
-##Video Demo
+## Video Demo
+
+
+https://github.com/user-attachments/assets/6377e366-75f3-4a00-a8e7-4de9a1001006
+
 
 
 ## 🛠️ Technical Details
