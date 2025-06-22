@@ -4,7 +4,7 @@
 
 [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-green.svg)](https://chrome.google.com/webstore)
+![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-green.svg)
 
 *Enhanced screenshot tool for YouTube and video sites - capture clean frames with a single keypress*
 
@@ -28,11 +28,6 @@
 - **📏 Quality Control**: Adjustable screenshot quality and capture delay
 
 ## 🚀 Installation
-
-### From Chrome Web Store
-1. Visit the [Chrome Web Store](https://chrome.google.com/webstore) (link coming soon)
-2. Click "Add to Chrome"
-3. Grant necessary permissions
 
 ### Manual Installation (Developer Mode)
 1. **Download**: Clone or download this repository
@@ -115,6 +110,9 @@ Add any video site through the settings:
 1. Go to Settings → Site Management
 2. Add your domain (e.g., `example.com`)
 3. Configure custom video selectors if needed
+
+##Video Demo
+
 
 ## 🛠️ Technical Details
 
@@ -249,11 +247,6 @@ videoSelectors: {
   - Choose a different key combination
   - Use the popup button instead
 
-#### Educational Platform Issues
-- **IIT Madras SEEK**: Extension waits up to 10 seconds for video detection
-- **NPTEL/SWAYAM**: May require page refresh after video loads
-- **Solution**: Be patient, try manual capture via popup
-
 ### Debug Mode
 Enable debug mode in settings to see detailed console logs:
 1. Open Settings → Advanced
@@ -300,6 +293,31 @@ Enable debug mode in settings to see detailed console logs:
 - 📸 Basic screenshot functionality
 - ⌨️ Keyboard shortcut support
 - 🎯 YouTube, Vimeo, Twitch support
+
+##Screenshots
+![Screenshot from 2025-06-22 20-26-14](https://github.com/user-attachments/assets/3a4986cd-2d0f-4f62-bc0f-32e229de7641)
+![Screenshot from 2025-06-22 20-26-31](https://github.com/user-attachments/assets/d005c5dd-1288-4659-b040-f0f2bb9e5119)
+![Screenshot from 2025-06-22 20-26-40](https://github.com/user-attachments/assets/3c1ac805-7572-455a-88f8-cf1019a5da18)
+![Screenshot from 2025-06-22 20-26-49](https://github.com/user-attachments/assets/ef8adde1-6376-44c0-86e9-49f81f1e8612)
+![Screenshot from 2025-06-22 20-26-55](https://github.com/user-attachments/assets/1ce232ba-096b-42a0-9374-32c1311fbd12)
+![Screenshot from 2025-06-22 20-27-01](https://github.com/user-attachments/assets/8218b3f1-ef0a-4ee1-bf93-78607fd6a33a)
+![Screenshot from 2025-06-22 20-27-07](https://github.com/user-attachments/assets/31bfc0b3-65ef-441f-b646-39081a2cb9f6)
+![Screenshot from 2025-06-22 20-27-07-1](https://github.com/user-attachments/assets/8666d65e-1fc0-4f18-a462-86c671fe2e39)
+![Screenshot from 2025-06-22 20-27-11](https://github.com/user-attachments/assets/1d482ea5-e572-4f66-85f7-b23929f83216)
+![Screenshot from 2025-06-22 20-27-27](https://github.com/user-attachments/assets/3a31b0d5-7577-4944-a71c-8673ab1c9b8f)
+![Screenshot from 2025-06-22 20-27-31](https://github.com/user-attachments/assets/cc621740-49a0-4166-a9b9-563d9dfa7a98)
+![Screenshot from 2025-06-22 20-27-36](https://github.com/user-attachments/assets/e398e847-328f-4d7e-9955-99df90b6aa23)
+![Screenshot from 2025-06-22 20-34-40](https://github.com/user-attachments/assets/4ed7f2c1-2926-4b86-acd5-5e095ba3cf6d)
+![Screenshot from 2025-06-22 20-34-51](https://github.com/user-attachments/assets/6139e12d-2f32-4495-99f6-7ef99526fb10)
+![Screenshot from 2025-06-22 20-35-16](https://github.com/user-attachments/assets/ab23b690-6ef4-440d-b06e-ca51b1d5349a)
+![Screenshot from 2025-06-22 20-35-52](https://github.com/user-attachments/assets/a4e7043d-0ad9-45dd-bdfa-a287c0f1fdab)
+![Screenshot from 2025-06-22 20-35-53](https://github.com/user-attachments/assets/096b4952-b3c9-4416-a11c-91d18e68930d)
+![Screenshot from 2025-06-22 20-36-35](https://github.com/user-attachments/assets/c77c21f7-5f75-442d-80bd-4549771ac2d0)
+![Screenshot from 2025-06-22 20-36-41](https://github.com/user-attachments/assets/23927108-afd2-4f5a-af2a-b1c1ae6bc573)
+![Screenshot from 2025-06-22 20-36-46](https://github.com/user-attachments/assets/e5428c17-8978-4fa2-9224-44381db9b1b3)
+![Screenshot from 2025-06-22 20-36-49](https://github.com/user-attachments/assets/f184f4f7-d267-4afe-82f5-6a4b5ee8951a)
+![Screenshot from 2025-06-22 20-36-56](https://github.com/user-attachments/assets/0d57425f-994a-460d-91dd-1a7e3bae21e6)
+
 
 ## 📄 License
 
