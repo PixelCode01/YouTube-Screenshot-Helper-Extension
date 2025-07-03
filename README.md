@@ -34,6 +34,7 @@
    ```bash
    git clone https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension.git
    ```
+   or you can directly download and extract this [zip](https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/archive/refs/heads/master.zip)
 
 2. **Enable Developer Mode**: 
    - Open Chrome → Settings → Extensions
@@ -43,6 +44,18 @@
    - Click "Load unpacked"
    - Select the extension folder
    - The extension icon should appear in your toolbar
+
+### Installation Video Tutorial
+
+
+
+
+
+https://github.com/user-attachments/assets/4eca28e3-2aeb-42d1-b34f-d248dae21527
+
+
+
+
 
 ## 🎮 Usage
 
@@ -114,7 +127,11 @@ Add any video site through the settings:
 ## Video Demo
 
 
-https://github.com/user-attachments/assets/6377e366-75f3-4a00-a8e7-4de9a1001006
+
+
+https://github.com/user-attachments/assets/7d99671c-47fd-44c9-83b7-6c5746a57df2
+
+
 
 
 
