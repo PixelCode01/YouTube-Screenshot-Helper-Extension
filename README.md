@@ -64,8 +64,17 @@ https://github.com/user-attachments/assets/4eca28e3-2aeb-42d1-b34f-d248dae21527
 2. **Play** your video
 3. **Capture** using:
    - Click the extension icon → "Capture Screenshot"
+                   OR
    - Press `Ctrl+Shift+S` (customizable)
+                   OR
    - Press `Shift+Enter` when in fullscreen mode
+  
+## Video Demo
+
+
+
+
+https://github.com/user-attachments/assets/7d99671c-47fd-44c9-83b7-6c5746a57df2
 
 ### Advanced Usage
 
@@ -124,45 +133,7 @@ Add any video site through the settings:
 2. Add your domain (e.g., `example.com`)
 3. Configure custom video selectors if needed
 
-## Video Demo
 
-
-
-
-https://github.com/user-attachments/assets/7d99671c-47fd-44c9-83b7-6c5746a57df2
-
-
-
-
-
-## 🛠️ Technical Details
-
-### Architecture
-```
-📦 YouTube Screenshot Helper
-├── 📜 manifest.json          # Extension configuration
-├── 🎭 popup/                 # Extension popup interface
-│   ├── popup.html
-│   ├── popup.js
-│   └── popup.css
-├── ⚙️ options/               # Settings page
-│   ├── options.html
-│   ├── options.js
-│   └── options.css
-├── 🔧 background/            # Service worker
-│   └── background.js
-├── 📄 content/               # Page interaction
-│   ├── content.js
-│   └── youtube.js
-├── 🛠️ utils/                 # Core utilities
-│   ├── storage.js            # Settings management
-│   ├── screenshot.js         # Screenshot capture
-│   ├── keyHandler.js         # Keyboard shortcuts
-│   ├── cloudStorage.js       # Cloud integration
-│   └── cloudConfig.js        # Cloud configuration
-└── 🎨 styles/                # Styling
-    └── content.css
-```
 
 ### Key Components
 
