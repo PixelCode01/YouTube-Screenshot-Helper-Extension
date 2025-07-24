@@ -1,0 +1,494 @@
+/* YouTube Screenshot Helper - Content Styles */
+
+/* Screenshot notification styles */
+.screenshot-notification {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  z-index: 10000 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  padding: 16px 24px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(12px) !important;
+  max-width: 350px !important;
+  word-wrap: break-word !important;
+  opacity: 0 !important;
+  transform: translateX(100%) !important;
+  transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55) !important;
+  border: 2px solid transparent !important;
+}
+
+.screenshot-notification.success {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+.screenshot-notification.error {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+.screenshot-notification.info {
+  background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+.screenshot-notification.show {
+  opacity: 1 !important;
+  transform: translateX(0) !important;
+}
+
+/* Ready notification */
+.screenshot-ready-notification {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  z-index: 10000 !important;
+}
+
+.notification-content {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+/* Fullscreen instructions */
+.screenshot-fullscreen-instructions {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  z-index: 10000 !important;
+  pointer-events: none !important;
+}
+
+.instructions-content {
+  background: rgba(0, 0, 0, 0.95) !important;
+  color: #ffffff !important;
+  padding: 24px 36px !important;
+  border-radius: 12px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  backdrop-filter: blur(8px) !important;
+  border: 2px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5) !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Annotation overlay styles */
+.screenshot-annotation-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.9) !important;
+  z-index: 10000 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+.annotation-container {
+  background: #fff !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  max-width: 90vw !important;
+  max-height: 90vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+}
+
+.annotation-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 20px !important;
+  padding-bottom: 15px !important;
+  border-bottom: 1px solid #eee !important;
+}
+
+.annotation-header h3 {
+  margin: 0 !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: #333 !important;
+}
+
+.close-btn {
+  background: none !important;
+  border: none !important;
+  font-size: 24px !important;
+  cursor: pointer !important;
+  color: #555 !important;
+  padding: 5px !important;
+  border-radius: 4px !important;
+  transition: background-color 0.2s !important;
+}
+
+.close-btn:hover {
+  background: #f0f0f0 !important;
+  color: #333 !important;
+}
+
+.annotation-canvas-container {
+  flex: 1 !important;
+  overflow: auto !important;
+  margin-bottom: 20px !important;
+  text-align: center !important;
+  border: 2px dashed #ddd !important;
+  border-radius: 8px !important;
+  padding: 10px !important;
+  position: relative !important;
+}
+
+.annotation-canvas {
+  max-width: 100% !important;
+  max-height: 60vh !important;
+  border-radius: 4px !important;
+  cursor: crosshair !important;
+  display: block !important;
+}
+
+.annotation-canvas.crop-mode {
+  cursor: crosshair !important;
+}
+
+.annotation-canvas.arrow-mode {
+  cursor: crosshair !important;
+}
+
+.annotation-canvas.pen-mode {
+  cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2" fill="black"/></svg>') 8 8, auto !important;
+}
+
+.annotation-tools {
+  display: flex !important;
+  gap: 10px !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  padding-top: 15px !important;
+  border-top: 1px solid #eee !important;
+  justify-content: center !important;
+}
+
+.tool-btn {
+  background: #f5f5f5 !important;
+  border: 2px solid #ddd !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s !important;
+  color: #555 !important;
+  min-width: 80px !important;
+}
+
+.tool-btn:hover {
+  background: #e9e9e9 !important;
+  border-color: #bbb !important;
+  transform: translateY(-1px) !important;
+}
+
+.tool-btn.active {
+  background: #2196F3 !important;
+  border-color: #1976d2 !important;
+  color: white !important;
+}
+
+.color-picker {
+  width: 40px !important;
+  height: 36px !important;
+  border: 2px solid #ddd !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  background: none !important;
+}
+
+.download-btn {
+  background: #4CAF50 !important;
+  color: white !important;
+  border: none !important;
+  padding: 10px 20px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  transition: background-color 0.2s !important;
+  margin-left: auto !important;
+  min-width: 100px !important;
+}
+
+.download-btn:hover {
+  background: #45a049 !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Enhanced button visibility and interaction */
+.tool-btn,
+.download-btn,
+.close-btn {
+  user-select: none !important;
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 10001 !important;
+}
+
+/* Dark mode annotation styles */
+@media (prefers-color-scheme: dark) {
+  .annotation-container {
+    background: #2d2d2d !important;
+    color: #e0e0e0 !important;
+  }
+  
+  .annotation-header {
+    border-bottom-color: #555 !important;
+  }
+  
+  .annotation-header h3 {
+    color: #f0f0f0 !important;
+  }
+  
+  .close-btn {
+    color: #c0c0c0 !important;
+  }
+  
+  .close-btn:hover {
+    background: #404040 !important;
+    color: #ffffff !important;
+  }
+  
+  .annotation-canvas-container {
+    border-color: #555 !important;
+  }
+  
+  .annotation-tools {
+    border-top-color: #555 !important;
+  }
+  
+  .tool-btn {
+    background: #404040 !important;
+    border-color: #666 !important;
+    color: #e0e0e0 !important;
+  }
+  
+  .tool-btn:hover {
+    background: #4a4a4a !important;
+    border-color: #777 !important;
+  }
+  
+  .tool-btn.active {
+    background: #2563eb !important;
+    border-color: #1d4ed8 !important;
+    color: #ffffff !important;
+  }
+  
+  .color-picker {
+    border-color: #666 !important;
+  }
+  
+  .download-btn {
+    background: #059669 !important;
+  }
+  
+  .download-btn:hover {
+    background: #047857 !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .screenshot-notification {
+    border: 2px solid white !important;
+  }
+  
+  .annotation-container {
+    border: 2px solid #000 !important;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .screenshot-notification {
+    transition: none !important;
+  }
+  
+  .instructions-content {
+    transition: none !important;
+  }
+  
+  .tool-btn {
+    transition: none !important;
+  }
+}
+
+/* Dark mode support for content elements */
+@media (prefers-color-scheme: dark) {
+  .screenshot-notification.success {
+    background: linear-gradient(135deg, #059669, #047857) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+  }
+
+  .screenshot-notification.error {
+    background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+  }
+
+  .screenshot-notification.info {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+  }
+  
+  .annotation-container {
+    background: #2d2d2d !important;
+    border-color: #555 !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8) !important;
+  }
+  
+  .annotation-header {
+    border-bottom-color: #555 !important;
+  }
+  
+  .annotation-header h3 {
+    color: #f0f0f0 !important;
+  }
+  
+  .close-btn {
+    color: #c0c0c0 !important;
+  }
+  
+  .close-btn:hover {
+    background: #404040 !important;
+    color: #ffffff !important;
+  }
+  
+  .annotation-tools {
+    background: #383838 !important;
+    border-top-color: #555 !important;
+  }
+  
+  .tool-btn {
+    background: #404040 !important;
+    border-color: #666 !important;
+    color: #e0e0e0 !important;
+  }
+  
+  .tool-btn:hover {
+    background: #4a4a4a !important;
+    border-color: #777 !important;
+  }
+  
+  .tool-btn.active {
+    background: #2563eb !important;
+    border-color: #1d4ed8 !important;
+    color: #ffffff !important;
+  }
+  
+  .color-picker {
+    border-color: #666 !important;
+  }
+  
+  .download-btn {
+    background: #059669 !important;
+  }
+  
+  .download-btn:hover {
+    background: #047857 !important;
+  }
+}
+
+/* High contrast dark mode */
+@media (prefers-color-scheme: dark) and (prefers-contrast: high) {
+  .screenshot-notification {
+    border: 3px solid #ffffff !important;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 1) !important;
+  }
+  
+  .annotation-container {
+    border: 3px solid #ffffff !important;
+  }
+  
+  .annotation-header h3 {
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 1) !important;
+  }
+}
+
+/* Focus states for better accessibility */
+.tool-btn:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.5) !important;
+}
+
+.close-btn:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.5) !important;
+}
+
+.download-btn:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.5) !important;
+}
+
+.color-picker:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.5) !important;
+}
+
+/* Improved placeholder text visibility */
+.annotation-canvas-container::before {
+  content: "Click and drag to annotate the screenshot" !important;
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  color: #888888 !important;
+  font-size: 14px !important;
+  pointer-events: none !important;
+}
+
+.annotation-canvas-container:has(.annotation-canvas)::before {
+  display: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .annotation-canvas-container::before {
+    color: #aaaaaa !important;
+  }
+  
+  /* Enhanced focus states for dark mode */
+  .tool-btn:focus {
+    box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.6) !important;
+  }
+  
+  .close-btn:focus {
+    box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.6) !important;
+  }
+  
+  .download-btn:focus {
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.6) !important;
+  }
+  
+  .color-picker:focus {
+    box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.6) !important;
+  }
+}

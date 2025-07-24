@@ -1,0 +1,85 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Screenshot Helper",
+  "version": "1.1.0",
+  "description": "Enhanced screenshot tool for YouTube and video sites - hide controls and capture clean frames with a single keypress",
+  
+  "permissions": [
+    "activeTab",
+    "storage",
+    "tabs",
+    "downloads",
+    "identity",
+    "notifications",
+    "scripting",
+    "alarms"
+  ],
+  
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ],
+  
+  "background": {
+    "service_worker": "background/background.js"
+  },
+  
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://youtube.com/*",
+        "https://vimeo.com/*",
+        "https://twitch.tv/*",
+        "https://www.twitch.tv/*"
+      ],
+      "js": [
+        "browser-polyfill.js",
+        "utils/storage.js",
+        "utils/keyHandler.js",
+        "utils/cloudConfig.js",
+        "utils/cloudStorage.js",
+        "utils/screenshot.js",
+        "content/content.js",
+        "content/youtube.js"
+      ],
+      "css": [
+        "styles/content.css"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "YouTube Screenshot Helper",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  
+  "options_page": "options/options.html",
+  
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  
+  "commands": {
+    "capture-screenshot": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Pause video and capture screenshot"
+    }
+  },
+  "browser_specific_settings": {
+    "edge": {
+      "browser_action_next_to_address_bar": true
+    }
+  }
+}

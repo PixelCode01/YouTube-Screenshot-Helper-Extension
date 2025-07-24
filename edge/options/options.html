@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Screenshot Helper - Settings</title>
+  <link rel="stylesheet" href="options.css">
+  <style>
+    /* Enhanced folder organization styles */
+    .variable-btn, .preset-btn {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      text-align: center;
+    }
+    
+    .variable-btn:hover, .preset-btn:hover {
+      background: #e9ecef;
+      border-color: #adb5bd;
+      transform: translateY(-1px);
+    }
+    
+    .variable-btn:active, .preset-btn:active {
+      transform: translateY(0);
+      background: #dee2e6;
+    }
+    
+    .variable-btn {
+      color: #495057;
+      font-weight: 500;
+    }
+    
+    .preset-btn {
+      color: #0f5132;
+      background: #d1e7dd;
+      border-color: #a3cfbb;
+    }
+    
+    .preset-btn:hover {
+      background: #b6d5c1;
+      border-color: #8bb19c;
+    }
+    
+    .pattern-helpers {
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 6px;
+      padding: 12px;
+    }
+    
+    /* Dark mode support for new elements */
+    [data-theme="dark"] .variable-btn,
+    [data-theme="dark"] .preset-btn {
+      background: #495057;
+      border-color: #6c757d;
+      color: #f8f9fa;
+    }
+    
+    [data-theme="dark"] .variable-btn:hover,
+    [data-theme="dark"] .preset-btn:hover {
+      background: #6c757d;
+      border-color: #adb5bd;
+    }
+    
+    [data-theme="dark"] .preset-btn {
+      background: #1e4a2e;
+      color: #a3cfbb;
+      border-color: #2d5a3d;
+    }
+    
+    [data-theme="dark"] .preset-btn:hover {
+      background: #2d5a3d;
+      border-color: #4a7a5a;
+    }
+    
+    [data-theme="dark"] .pattern-helpers {
+      background: #343a40;
+      border-color: #495057;
+    }
+    
+    [data-theme="dark"] .folder-preview {
+      background: linear-gradient(135deg, #495057 0%, #343a40 100%) !important;
+      border-color: #6c757d !important;
+    }
+    
+    [data-theme="dark"] #folderPreviewPath {
+      background: #212529 !important;
+      border-color: #495057 !important;
+      color: #a3cfbb !important;
+    }
+    
+    /* Edge browser warning dark mode */
+    [data-theme="dark"] .browser-warning {
+      background: #664d03 !important;
+      border-color: #997404 !important;
+    }
+    
+    [data-theme="dark"] .browser-warning strong,
+    [data-theme="dark"] .browser-warning p {
+      color: #ffda6a !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- Theme Toggle button -->
+  <button class="theme-toggle" id="themeToggle">🌙 Dark Mode</button>
+  
+  <div class="container">
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="#2196F3">
+            <path d="M9,2V5H7C5.89,5 5,5.89 5,7V19C5,20.11 5.89,21 7,21H17C18.11,21 19,20.11 19,19V7C19,5.89 18.11,5 17,5H15V2H9M12,6A4,4 0 0,1 16,10A4,4 0 0,1 12,14A4,4 0 0,1 8,10A4,4 0 0,1 12,6M12,8A2,2 0 0,0 10,10A2,2 0 0,0 12,12A2,2 0 0,0 14,10A2,2 0 0,0 12,8Z"/>
+          </svg>
+          <div>
+            <h1>YouTube Screenshot Helper</h1>
+            <p>Settings & Configuration</p>
+          </div>
+        </div>
+        <div class="version">v1.1.0</div>
+      </div>
+    </header>
+
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="general">General</button>
+      <button class="tab-btn" data-tab="sites">Sites</button>
+      <button class="tab-btn" data-tab="shortcuts">Shortcuts</button>
+      <button class="tab-btn" data-tab="advanced">Advanced</button>
+    </nav>
+
+    <main class="main-content">
+      <!-- General Settings Tab -->
+      <section class="tab-content active" id="general">
+        <div class="settings-group">
+          <h2>Appearance</h2>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="themePreference">Theme Preference</label>
+              <p class="setting-desc">Choose your preferred theme for the extension interface</p>
+            </div>
+            <div class="setting-control">
+              <select id="themePreference">
+                <option value="auto">Auto (Follow System)</option>
+                <option value="light">Light Mode</option>
+                <option value="dark">Dark Mode</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h2>Screenshot Behavior</h2>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="fullscreenOnly">Fullscreen Only Mode</label>
+              <p class="setting-desc">Only allow screenshots when video is in fullscreen mode</p>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="fullscreenOnly">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="autoHideControls">Auto-Hide Controls</label>
+              <p class="setting-desc">Automatically hide video controls when taking screenshots</p>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="autoHideControls" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="screenshotQuality">Screenshot Quality</label>
+              <p class="setting-desc">Adjust the quality of captured screenshots (0.1 - 1.0)</p>
+            </div>
+            <div class="setting-control">
+              <input type="range" id="screenshotQuality" min="0.1" max="1.0" step="0.1" value="0.9">
+              <span class="range-value" id="qualityValue">0.9</span>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="screenshotTitleBuilder">Screenshot Title Builder</label>
+              <p class="setting-desc">Customize what information appears in your screenshot filename</p>
+              
+              <div class="title-builder">
+                <div class="title-component">
+                  <input type="checkbox" class="component-checkbox" id="includeYoutube" checked>
+                  <label class="component-label" for="includeYoutube">YouTube</label>
+                  <span class="component-preview">YouTube</span>
+                </div>
+                
+                <div class="title-component">
+                  <input type="checkbox" class="component-checkbox" id="includeVideoTitle" checked>
+                  <label class="component-label" for="includeVideoTitle">Video Title</label>
+                  <span class="component-preview">{video-title}</span>
+                </div>
+                
+                <div class="title-component">
+                  <input type="checkbox" class="component-checkbox" id="includeChannelName">
+                  <label class="component-label" for="includeChannelName">Channel Name</label>
+                  <span class="component-preview">{channel}</span>
+                </div>
+                
+                <div class="title-component">
+                  <input type="checkbox" class="component-checkbox" id="includePlaylistName">
+                  <label class="component-label" for="includePlaylistName">Playlist Name</label>
+                  <span class="component-preview">{playlist}</span>
+                </div>
+                
+                <div class="title-component">
+                  <input type="checkbox" class="component-checkbox" id="includeChapter">
+                  <label class="component-label" for="includeChapter">Chapter Name</label>
+                  <span class="component-preview">{chapter}</span>
+                </div>
+                
+                <div class="title-component">
+                  <input type="checkbox" class="component-checkbox" id="includeTimestamp" checked>
+                  <label class="component-label" for="includeTimestamp">Video Timestamp</label>
+                  <span class="component-preview">{timestamp}</span>
+                </div>
+                
+                <div class="title-component">
+                  <input type="checkbox" class="component-checkbox" id="includeDate" checked>
+                  <label class="component-label" for="includeDate">Current Date</label>
+                  <span class="component-preview">{date}</span>
+                </div>
+                
+                <div class="title-component">
+                  <input type="checkbox" class="component-checkbox" id="includeTime">
+                  <label class="component-label" for="includeTime">Current Time</label>
+                  <span class="component-preview">{time}</span>
+                </div>
+                
+                <div class="setting-item" style="border: none; padding: 10px 0;">
+                  <div class="setting-info">
+                    <label for="titleSeparator">Separator</label>
+                  </div>
+                  <div class="setting-control">
+                    <select id="titleSeparator">
+                      <option value=" - "> - (dash)</option>
+                      <option value="_">_ (underscore)</option>
+                      <option value=" | "> | (pipe)</option>
+                      <option value=" "> (space)</option>
+                      <option value="">None</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div class="preview-output">
+                  <strong>Preview:</strong> <span id="titlePreview">YouTube - Amazing Video - 02:35 - 2025-06-19</span>
+                </div>
+                
+                <div style="margin-top: 15px;">
+                  <button class="btn" type="button" onclick="resetTitleTemplate()">Reset to Default</button>
+                  <button class="btn btn-secondary" type="button" onclick="copyTitlePreview()">Copy Preview</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="filenameTemplate">Advanced Template (Optional)</label>
+              <p class="setting-desc">Custom template using variables: {site}, {title}, {channel}, {playlist}, {chapter}, {timestamp}, {date}, {time}</p>
+            </div>
+            <div class="setting-control">
+              <input type="text" id="filenameTemplate" placeholder="Leave empty to use builder above">
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h2>📁 Folder Organization</h2>
+          <p class="group-desc">Automatically organize screenshots into folders</p>
+          
+          <!-- Edge Browser Warning -->
+          <div class="browser-warning" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 12px; margin-bottom: 15px; display: flex; align-items: start; gap: 10px;">
+            <span style="font-size: 20px;">⚠️</span>
+            <div>
+              <strong style="color: #856404;">Microsoft Edge Limitation</strong>
+              <p style="margin: 4px 0 0 0; color: #856404; font-size: 14px;">
+                Due to Microsoft Edge's security restrictions, automatic folder organization is not supported. Screenshots will be saved to your Downloads folder with descriptive filenames instead.
+              </p>
+            </div>
+          </div>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="organizeFolders">Organize screenshots into folders</label>
+              <p class="setting-desc">Choose how to organize your screenshots into subfolders</p>
+            </div>
+            <div class="setting-control">
+              <select id="organizeFolders">
+                <option value="none">No folders (save to Downloads)</option>
+                <option value="channel">By Channel Name</option>
+                <option value="playlist">By Playlist Name (fallback to Channel)</option>
+                <option value="video">By Video Title</option>
+                <option value="date">By Date (YYYY-MM-DD)</option>
+                <option value="channel-date">By Channel → Date</option>
+                <option value="channel-video">By Channel → Video Title</option>
+                <option value="date-channel">By Date → Channel</option>
+                <option value="channel-playlist">By Channel → Playlist</option>
+                <option value="custom">Custom Pattern (Advanced)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-item" id="customFolderPatternContainer" style="display: none;">
+            <div class="setting-info">
+              <label for="customFolderPattern">Custom Folder Pattern</label>
+              <p class="setting-desc">Create your own folder structure using variables. Use "/" to create subfolders.</p>
+            </div>
+            <div class="setting-control">
+              <input type="text" id="customFolderPattern" placeholder="{channel}/{date}" value="{channel}/{date}">
+              <div class="pattern-helpers" style="margin-top: 10px;">
+                <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                  <strong>💡 Available Variables:</strong>
+                </div>
+                <div class="variable-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px;">
+                  <button type="button" class="variable-btn" data-variable="{channel}">📺 Channel</button>
+                  <button type="button" class="variable-btn" data-variable="{playlist}">📋 Playlist</button>
+                  <button type="button" class="variable-btn" data-variable="{title}">🎬 Video Title</button>
+                  <button type="button" class="variable-btn" data-variable="{date}">📅 Date</button>
+                  <button type="button" class="variable-btn" data-variable="{time}">⏰ Time</button>
+                  <button type="button" class="variable-btn" data-variable="{site}">🌐 Site</button>
+                </div>
+                <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
+                  <strong>📂 Quick Patterns:</strong>
+                </div>
+                <div class="preset-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px;">
+                  <button type="button" class="preset-btn" data-pattern="{channel}/{date}">Channel/Date</button>
+                  <button type="button" class="preset-btn" data-pattern="{channel}/{playlist}">Channel/Playlist</button>
+                  <button type="button" class="preset-btn" data-pattern="{channel}/{title}">Channel/Video</button>
+                  <button type="button" class="preset-btn" data-pattern="{date}/{channel}">Date/Channel</button>
+                  <button type="button" class="preset-btn" data-pattern="{channel}/{date}/{title}">Channel/Date/Video</button>
+                  <button type="button" class="preset-btn" data-pattern="{site}/{channel}/{playlist}">Site/Channel/Playlist</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="folder-preview" id="folderPreview" style="margin-top: 15px; padding: 15px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; border: 1px solid #dee2e6; font-family: monospace; display: none;">
+            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+              <span style="font-weight: bold; color: #495057;">📂 Folder Preview:</span>
+              <button type="button" id="refreshPreview" style="margin-left: auto; background: #007bff; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">Refresh</button>
+            </div>
+            <div id="folderPreviewPath" style="background: white; padding: 8px; border-radius: 4px; border: 1px solid #ced4da; color: #0f5132; font-weight: 500;">Downloads/TechChannel/2025-01-20/screenshot.png</div>
+            <div style="font-size: 11px; color: #6c757d; margin-top: 6px;">
+              💡 This shows where your next screenshot will be saved
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h2>Download Settings</h2>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="useCustomPath">Choose Download Location</label>
+              <p class="setting-desc">Prompt for download location instead of using default Downloads folder</p>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="useCustomPath">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-item" id="customPathContainer" style="display: none;">
+            <div class="setting-info">
+              <label for="customDownloadPath">Custom Save Path</label>
+              <p class="setting-desc">
+                <strong>📁 Relative paths only</strong> - Files will be saved within your Downloads folder.<br>
+                <br>
+                <strong>✅ Examples:</strong><br>
+                • <code>Screenshots</code> → <code>Downloads/Screenshots/</code><br>
+                • <code>YouTube/Captures</code> → <code>Downloads/YouTube/Captures/</code><br>
+                • <code>Media/2025</code> → <code>Downloads/Media/2025/</code><br>
+                <br>
+                <strong>⚠️ Note:</strong> Absolute paths like <code>/home/user/Pictures/</code> or <code>C:\Users\Name\Pictures\</code> are not supported due to browser security restrictions.
+              </p>
+            </div>
+            <div class="setting-control">
+              <input type="text" id="customDownloadPath" placeholder="e.g., Screenshots/YouTube or Media/Captures">
+              <button class="btn btn-secondary" id="browsePathBtn" style="margin-left: 10px;">Browse</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h2>Key Behavior</h2>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="preventDefault">Override Site Shortcuts</label>
+              <p class="setting-desc">Prevent video sites from handling the shortcut key</p>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="preventDefault" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="overrideSiteShortcuts">Override Site Shortcuts</label>
+              <p class="setting-desc">Take priority over built-in site keyboard shortcuts</p>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="overrideSiteShortcuts" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="settings-group">
+          <h2>Fullscreen Settings</h2>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="showFullscreenPopup">Show Fullscreen Popup</label>
+              <p class="setting-desc">Display screenshot key reminder when entering fullscreen mode</p>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="showFullscreenPopup" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="fullscreenPopupDuration">Popup Duration (seconds)</label>
+              <p class="setting-desc">How long to show the fullscreen popup</p>
+            </div>
+            <div class="setting-control">
+              <input type="number" id="fullscreenPopupDuration" min="1" max="10" step="1" value="3">
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h2>Annotations</h2>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="annotationMode">Enable Annotation Mode</label>
+              <p class="setting-desc">Show annotation tools after capturing screenshots</p>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="annotationMode">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sites Tab -->
+      <section class="tab-content" id="sites">
+        <div class="settings-group">
+          <h2>Enabled Sites</h2>
+          <p class="group-desc">Configure which video sites the extension should work on</p>
+          
+          <div class="sites-list" id="sitesList">
+            <!-- Sites will be populated by JavaScript -->
+          </div>
+          
+          <div class="add-site">
+            <input type="text" id="newSiteInput" placeholder="Enter domain (e.g., example.com)">
+            <button id="addSiteBtn" class="btn btn-primary">Add Site</button>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h2>Default Sites</h2>
+          <p class="group-desc">Pre-configured video platforms</p>
+          
+          <div class="default-sites">
+            <div class="site-item default">
+              <span class="site-name">YouTube (youtube.com)</span>
+              <span class="site-status">Built-in support</span>
+            </div>
+            <div class="site-item default">
+              <span class="site-name">Vimeo (vimeo.com)</span>
+              <span class="site-status">Built-in support</span>
+            </div>
+            <div class="site-item default">
+              <span class="site-name">Twitch (twitch.tv)</span>
+              <span class="site-status">Built-in support</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Shortcuts Tab -->
+      <section class="tab-content" id="shortcuts">
+        <div class="settings-group">
+          <h2>Keyboard Shortcuts</h2>
+          
+          <div class="shortcut-item">
+            <div class="shortcut-info">
+              <label>Extension Shortcut</label>
+              <p class="shortcut-desc">Global shortcut to capture screenshots (set in Chrome://extensions/shortcuts)</p>
+            </div>
+            <div class="shortcut-display">
+              <kbd>Ctrl+Shift+S</kbd>
+              <button class="btn btn-outline" id="openShortcutsBtn">Configure</button>
+            </div>
+          </div>
+
+          <div class="shortcut-item">
+            <div class="shortcut-info">
+              <label for="fullscreenShortcut">Fullscreen Screenshot Key</label>
+              <p class="shortcut-desc">Key to press in fullscreen mode to capture screenshots</p>
+            </div>
+            <div class="shortcut-control">
+              <select id="fullscreenShortcut">
+                <option value="shift+enter">Shift + Enter (Recommended)</option>
+                <option value="shift+space">Shift + Spacebar</option>
+                <option value="enter">Enter</option>
+                <option value="space">Spacebar</option>
+                <option value="shift+keys">Shift + S</option>
+                <option value="shift+keya">Shift + A</option>
+                <option value="shift+keyc">Shift + C</option>
+                <option value="shift+keyd">Shift + D</option>
+                <option value="shift+keyf">Shift + F</option>
+                <option value="shift+keyg">Shift + G</option>
+                <option value="shift+keyh">Shift + H</option>
+                <option value="shift+keyz">Shift + Z</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Advanced Tab -->
+      <section class="tab-content" id="advanced">
+        <div class="settings-group">
+          <h2>☁️ Cloud Storage</h2>
+          <p class="group-desc">Automatically upload screenshots to cloud storage services</p>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="uploadToCloud">Enable Cloud Upload</label>
+              <p class="setting-desc">Automatically upload screenshots to your preferred cloud service</p>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="uploadToCloud">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-item" id="cloudServiceContainer" style="display: none;">
+            <div class="setting-info">
+              <label for="cloudService">Cloud Service</label>
+              <p class="setting-desc">Choose your preferred cloud storage provider</p>
+            </div>
+            <div class="setting-control">
+              <select id="cloudService">
+                <option value="none">None</option>
+                <option value="google-drive">Google Drive (Requires Setup)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="setting-item" id="cloudStatusContainer" style="display: none;">
+            <div class="setting-info">
+              <label>Authentication Status</label>
+              <p class="setting-desc">Current connection status with your cloud service</p>
+            </div>
+            <div class="setting-control">
+              <div id="cloudStatus" class="cloud-status">
+                <span class="status-indicator">❌</span>
+                <span class="status-text">Not connected</span>
+                <button class="btn btn-outline" id="connectCloudBtn">Connect</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h2>Debug & Logging</h2>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="debugMode">Debug Mode</label>
+              <p class="setting-desc">Enable console logging for troubleshooting</p>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="debugMode">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="showNotifications">Show Notifications</label>
+              <p class="setting-desc">Display in-page notifications for extension events</p>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="showNotifications" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h2>Performance</h2>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="captureDelay">Capture Delay (ms)</label>
+              <p class="setting-desc">Delay before capturing to allow UI elements to hide</p>
+            </div>
+            <div class="setting-control">
+              <input type="number" id="captureDelay" min="0" max="1000" step="50" value="100">
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h2>📷 Screenshot Preview</h2>
+          
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="disablePreviewByDefault">Disable preview/annotation by default</label>
+              <p class="setting-desc">Skip the annotation interface and directly save screenshots (can still be enabled with Shift+click)</p>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="disablePreviewByDefault">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h2>Data Management</h2>
+          
+          <div class="action-buttons">
+            <button class="btn btn-outline" id="exportBtn">Export Settings</button>
+            <button class="btn btn-outline" id="importBtn">Import Settings</button>
+            <button class="btn btn-danger" id="resetBtn">Reset to Defaults</button>
+          </div>
+          
+          <input type="file" id="importFile" accept=".json" style="display: none;">
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-content">
+        <div class="footer-links">
+          <a href="https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension" target="_blank">GitHub</a>
+          <a href="https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/issues" target="_blank">Report Issue</a>
+          <a href="#" id="aboutBtn">About</a>
+        </div>
+        <div class="save-status" id="saveStatus">
+          <span class="status-text">Settings saved automatically</span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast" style="display: none;">
+    <span class="toast-text"></span>
+  </div>
+
+  <script src="../browser-polyfill.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

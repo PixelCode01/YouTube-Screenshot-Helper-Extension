@@ -29,7 +29,14 @@
 
 ## 🚀 Installation
 
+### Store Installation
+
+#### Microsoft Edge Add-ons
+- **Edge Extension**: [Install from Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons) (Coming Soon)
+
 ### Manual Installation (Developer Mode)
+
+#### For Chrome
 1. **Download**: Clone or download this repository
    ```bash
    git clone https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension.git
@@ -42,8 +49,22 @@
 
 3. **Load Extension**:
    - Click "Load unpacked"
-   - Select the extension folder
+   - Select the `chrome` folder from the downloaded repository
    - The extension icon should appear in your toolbar
+
+#### For Microsoft Edge
+1. **Download**: Use the same repository as above
+
+2. **Enable Developer Mode**: 
+   - Open Edge → Settings → Extensions (or go to `edge://extensions/`)
+   - Toggle "Developer mode" (bottom left)
+
+3. **Load Extension**:
+   - Click "Load unpacked"
+   - Select the `edge` folder from the downloaded repository
+   - The extension icon should appear in your toolbar
+
+**Note**: The Chrome and Edge versions are in separate folders (`chrome/` and `edge/`) with browser-specific optimizations.
 
 ### Installation Video Tutorial
 
@@ -214,6 +235,22 @@ videoSelectors: {
 | Firefox | - | ❌ Not Supported (Manifest V3) |
 | Safari | - | ❌ Not Supported |
 
+### Microsoft Edge Support
+
+The YouTube Screenshot Helper extension is fully compatible with Microsoft Edge 88+ and provides the same functionality as the Chrome version. The extension has been specifically tested and optimized for Edge to ensure a seamless user experience.
+
+#### Edge-Specific Features
+- **Enhanced Error Handling**: Edge version includes additional error handling for browser-specific issues
+- **Improved Path Normalization**: Better handling of download paths with Edge-specific fallbacks
+- **Optimized Browser Detection**: Automatic detection and adaptation for Edge-specific behaviors
+- **Consistent UI Experience**: All UI components have been tested and optimized for Edge
+
+#### Edge Installation Notes
+- Use the same installation process as Chrome (Developer Mode)
+- All keyboard shortcuts work identically in Edge
+- Settings and preferences are stored locally and sync across Edge instances
+- Cloud storage integration works the same as in Chrome
+
 ## 🐛 Troubleshooting
 
 ### Common Issues
@@ -228,7 +265,7 @@ videoSelectors: {
 #### Screenshots Are Black/Blank
 - **Cause**: Hardware acceleration or DRM protection
 - **Solution**:
-  - Disable hardware acceleration in Chrome
+  - Disable hardware acceleration in Chrome/Edge
   - Try on a different video
   - Use fullscreen mode
 
@@ -238,6 +275,45 @@ videoSelectors: {
   - Enable "Override site shortcuts" in settings
   - Choose a different key combination
   - Use the popup button instead
+
+### Microsoft Edge Specific Issues
+
+#### Download Path Issues in Edge
+- **Cause**: Edge has stricter rules for download paths than Chrome
+- **Solution**: 
+  - The extension automatically uses simplified filenames as fallback
+  - Avoid complex folder structures in filename templates
+  - Use forward slashes (/) in custom path templates
+
+#### Folder Organization Limitation in Edge
+- **Important**: The advanced folder organization feature (creating custom folder structures) does not work on Microsoft Edge due to browser limitations
+- **Affected Features**: 
+  - Custom download paths with folder patterns like `{channel}/{date}`
+  - Automatic folder creation based on video metadata
+- **Workaround**: 
+  - Files will be saved to the default download folder with descriptive filenames
+  - All other features work normally in Edge
+
+#### Edge Notification Differences
+- **Cause**: Edge may display notifications slightly differently than Chrome
+- **Solution**: 
+  - Notifications use standardized formats for consistency
+  - All notification functionality works the same
+  - No action required from users
+
+#### Content Script Injection Timing
+- **Cause**: Edge may inject content scripts at different times than Chrome
+- **Solution**: 
+  - The extension includes additional timing checks
+  - If screenshots don't work immediately, wait a moment and try again
+  - Refresh the page if issues persist
+
+#### Edge Extension Permissions
+- **Cause**: Edge may handle extension permissions differently
+- **Solution**: 
+  - Ensure all permissions are granted during installation
+  - Check Edge's extension settings if features don't work
+  - The extension includes the same permissions as the Chrome version
 
 ### Debug Mode
 Enable debug mode in settings to see detailed console logs:
