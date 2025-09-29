@@ -541,13 +541,25 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch (error) {
     console.error('[Popup JS] CRITICAL: Failed to create PopupManager:', error);
     // Show fallback UI
-    document.body.innerHTML = `
-      <div style="padding: 20px; color: red; font-family: sans-serif;">
-        <h3>Extension Error</h3>
-        <p>Failed to initialize popup: ${error.message}</p>
-        <p>Check the browser console for details.</p>
-      </div>
-    `;
+    const fallback = document.createElement('div');
+    fallback.style.padding = '20px';
+    fallback.style.color = 'red';
+    fallback.style.fontFamily = 'sans-serif';
+
+    const heading = document.createElement('h3');
+    heading.textContent = 'Extension Error';
+
+    const description = document.createElement('p');
+    description.textContent = 'Failed to initialize popup: ' + error.message;
+
+    const details = document.createElement('p');
+    details.textContent = 'Check the browser console for details.';
+
+    fallback.appendChild(heading);
+    fallback.appendChild(description);
+    fallback.appendChild(details);
+
+    document.body.replaceChildren(fallback);
   }
 });
 

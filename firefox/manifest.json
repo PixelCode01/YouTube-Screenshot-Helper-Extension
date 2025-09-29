@@ -66,7 +66,10 @@
     }
   },
   
-  "options_page": "options/options.html",
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
   
   "icons": {
     "16": "icons/icon16.png",
@@ -85,8 +88,11 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "youtube-screenshot-helper@pixelcode",
-      "strict_min_version": "109.0"
+      "id": "youtube-screenshot-helper@pixelcode01.dev",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   }
 }

@@ -1,18 +1,14 @@
 # YouTube Screenshot Helper
 
-<div align="center">
-
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-green.svg)
 
-# YouTube Screenshot Helper
-
-Capture precise video frames with streamlined controls across Chrome, Edge, and Firefox.
+Take clutter-free screenshots with video controls automatically hidden. Save and organize captures into folders by channel, playlist, or video title for easy access.
 
 ## Overview
 
-YouTube Screenshot Helper is a browser extension that hides player controls, captures the current frame, and stores the result locally or in connected cloud storage. It includes configurable shortcuts, optional previews, and per-site enablement to fit most workflows without cluttering the UI.
+A browser extension that hides player controls, captures the current frame, and stores the result locally or in connected cloud storage. It includes configurable shortcuts, optional previews, and per-site enablement to fit most workflows without cluttering the UI.
 
 ## Key Capabilities
 
@@ -35,11 +31,17 @@ YouTube Screenshot Helper is a browser extension that hides player controls, cap
 
 - [Install from Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/ddamehdnkfbjjgpfelaapilddkpcjeop), or load the `edge` directory using the same Developer Mode flow as Chrome.
 
+> **Heads-up:** The Edge Add-ons store still serves an older build with known bugs. A fixed release is pending review by Microsoft; use the unpacked install above for the latest code until the listing updates.
+
 ### Firefox (temporary load)
 
 1. Open `about:debugging#/runtime/this-firefox`.
 2. Click **Load Temporary Add-on** and choose `firefox/manifest.json`.
 3. Repeat after browser restarts unless the build is signed through AMO.
+
+- [Install from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/youtube-screenshot-helper/).
+
+> **Heads-up:** Mozilla Add-ons currently hosts an outdated build with bugs. A corrected version is awaiting AMO review; prefer the temporary load flow above until the listing is refreshed.
 
 Firefox uses a Manifest V2 background page. Cloud uploads remain disabled until `browser.identity` supports Manifest V3 OAuth flows.
 
@@ -139,12 +141,3 @@ The repository hosts annotated screenshots that illustrate the popup UI, setting
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Support and Contributions
-
-- Review the README for setup steps and troubleshooting before filing an issue.
-- Report bugs and feature requests through the [GitHub issue tracker](https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/issues).
-- Discussions and questions are welcome in the repository's discussion board.
-
-If the tool improves your workflow, consider starring the repository so others can discover it.
-- Site name (YouTube, Vimeo, etc.)

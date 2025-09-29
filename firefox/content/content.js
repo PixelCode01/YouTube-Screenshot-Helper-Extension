@@ -395,12 +395,22 @@ class ScreenshotExtension {
     const globalShortcut = 'Ctrl+Shift+S';
     const notification = document.createElement('div');
     notification.className = 'screenshot-ready-notification';
-    notification.innerHTML = `
-      <div class="notification-content">
-        <strong>YouTube Screenshot Helper</strong><br>
-        Ready! Press ${globalShortcut} to capture screenshots
-      </div>
-    `;
+    const notificationContent = document.createElement('div');
+    notificationContent.className = 'notification-content';
+
+    const title = document.createElement('strong');
+    title.textContent = 'YouTube Screenshot Helper';
+
+    const lineBreak = document.createElement('br');
+
+    const message = document.createElement('span');
+    message.textContent = `Ready! Press ${globalShortcut} to capture screenshots`;
+
+    notificationContent.appendChild(title);
+    notificationContent.appendChild(lineBreak);
+    notificationContent.appendChild(message);
+
+    notification.appendChild(notificationContent);
     
     notification.style.cssText = `
       position: fixed;
@@ -478,17 +488,24 @@ class ScreenshotExtension {
         const shortcut = this.settings.fullscreenShortcut || 'shift+enter';
         const keyDisplayName = this.getShortcutDisplayName(shortcut);
 
-        const popup = document.createElement('div');
-        popup.className = 'fullscreen-screenshot-popup';
-        popup.innerHTML = `
-            <div class="popup-content">
-                Press <strong>${keyDisplayName}</strong> to pause and capture screenshot
-            </div>
-        `;
+    const popup = document.createElement('div');
+    popup.className = 'fullscreen-screenshot-popup';
+
+    const popupContent = document.createElement('div');
+    popupContent.className = 'popup-content';
+    popupContent.append('Press ');
+
+    const shortcutElement = document.createElement('strong');
+    shortcutElement.textContent = keyDisplayName;
+
+    popupContent.appendChild(shortcutElement);
+    popupContent.append(' to pause and capture screenshot');
+
+    popup.appendChild(popupContent);
 
         const style = document.createElement('style');
         style.id = 'fullscreen-popup-styles';
-        style.innerHTML = `
+    style.textContent = `
             .fullscreen-screenshot-popup {
                 position: fixed;
                 top: 20px;

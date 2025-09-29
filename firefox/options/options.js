@@ -1244,38 +1244,86 @@ class OptionsManager {
     return new Promise((resolve) => {
       const overlay = document.createElement('div');
       overlay.className = 'cloud-folder-picker-overlay';
-      overlay.innerHTML = `
-        <div class="cloud-folder-picker">
-          <div class="picker-header">
-            <h3>Select folder for ${providerName}</h3>
-            <button type="button" class="picker-close" aria-label="Close">&times;</button>
-          </div>
-          <div class="picker-body">
-            <div class="picker-path" id="pickerPath"></div>
-            <div class="picker-list" id="pickerList"></div>
-          </div>
-          <div class="picker-footer">
-            <div class="picker-action-group">
-              <button type="button" class="btn btn-outline" id="pickerBackBtn">Back</button>
-              <button type="button" class="btn btn-outline" id="pickerNewFolderBtn">New Folder</button>
-            </div>
-            <div class="picker-action-group right">
-              <button type="button" class="btn btn-secondary" id="pickerSelectBtn">Use this folder</button>
-              <button type="button" class="btn btn-outline" id="pickerCancelBtn">Cancel</button>
-            </div>
-          </div>
-        </div>
-      `;
+      const picker = document.createElement('div');
+      picker.className = 'cloud-folder-picker';
 
+      const header = document.createElement('div');
+      header.className = 'picker-header';
+
+      const title = document.createElement('h3');
+      title.textContent = `Select folder for ${providerName}`;
+
+      const closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.className = 'picker-close';
+      closeBtn.setAttribute('aria-label', 'Close');
+      closeBtn.textContent = '\u00d7';
+
+      header.appendChild(title);
+      header.appendChild(closeBtn);
+
+      const body = document.createElement('div');
+      body.className = 'picker-body';
+
+      const pathEl = document.createElement('div');
+      pathEl.className = 'picker-path';
+      pathEl.id = 'pickerPath';
+
+      const listEl = document.createElement('div');
+      listEl.className = 'picker-list';
+      listEl.id = 'pickerList';
+
+      body.appendChild(pathEl);
+      body.appendChild(listEl);
+
+      const footer = document.createElement('div');
+      footer.className = 'picker-footer';
+
+      const actionGroupLeft = document.createElement('div');
+      actionGroupLeft.className = 'picker-action-group';
+
+      const backBtn = document.createElement('button');
+      backBtn.type = 'button';
+      backBtn.className = 'btn btn-outline';
+      backBtn.id = 'pickerBackBtn';
+      backBtn.textContent = 'Back';
+
+      const newFolderBtn = document.createElement('button');
+      newFolderBtn.type = 'button';
+      newFolderBtn.className = 'btn btn-outline';
+      newFolderBtn.id = 'pickerNewFolderBtn';
+      newFolderBtn.textContent = 'New Folder';
+
+      actionGroupLeft.appendChild(backBtn);
+      actionGroupLeft.appendChild(newFolderBtn);
+
+      const actionGroupRight = document.createElement('div');
+      actionGroupRight.className = 'picker-action-group right';
+
+      const selectBtn = document.createElement('button');
+      selectBtn.type = 'button';
+      selectBtn.className = 'btn btn-secondary';
+      selectBtn.id = 'pickerSelectBtn';
+      selectBtn.textContent = 'Use this folder';
+
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'btn btn-outline';
+      cancelBtn.id = 'pickerCancelBtn';
+      cancelBtn.textContent = 'Cancel';
+
+      actionGroupRight.appendChild(selectBtn);
+      actionGroupRight.appendChild(cancelBtn);
+
+      footer.appendChild(actionGroupLeft);
+      footer.appendChild(actionGroupRight);
+
+      picker.appendChild(header);
+      picker.appendChild(body);
+      picker.appendChild(footer);
+
+      overlay.appendChild(picker);
       document.body.appendChild(overlay);
-
-      const pathEl = overlay.querySelector('#pickerPath');
-      const listEl = overlay.querySelector('#pickerList');
-      const backBtn = overlay.querySelector('#pickerBackBtn');
-      const newFolderBtn = overlay.querySelector('#pickerNewFolderBtn');
-      const selectBtn = overlay.querySelector('#pickerSelectBtn');
-      const cancelBtn = overlay.querySelector('#pickerCancelBtn');
-      const closeBtn = overlay.querySelector('.picker-close');
 
       const stack = [{ id: 'root', name: rootLabel }];
       let active = true;
@@ -1287,12 +1335,19 @@ class OptionsManager {
         overlay.remove();
       };
 
+      const renderStatus = (className, text) => {
+        const message = document.createElement('div');
+        message.className = className;
+        message.textContent = text;
+        listEl.replaceChildren(message);
+      };
+
       const render = async () => {
         const token = ++renderToken;
         const current = stack[stack.length - 1];
         pathEl.textContent = stack.map(item => item.name).join(' / ');
         backBtn.disabled = stack.length <= 1;
-  listEl.innerHTML = '<div class="picker-loading">Loading folders...</div>';
+        renderStatus('picker-loading', 'Loading folders...');
 
         try {
           const { folders } = await window.cloudStorageManager.listFolders(serviceKey, current.id);
@@ -1301,16 +1356,26 @@ class OptionsManager {
           }
 
           if (!folders || folders.length === 0) {
-            listEl.innerHTML = '<div class="picker-empty">No subfolders here yet.</div>';
+            renderStatus('picker-empty', 'No subfolders here yet.');
             return;
           }
 
-          listEl.innerHTML = '';
+          listEl.replaceChildren();
           folders.forEach(folder => {
             const item = document.createElement('button');
             item.type = 'button';
             item.className = 'picker-item';
-            item.innerHTML = '<span class="picker-item-icon" aria-hidden="true">></span><span class="picker-item-name">' + folder.name + '</span>';
+            const icon = document.createElement('span');
+            icon.className = 'picker-item-icon';
+            icon.setAttribute('aria-hidden', 'true');
+            icon.textContent = '>';
+
+            const name = document.createElement('span');
+            name.className = 'picker-item-name';
+            name.textContent = folder.name || 'Unnamed Folder';
+
+            item.appendChild(icon);
+            item.appendChild(name);
             item.addEventListener('click', () => {
               stack.push({ id: folder.id, name: folder.name || 'Unnamed Folder' });
               render();
@@ -1319,7 +1384,7 @@ class OptionsManager {
           });
         } catch (error) {
           console.error('Failed to list folders:', error);
-          listEl.innerHTML = '<div class="picker-empty error">' + error.message + '</div>';
+          renderStatus('picker-empty error', error.message);
         }
       };
 
@@ -1476,7 +1541,7 @@ class OptionsManager {
     const enabledSites = this.settings.enabledSites || ['youtube.com', 'vimeo.com', 'twitch.tv'];
     const defaultSites = ['youtube.com', 'vimeo.com', 'twitch.tv'];
 
-    sitesList.innerHTML = '';
+    sitesList.replaceChildren();
 
     enabledSites.forEach(site => {
       const siteItem = document.createElement('div');
@@ -1487,13 +1552,30 @@ class OptionsManager {
         siteItem.classList.add('default');
       }
 
-      siteItem.innerHTML = `
-        <span class="site-name">${site}</span>
-        <div class="site-controls">
-          <span class="site-status">${isDefault ? 'Built-in support' : 'Custom site'}</span>
-          ${!isDefault ? `<button class="btn btn-danger btn-sm remove-site-btn" data-site="${site}" title="Remove site">Remove</button>` : ''}
-        </div>
-      `;
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'site-name';
+      nameSpan.textContent = site;
+
+      const controls = document.createElement('div');
+      controls.className = 'site-controls';
+
+      const statusSpan = document.createElement('span');
+      statusSpan.className = 'site-status';
+      statusSpan.textContent = isDefault ? 'Built-in support' : 'Custom site';
+      controls.appendChild(statusSpan);
+
+      if (!isDefault) {
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn btn-danger btn-sm remove-site-btn';
+        removeBtn.dataset.site = site;
+        removeBtn.title = 'Remove site';
+        removeBtn.textContent = 'Remove';
+        controls.appendChild(removeBtn);
+      }
+
+      siteItem.appendChild(nameSpan);
+      siteItem.appendChild(controls);
 
       sitesList.appendChild(siteItem);
     });

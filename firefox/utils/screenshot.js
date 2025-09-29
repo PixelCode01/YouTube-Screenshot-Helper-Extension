@@ -714,27 +714,58 @@ ${iitMadrasHints}`;
 
     const popup = document.createElement('div');
     popup.className = 'fullscreen-screenshot-popup';
-    popup.innerHTML = `
-      <div class="preview-container">
-        <div class="preview-header">
-          <h3>Screenshot Preview</h3>
-          <button class="close-btn" title="Close">&times;</button>
-        </div>
-        <div class="preview-image-container">
-          <img src="${dataUrl}" alt="Screenshot preview" />
-        </div>
-        <div class="preview-footer">
-          <button class="save-btn">Save Screenshot</button>
-        </div>
-      </div>
-    `;
+    const container = document.createElement('div');
+    container.className = 'preview-container';
+
+    const header = document.createElement('div');
+    header.className = 'preview-header';
+
+    const title = document.createElement('h3');
+    title.textContent = 'Screenshot Preview';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'close-btn';
+    closeBtn.type = 'button';
+    closeBtn.title = 'Close';
+    closeBtn.textContent = '\u00d7';
+
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+
+    const imageContainer = document.createElement('div');
+    imageContainer.className = 'preview-image-container';
+
+    const image = document.createElement('img');
+    image.src = dataUrl;
+    image.alt = 'Screenshot preview';
+
+    imageContainer.appendChild(image);
+
+    const footer = document.createElement('div');
+    footer.className = 'preview-footer';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'save-btn';
+    saveBtn.type = 'button';
+    saveBtn.textContent = 'Save Screenshot';
+
+    footer.appendChild(saveBtn);
+
+    container.appendChild(header);
+    container.appendChild(imageContainer);
+    container.appendChild(footer);
+    popup.appendChild(container);
 
     document.body.appendChild(popup);
 
-    const close = () => document.body.removeChild(popup);
+    const close = () => {
+      if (popup.parentNode) {
+        popup.parentNode.removeChild(popup);
+      }
+    };
 
-    popup.querySelector('.close-btn').addEventListener('click', close);
-    popup.querySelector('.save-btn').addEventListener('click', async () => {
+    closeBtn.addEventListener('click', close);
+    saveBtn.addEventListener('click', async () => {
       console.log('=== SAVE BUTTON CLICKED ===');
       console.log('Starting download process...');
       console.log('Filename:', filename);
@@ -1020,57 +1051,137 @@ ${iitMadrasHints}`;
 
     const overlay = document.createElement('div');
     overlay.className = 'screenshot-annotation-overlay';
-    overlay.innerHTML = `
-      <div class="annotation-container">
-        <div class="annotation-header">
-          <h3>Annotate Your Screenshot</h3>
-          <div class="header-controls">
-            <button class="undo-btn" title="Undo last action">Undo</button>
-            <button class="clear-btn" title="Clear all annotations">Clear</button>
-            <button class="close-btn" title="Close without saving">&times;</button>
-          </div>
-        </div>
-        <div class="annotation-canvas-container">
-          <canvas class="annotation-canvas"></canvas>
-          <div class="canvas-hint">Click and drag to start annotating</div>
-        </div>
-        <div class="annotation-tools">
-          <div class="tool-group">
-            <label class="tool-group-label">Drawing Tools:</label>
-            <button class="tool-btn active" data-tool="arrow" title="Draw arrows">Arrow</button>
-            <button class="tool-btn" data-tool="rectangle" title="Draw rectangles">Rectangle</button>
-            <button class="tool-btn" data-tool="circle" title="Draw circles">Circle</button>
-            <button class="tool-btn" data-tool="highlight" title="Highlight areas">Highlight</button>
-            <button class="tool-btn" data-tool="text" title="Add text">Text</button>
-            <button class="tool-btn" data-tool="pen" title="Free drawing">Pen</button>
-            <button class="tool-btn" data-tool="crop" title="Crop image">Crop</button>
-          </div>
-          <div class="tool-group">
-            <label class="tool-group-label">Style:</label>
-            <input type="color" class="color-picker" value="#ff0000" title="Choose color">
-            <select class="line-width-select" title="Line thickness">
-              <option value="2">Thin</option>
-              <option value="4" selected>Medium</option>
-              <option value="6">Thick</option>
-              <option value="8">Extra Thick</option>
-            </select>
-          </div>
-          <div class="tool-group">
-            <button class="download-btn">Save Screenshot</button>
-          </div>
-        </div>
-      </div>
-    `;
+    const createEl = (tag, className) => {
+      const el = document.createElement(tag);
+      if (className) {
+        el.className = className;
+      }
+      return el;
+    };
+
+    const createButton = (className, text, title) => {
+      const button = document.createElement('button');
+      if (className) {
+        button.className = className;
+      }
+      button.type = 'button';
+      button.textContent = text;
+      if (title) {
+        button.title = title;
+      }
+      return button;
+    };
+
+    const container = createEl('div', 'annotation-container');
+
+    const header = createEl('div', 'annotation-header');
+    const heading = document.createElement('h3');
+    heading.textContent = 'Annotate Your Screenshot';
+
+    const headerControls = createEl('div', 'header-controls');
+    const undoButton = createButton('undo-btn', 'Undo', 'Undo last action');
+    const clearButton = createButton('clear-btn', 'Clear', 'Clear all annotations');
+    const closeButton = createButton('close-btn', '\u00d7', 'Close without saving');
+
+    headerControls.appendChild(undoButton);
+    headerControls.appendChild(clearButton);
+    headerControls.appendChild(closeButton);
+
+    header.appendChild(heading);
+    header.appendChild(headerControls);
+
+  const canvasContainer = createEl('div', 'annotation-canvas-container');
+  const canvasElement = document.createElement('canvas');
+  canvasElement.className = 'annotation-canvas';
+    const canvasHint = createEl('div', 'canvas-hint');
+    canvasHint.textContent = 'Click and drag to start annotating';
+
+  canvasContainer.appendChild(canvasElement);
+    canvasContainer.appendChild(canvasHint);
+
+    const tools = createEl('div', 'annotation-tools');
+
+    const drawingGroup = createEl('div', 'tool-group');
+    const drawingLabel = createEl('label', 'tool-group-label');
+    drawingLabel.textContent = 'Drawing Tools:';
+    drawingGroup.appendChild(drawingLabel);
+
+    const toolDefinitions = [
+      { name: 'Arrow', tool: 'arrow', title: 'Draw arrows', extraClass: 'active' },
+      { name: 'Rectangle', tool: 'rectangle', title: 'Draw rectangles' },
+      { name: 'Circle', tool: 'circle', title: 'Draw circles' },
+      { name: 'Highlight', tool: 'highlight', title: 'Highlight areas' },
+      { name: 'Text', tool: 'text', title: 'Add text' },
+      { name: 'Pen', tool: 'pen', title: 'Free drawing' },
+      { name: 'Crop', tool: 'crop', title: 'Crop image' }
+    ];
+
+    toolDefinitions.forEach(({ name, tool, title: toolTitle, extraClass }) => {
+      const button = createButton('tool-btn', name, toolTitle);
+      if (extraClass) {
+        button.classList.add(extraClass);
+      }
+      button.dataset.tool = tool;
+      drawingGroup.appendChild(button);
+    });
+
+    const styleGroup = createEl('div', 'tool-group');
+    const styleLabel = createEl('label', 'tool-group-label');
+    styleLabel.textContent = 'Style:';
+
+    const colorPicker = document.createElement('input');
+    colorPicker.type = 'color';
+    colorPicker.className = 'color-picker';
+    colorPicker.value = '#ff0000';
+    colorPicker.title = 'Choose color';
+
+    const lineWidthSelect = document.createElement('select');
+    lineWidthSelect.className = 'line-width-select';
+    lineWidthSelect.title = 'Line thickness';
+
+    const lineWidthOptions = [
+      { value: '2', label: 'Thin' },
+      { value: '4', label: 'Medium', selected: true },
+      { value: '6', label: 'Thick' },
+      { value: '8', label: 'Extra Thick' }
+    ];
+
+    lineWidthOptions.forEach(({ value, label, selected }) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      if (selected) {
+        option.selected = true;
+      }
+      lineWidthSelect.appendChild(option);
+    });
+
+    styleGroup.appendChild(styleLabel);
+    styleGroup.appendChild(colorPicker);
+    styleGroup.appendChild(lineWidthSelect);
+
+    const downloadGroup = createEl('div', 'tool-group');
+    const downloadButton = createButton('download-btn', 'Save Screenshot');
+    downloadGroup.appendChild(downloadButton);
+
+    tools.appendChild(drawingGroup);
+    tools.appendChild(styleGroup);
+    tools.appendChild(downloadGroup);
+
+    container.appendChild(header);
+    container.appendChild(canvasContainer);
+    container.appendChild(tools);
+
+    overlay.appendChild(container);
 
     document.body.appendChild(overlay);
 
 
-    const canvas = overlay.querySelector('.annotation-canvas');
     const img = new Image();
     img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      canvasElement.width = img.width;
+      canvasElement.height = img.height;
+      const ctx = canvasElement.getContext('2d', { willReadFrequently: true });
       ctx.drawImage(img, 0, 0);
       
 
@@ -1080,7 +1191,7 @@ ${iitMadrasHints}`;
     img.src = dataUrl;
 
 
-    this.setupAnnotationTools(overlay, canvas, filename);
+  this.setupAnnotationTools(overlay, canvasElement, filename);
   }
 
   setupAnnotationTools(overlay, canvas, filename) {

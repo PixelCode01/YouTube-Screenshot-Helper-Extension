@@ -86,7 +86,18 @@ class YouTubeHandler {
     const screenshotBtn = document.createElement('button');
     screenshotBtn.className = 'ytp-button screenshot-btn';
     screenshotBtn.title = 'Take Screenshot (Ctrl+Shift+S)';
-    screenshotBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M21,17H7V3H21M21,1H7A2,2 0 0,0 5,3V17A2,2 0 0,0 7,19H21A2,2 0 0,0 23,17V3A2,2 0 0,0 21,1M3,5H1V21A2,2 0 0,0 3,23H19V21H3M15.5,11L13.5,13.5L11.5,11.5L9,15H19L15.5,11Z"/></svg>';
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const icon = document.createElementNS(svgNS, 'svg');
+  icon.setAttribute('width', '24');
+  icon.setAttribute('height', '24');
+  icon.setAttribute('viewBox', '0 0 24 24');
+  icon.setAttribute('fill', 'currentColor');
+
+  const path = document.createElementNS(svgNS, 'path');
+  path.setAttribute('d', 'M21,17H7V3H21M21,1H7A2,2 0 0,0 5,3V17A2,2 0 0,0 7,19H21A2,2 0 0,0 23,17V3A2,2 0 0,0 21,1M3,5H1V21A2,2 0 0,0 3,23H19V21H3M15.5,11L13.5,13.5L11.5,11.5L9,15H19L15.5,11Z');
+
+  icon.appendChild(path);
+  screenshotBtn.appendChild(icon);
 
     screenshotBtn.addEventListener('click', async (e) => {
       e.preventDefault();
