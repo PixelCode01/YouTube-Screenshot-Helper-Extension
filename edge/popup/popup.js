@@ -1,9 +1,5 @@
-// Popup script for YouTube Screenshot Helper
-// Note: browser-polyfill.js is loaded via script tag in popup.html
 console.log('YouTube Screenshot Helper: Popup loaded');
 
-// Import ErrorHandler for consistent error handling
-// Note: We'll use a simplified version since we can't import modules in popup context
 class PopupErrorHandler {
   constructor() {
     this.context = 'popup';
@@ -44,18 +40,14 @@ class PopupManager {
 
   async init() {
     const result = await this.errorHandler.handleAsyncOperation(async () => {
-      // Get current tab
       const tabs = await browser.tabs.query({ active: true, currentWindow: true });
       this.currentTab = tabs[0];
 
-      // Load settings
       await this.loadSettings();
 
-      // Setup UI
       this.setupEventListeners();
       this.updateUI();
-      
-      // Check extension status
+
       await this.checkExtensionStatus();
       
       return { success: true };
@@ -78,14 +70,12 @@ class PopupManager {
         annotationMode: false,
         cloudService: 'none',
         screenshotQuality: 0.9,
-        filenameTemplate: '', // Empty means use title builder
+  filenameTemplate: '',
         debugMode: false,
         showNotifications: true,
         captureDelay: 100,
         preventDefault: true,
-        // Theme settings
         themePreference: 'auto',
-        // Title builder settings
         includeYoutube: true,
         includeVideoTitle: true,
         includeChannelName: false,
@@ -95,10 +85,8 @@ class PopupManager {
         includeDate: true,
         includeTime: false,
         titleSeparator: ' - ',
-        // Folder organization settings
         organizeFolders: 'none',
         customFolderPattern: '{channel}/{date}',
-        // New settings
         showFullscreenPopup: false,
         fullscreenPopupDuration: 3,
         useCustomPath: false,
@@ -109,24 +97,20 @@ class PopupManager {
     }, 'load settings');
 
     if (!result.success) {
-      // Use default settings if loading fails
       console.warn('Using default settings due to load failure');
     }
   }
 
   setupEventListeners() {
-    // Capture screenshot button
     document.getElementById('captureBtn').addEventListener('click', () => {
       this.captureScreenshot();
     });
 
-    // Settings button
     document.getElementById('settingsBtn').addEventListener('click', () => {
       browser.runtime.openOptionsPage();
       window.close();
     });
 
-    // Quick settings toggles
     document.getElementById('fullscreenOnlyToggle').addEventListener('change', (e) => {
       this.updateSetting('fullscreenOnly', e.target.checked);
     });
@@ -139,7 +123,6 @@ class PopupManager {
       this.updateSetting('annotationMode', e.target.checked);
     });
 
-    // Help and feedback buttons
     document.getElementById('helpBtn').addEventListener('click', () => {
       browser.tabs.create({ url: 'https://github.com/your-repo/youtube-screenshot-helper#readme' });
     });
@@ -148,28 +131,23 @@ class PopupManager {
       browser.tabs.create({ url: 'https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/issues' });
     });
 
-    // Notification close
     document.querySelector('.notification-close').addEventListener('click', () => {
       this.hideNotification();
     });
   }
 
   updateUI() {
-    // Update quick settings checkboxes
     document.getElementById('fullscreenOnlyToggle').checked = this.settings.fullscreenOnly;
     document.getElementById('autoHideToggle').checked = this.settings.autoHideControls;
     document.getElementById('annotationToggle').checked = this.settings.annotationMode;
 
-    // Update shortcuts display
     document.getElementById('currentShortcut').textContent = 'Ctrl+Shift+S';
     document.getElementById('alternativeShortcut').textContent = this.getKeyDisplayName(this.settings.fullscreenShortcut || 'shift+enter');
 
-    // Update current site info
     if (this.currentTab && this.currentTab.url) {
       const url = new URL(this.currentTab.url);
       document.getElementById('currentSite').textContent = url.hostname;
       
-      // Check if site is supported (built-in or custom)
       const isBuiltInSite = ['youtube.com', 'vimeo.com', 'twitch.tv'].some(site => 
         url.hostname.includes(site)
       );
@@ -225,8 +203,7 @@ class PopupManager {
       'Shift+KeyW': 'Shift+W',
       'Shift+KeyX': 'Shift+X',
       'Shift+KeyY': 'Shift+Y',
-      'Shift+KeyZ': 'Shift+Z',
-      // Legacy support for non-shift keys
+  'Shift+KeyZ': 'Shift+Z',
       'KeyS': 'S',
       'KeyA': 'A',
       'KeyB': 'B',
@@ -262,7 +239,6 @@ class PopupManager {
     if (!this.currentTab) return;
 
     try {
-      // Send message to content script to get status
       const response = await browser.tabs.sendMessage(this.currentTab.id, {
         action: 'getStatus'
       });
@@ -295,7 +271,6 @@ class PopupManager {
   }
 
   updatePageInfo(status) {
-    // Update video status
     const videoStatus = document.getElementById('videoStatus');
     if (status && status.videoFound) {
       videoStatus.textContent = 'Found';
@@ -305,7 +280,6 @@ class PopupManager {
       videoStatus.style.color = '#f44336';
     }
 
-    // Update fullscreen status
     const fullscreenStatus = document.getElementById('fullscreenStatus');
     if (status && status.fullscreen) {
       fullscreenStatus.textContent = 'Yes';
@@ -315,12 +289,10 @@ class PopupManager {
       fullscreenStatus.style.color = '#666';
     }
 
-    // Enable/disable capture button based on conditions
     const captureBtn = document.getElementById('captureBtn');
     const canCapture = status && 
                       (status.videoFound || !this.settings.fullscreenOnly || status.fullscreen);
     
-    // For custom sites without detected video, still allow capture attempt
     if (status && status.enabledSite && !status.videoFound) {
       captureBtn.disabled = false;
       captureBtn.title = 'Try to capture (video not detected but site is enabled)';
@@ -337,7 +309,6 @@ class PopupManager {
     }
 
     try {
-      // Send message to content script
       const response = await browser.tabs.sendMessage(this.currentTab.id, {
         action: 'captureScreenshot'
       });
@@ -360,12 +331,10 @@ class PopupManager {
       this.settings[key] = value;
       await browser.storage.sync.set({ [key]: value });
       
-      // Notify content script of settings change
       if (this.currentTab) {
         browser.tabs.sendMessage(this.currentTab.id, {
           action: 'updateSettings'
         }).catch(() => {
-          // Content script might not be loaded, that's ok
         });
       }
       
@@ -385,7 +354,6 @@ class PopupManager {
     notification.className = `notification ${type}`;
     notification.style.display = 'flex';
     
-    // Auto-hide after 3 seconds
     setTimeout(() => {
       this.hideNotification();
     }, 3000);
@@ -397,15 +365,12 @@ class PopupManager {
   }
 }
 
-// Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
   new PopupManager();
 });
 
-// Handle extension updates
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'popupUpdate') {
-    // Handle any updates from background script
     console.log('Popup update received:', message);
   }
 });

@@ -1,4 +1,4 @@
-# 📸 YouTube Screenshot Helper
+# YouTube Screenshot Helper
 
 <div align="center">
 
@@ -6,366 +6,113 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-green.svg)
 
-*Enhanced screenshot tool for YouTube and video sites - capture clean frames with a single keypress*
+# YouTube Screenshot Helper
 
-</div>
+Capture precise video frames with streamlined controls across Chrome, Edge, and Firefox.
 
-## ✨ Features
+## Overview
 
-### 🎯 Core Functionality
-- **🚀 One-Click Screenshots**: Capture high-quality video frames instantly
-- **🎮 Smart Control Hiding**: Automatically hide video controls for clean screenshots
-- **⌨️ Keyboard Shortcuts**: Customizable hotkeys (`Ctrl+Shift+S` or `Shift+Enter` in fullscreen)
-- **🎨 Annotation Mode**: Add annotations and highlights to your screenshots
-- **📱 Multi-Platform Support**: Works on YouTube, Vimeo, Twitch, and custom video sites
+YouTube Screenshot Helper is a browser extension that hides player controls, captures the current frame, and stores the result locally or in connected cloud storage. It includes configurable shortcuts, optional previews, and per-site enablement to fit most workflows without cluttering the UI.
 
-### 🎛️ Advanced Settings
-- **🔧 Flexible Configuration**: Fullscreen-only mode, auto-hide controls, custom shortcuts
-- **📁 Smart File Organization**: Automatic folder structure with customizable patterns
-- **🏷️ Dynamic Filename Generation**: Include video title, channel, timestamp, and date
-- **☁️ Cloud Integration**: Upload directly to Google Drive (configurable)
-- **🌙 Theme Support**: Auto, light, or dark mode
-- **📏 Quality Control**: Adjustable screenshot quality and capture delay
+## Key Capabilities
 
-## 🚀 Installation
+- One-tap capture from the popup, keyboard shortcut, or fullscreen overlay
+- Optional hiding of on-screen controls before capture
+- Templated filenames and optional folder organization inside Downloads
+- Optional annotation workflow with drawing tools, text, and undo/redo
+- Google Drive and OneDrive upload flows (Chromium-based browsers)
+- Configurable screenshot quality, capture delay, and notification behavior
 
-### Store Installation
+## Installation
 
-#### Microsoft Edge Add-ons
-- **Edge Extension**: [Install from Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons) (Coming Soon)
+### Chrome (manual install)
 
-### Manual Installation (Developer Mode)
+1. Clone or download the repository and extract it locally.
+2. Open `chrome://extensions` and enable Developer Mode.
+3. Choose **Load unpacked** and select the `chrome` directory inside this repo.
 
-#### For Chrome
-1. **Download**: Clone or download this repository
-   ```bash
-   git clone https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension.git
-   ```
-   or you can directly download and extract this [zip](https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/archive/refs/heads/master.zip)
+### Microsoft Edge
 
-2. **Enable Developer Mode**: 
-   - Open Chrome → Settings → Extensions
-   - Toggle "Developer mode" (top right)
+- [Install from Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/ddamehdnkfbjjgpfelaapilddkpcjeop), or load the `edge` directory using the same Developer Mode flow as Chrome.
 
-3. **Load Extension**:
-   - Click "Load unpacked"
-   - Select the `chrome` folder from the downloaded repository
-   - The extension icon should appear in your toolbar
+### Firefox (temporary load)
 
-#### For Microsoft Edge
-1. **Download**: Use the same repository as above
+1. Open `about:debugging#/runtime/this-firefox`.
+2. Click **Load Temporary Add-on** and choose `firefox/manifest.json`.
+3. Repeat after browser restarts unless the build is signed through AMO.
 
-2. **Enable Developer Mode**: 
-   - Open Edge → Settings → Extensions (or go to `edge://extensions/`)
-   - Toggle "Developer mode" (bottom left)
+Firefox uses a Manifest V2 background page. Cloud uploads remain disabled until `browser.identity` supports Manifest V3 OAuth flows.
 
-3. **Load Extension**:
-   - Click "Load unpacked"
-   - Select the `edge` folder from the downloaded repository
-   - The extension icon should appear in your toolbar
+## Daily Use
 
-**Note**: The Chrome and Edge versions are in separate folders (`chrome/` and `edge/`) with browser-specific optimizations.
+1. Navigate to any supported video site (YouTube, Vimeo, Twitch, or your configured custom domains).
+2. Start playback.
+3. Capture a frame by:
+   - Pressing the configured shortcut (defaults to `Ctrl+Shift+S` or `Shift+Enter` in fullscreen).
+   - Clicking the extension icon and choosing **Capture Screenshot**.
+   - Using the fullscreen overlay action if the popup is pinned.
 
-### Installation Video Tutorial
+The extension pauses the video if necessary, hides controls when configured, captures the frame, then resumes playback and restores the UI.
 
+## Configuration Highlights
 
+- **Screenshot quality and delay:** Adjust JPEG/PNG quality and debounce capture on slower hardware.
+- **Auto-hide controls:** Toggle per site to ensure overlays are hidden before capture.
+- **Folder organization:** Select built-in patterns or create templates such as `{channel}/{date}`. Chromium browsers support nested folders; Edge may fall back to simplified paths.
+- **Filename variables:** Insert title, channel, playlist, timestamp, site, date, or time tokens.
+- **Annotation mode:** Enable an editable preview with drawing, text, crop, and undo actions. Final output can be saved locally or uploaded to configured cloud targets.
+- **Notifications and silent downloads:** Control download shelf visibility and toast notifications per capture.
 
+## Cloud Upload Setup
 
-
-https://github.com/user-attachments/assets/4eca28e3-2aeb-42d1-b34f-d248dae21527
-
-
-
-
-
-## 🎮 Usage
-
-### Quick Start
-1. **Navigate** to any supported video site (YouTube, Vimeo, Twitch)
-2. **Play** your video
-3. **Capture** using:
-   - Click the extension icon → "Capture Screenshot"
-                   OR
-   - Press `Ctrl+Shift+S` (customizable)
-                   OR
-   - Press `Shift+Enter` when in fullscreen mode
-  
-## Video Demo
-
-
-
-
-https://github.com/user-attachments/assets/7d99671c-47fd-44c9-83b7-6c5746a57df2
-
-## AI Use
- used AI to fix most of bugs I encountered also used it to add some feat like folder organisation, Google drive etc and all of the documentation are generated by AI also used kiro ai to port extension to microsoft edge
-
-### Advanced Usage
-
-#### 🎯 Popup Interface
-- **Status Indicator**: Shows if the extension is active on current site
-- **Quick Actions**: Instant screenshot capture and settings access
-- **Page Info**: Current site, video status, and fullscreen detection
-- **Quick Settings**: Toggle fullscreen-only, auto-hide, and annotation modes
-
-#### ⚙️ Settings Page
-Access via the extension popup → Settings button
-
-**🎨 Screenshot Settings**
-- Quality adjustment (0.1 - 1.0)
-- Capture delay for slow systems
-- Preview disable option
-
-**📁 File Organization**
-- Custom download paths
-- Folder organization patterns:
-  - `{channel}/{date}` - Group by channel and date
-  - `{site}/{title}` - Group by site and video title
-  - Custom patterns supported
-
-**🏷️ Filename Templates**
-Build filenames with multiple components:
-- ✅ Site name (YouTube, Vimeo, etc.)
-- ✅ Video title
-- ✅ Channel/uploader name
-- ✅ Playlist name
-- ✅ Chapter information
-- ✅ Timestamp
-- ✅ Date and time
-- 🔧 Custom separators
-
-**☁️ Cloud Storage**
-- Google Drive integration
-- Automatic uploads after capture
-- OAuth2 authentication
-
-**⌨️ Keyboard Shortcuts**
-- Customizable main shortcut
-- Fullscreen-specific shortcuts
-- Site override prevention
-
-## 🌐 Supported Sites
-
-### ✅ Fully Supported
-- **YouTube** (youtube.com) - Full feature support
-- **Vimeo** (vimeo.com) - Complete compatibility
-- **Twitch** (twitch.tv) - Live streams and VODs
-
-### 🔧 Custom Sites
-Add any video site through the settings:
-1. Go to Settings → Site Management
-2. Add your domain (e.g., `example.com`)
-3. Configure custom video selectors if needed
-
-
-
-### Key Components
-
-#### 📸 Screenshot Manager
-- Canvas-based image capture
-- Video element detection with fallbacks
-- Control hiding automation
-- Quality optimization
-
-#### ⌨️ Key Handler
-- Event delegation and filtering
-- Fullscreen detection
-- Site-specific overrides
-- Modifier key combinations
-
-#### 💾 Storage Manager
-- Chrome sync storage integration
-- Default setting management
-- Real-time updates
-- Data validation
-
-#### ☁️ Cloud Storage
-- OAuth2 authentication flow
-- Google Drive API integration
-- Upload progress tracking
-- Error handling and retry logic
-
-### Permissions Required
-- `activeTab` - Access current tab for screenshots
-- `storage` - Save user preferences
-- `downloads` - Save screenshot files
-- `identity` - Cloud service authentication
-- `scripting` - Inject content scripts
-- `notifications` - Show capture confirmations
-
-## 🔧 Configuration
-
-### Environment Setup
-For cloud storage features, configure your API keys:
-
-1. **Copy configuration template**:
-   ```javascript
-   // utils/cloudConfig.js
-   window.CLOUD_CONFIG = {
-     GOOGLE_DRIVE_CLIENT_ID: 'your-client-id-here',
-     // ... other settings
-   };
-   ```
-
-2. **Google Drive Setup**:
-   - Create project in [Google Cloud Console](https://console.cloud.google.com)
-   - Enable Drive API
-   - Create OAuth2 credentials
-   - Add your extension ID to authorized origins
-
-### Custom Site Integration
-For advanced users adding custom video sites:
+Configure credentials in `utils/cloudConfig.js` for each browser bundle:
 
 ```javascript
-// Add to enabledSites array in settings
-enabledSites: [
-  'youtube.com',
-  'your-custom-site.com'
-]
-
-// Optional: Custom video selectors
-videoSelectors: {
-  'your-site.com': 'video.custom-player, .video-container video'
-}
+window.CLOUD_CONFIG = {
+  GOOGLE_DRIVE_CLIENT_ID: 'replace-with-client-id',
+  ONEDRIVE_CLIENT_ID: 'replace-with-client-id',
+  GOOGLE_DRIVE: {
+    scopes: ['https://www.googleapis.com/auth/drive.file']
+  },
+  ONEDRIVE: {
+    scopes: ['Files.ReadWrite']
+  }
+};
 ```
 
-## 📊 Browser Compatibility
+Chromium builds rely on `chrome.identity.getRedirectURL()` for OAuth redirects. Firefox currently disables the identity-based paths. Store secrets outside the repository and inject them during packaging.
 
-| Browser | Version | Status |
-|---------|---------|--------|
-| Chrome | 88+ | ✅ Fully Supported |
-| Edge | 88+ | ✅ Fully Supported |
-| Firefox | - | ❌ Not Supported (Manifest V3) |
-| Safari | - | ❌ Not Supported |
+## Supported Permissions
 
-### Microsoft Edge Support
+- `activeTab` for capturing the current page
+- `downloads` for saving frames and managing optional silent mode
+- `notifications` for capture results
+- `scripting` for injecting capture scripts
+- `storage` for user preferences
+- `identity` (Chromium only) for OAuth-powered cloud uploads
 
-The YouTube Screenshot Helper extension is fully compatible with Microsoft Edge 88+ and provides the same functionality as the Chrome version. The extension has been specifically tested and optimized for Edge to ensure a seamless user experience.
+## Troubleshooting
 
-#### Edge-Specific Features
-- **Enhanced Error Handling**: Edge version includes additional error handling for browser-specific issues
-- **Improved Path Normalization**: Better handling of download paths with Edge-specific fallbacks
-- **Optimized Browser Detection**: Automatic detection and adaptation for Edge-specific behaviors
-- **Consistent UI Experience**: All UI components have been tested and optimized for Edge
+| Issue | Possible cause | Recommended action |
+|-------|----------------|--------------------|
+| Video not detected | Player loads slowly or uses a custom wrapper | Wait for playback to start, then retry. Add the domain under custom sites if needed. |
+| Blank captures | Hardware acceleration or DRM blocking | Disable hardware acceleration temporarily or capture in fullscreen. |
+| Shortcut conflicts | Page or browser reserves the key combination | Change shortcuts in the options page or use the popup capture button. |
+| Edge folder templates ignored | Edge restricts complex download paths | Use simple templates or rely on filenames only. |
+| Firefox lacks cloud uploads | `browser.identity` OAuth flow unavailable | Enable cloud uploads only in Chromium-based builds until APIs stabilize. |
 
-#### Edge Installation Notes
-- Use the same installation process as Chrome (Developer Mode)
-- All keyboard shortcuts work identically in Edge
-- Settings and preferences are stored locally and sync across Edge instances
-- Cloud storage integration works the same as in Chrome
+Enable debug mode from **Settings > Advanced** to expose detailed console logging when investigating capture or download issues.
 
-## 🐛 Troubleshooting
+## Developer Notes
 
-### Common Issues
+- `chrome/`, `edge/`, and `firefox/` contain browser-specific manifests while sharing core logic across `content`, `background`, `popup`, `options`, and `utils` directories.
+- The build scripts are placeholders; add bundling, linting, or packaging steps as needed for your workflow.
+- Empty folders such as `scripts/` are safe to remove if unused.
 
-#### "No video found" Error
-- **Cause**: Video player hasn't loaded or uses unsupported format
-- **Solution**: 
-  - Wait for video to fully load
-  - Try refreshing the page
-  - Add the site to custom sites in settings
+## Media Gallery
 
-#### Screenshots Are Black/Blank
-- **Cause**: Hardware acceleration or DRM protection
-- **Solution**:
-  - Disable hardware acceleration in Chrome/Edge
-  - Try on a different video
-  - Use fullscreen mode
+The repository hosts annotated screenshots that illustrate the popup UI, settings, and annotation workflow:
 
-#### Keyboard Shortcut Not Working
-- **Cause**: Conflicts with site shortcuts or browser shortcuts
-- **Solution**:
-  - Enable "Override site shortcuts" in settings
-  - Choose a different key combination
-  - Use the popup button instead
-
-### Microsoft Edge Specific Issues
-
-#### Download Path Issues in Edge
-- **Cause**: Edge has stricter rules for download paths than Chrome
-- **Solution**: 
-  - The extension automatically uses simplified filenames as fallback
-  - Avoid complex folder structures in filename templates
-  - Use forward slashes (/) in custom path templates
-
-#### Folder Organization Limitation in Edge
-- **Important**: The advanced folder organization feature (creating custom folder structures) does not work on Microsoft Edge due to browser limitations
-- **Affected Features**: 
-  - Custom download paths with folder patterns like `{channel}/{date}`
-  - Automatic folder creation based on video metadata
-- **Workaround**: 
-  - Files will be saved to the default download folder with descriptive filenames
-  - All other features work normally in Edge
-
-#### Edge Notification Differences
-- **Cause**: Edge may display notifications slightly differently than Chrome
-- **Solution**: 
-  - Notifications use standardized formats for consistency
-  - All notification functionality works the same
-  - No action required from users
-
-#### Content Script Injection Timing
-- **Cause**: Edge may inject content scripts at different times than Chrome
-- **Solution**: 
-  - The extension includes additional timing checks
-  - If screenshots don't work immediately, wait a moment and try again
-  - Refresh the page if issues persist
-
-#### Edge Extension Permissions
-- **Cause**: Edge may handle extension permissions differently
-- **Solution**: 
-  - Ensure all permissions are granted during installation
-  - Check Edge's extension settings if features don't work
-  - The extension includes the same permissions as the Chrome version
-
-### Debug Mode
-Enable debug mode in settings to see detailed console logs:
-1. Open Settings → Advanced
-2. Enable "Debug Mode"
-3. Open browser console (F12)
-4. Look for "YouTube Screenshot Helper" logs
-
-## 🤝 Contributing
-
-### Development Setup
-1. **Fork** the repository
-2. **Clone** your fork
-3. **Load** extension in developer mode
-4. **Make** your changes
-5. **Test** thoroughly
-6. **Submit** pull request
-
-### Code Style
-- Use modern JavaScript (ES6+)
-- Follow existing naming conventions
-- Add comments for complex logic
-- Update documentation
-
-### Adding New Features
-1. **Create issue** describing the feature
-2. **Discuss** implementation approach
-3. **Implement** with proper error handling
-4. **Add tests** and documentation
-5. **Submit PR** with detailed description
-
-## 📝 Changelog
-
-### v1.1.0 (Current)
-- ✨ Enhanced annotation mode functionality
-- 🎓 Specialized support for educational platforms
-- ☁️ Cloud storage integration with Google Drive
-- 🌙 Dark mode and theme system
-- 📁 Advanced file organization options
-- 🔧 Improved settings interface
-- 🐛 Bug fixes and performance improvements
-
-### v1.0.0
-- 🎉 Initial release
-- 📸 Basic screenshot functionality
-- ⌨️ Keyboard shortcut support
-- 🎯 YouTube, Vimeo, Twitch support
-
-##Screenshots
 ![Screenshot from 2025-06-22 20-26-14](https://github.com/user-attachments/assets/3a4986cd-2d0f-4f62-bc0f-32e229de7641)
 ![Screenshot from 2025-06-22 20-26-31](https://github.com/user-attachments/assets/d005c5dd-1288-4659-b040-f0f2bb9e5119)
 ![Screenshot from 2025-06-22 20-26-40](https://github.com/user-attachments/assets/3c1ac805-7572-455a-88f8-cf1019a5da18)
@@ -389,30 +136,15 @@ Enable debug mode in settings to see detailed console logs:
 ![Screenshot from 2025-06-22 20-36-49](https://github.com/user-attachments/assets/f184f4f7-d267-4afe-82f5-6a4b5ee8951a)
 ![Screenshot from 2025-06-22 20-36-56](https://github.com/user-attachments/assets/0d57425f-994a-460d-91dd-1a7e3bae21e6)
 
+## License
 
-## 📄 License
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## Support and Contributions
 
-## 🙋‍♂️ Support
+- Review the README for setup steps and troubleshooting before filing an issue.
+- Report bugs and feature requests through the [GitHub issue tracker](https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/issues).
+- Discussions and questions are welcome in the repository's discussion board.
 
-### Getting Help
-- **📖 Documentation**: Check this README first
-- **🐛 Bug Reports**: [Create an issue](https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/issues)
-- **💡 Feature Requests**: [Start a discussion](https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/discussions)
-- **❓ Questions**: Use GitHub Discussions
-
-### Contact
-- **Author**: PixelCode01
-- **Repository**: [GitHub](https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension)
-- **Issues**: [Bug Tracker](https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/issues)
-
----
-
-<div align="center">
-
-**⭐ If you find this extension helpful, please consider giving it a star! ⭐**
-
-*Made with ❤️ for the developer and student community*
-
-</div>
+If the tool improves your workflow, consider starring the repository so others can discover it.
+- Site name (YouTube, Vimeo, etc.)

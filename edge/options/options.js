@@ -1,11 +1,11 @@
-// Options page script for YouTube Screenshot Helper
-// Note: browser-polyfill.js is loaded via script tag in options.html
+
+
 console.log('YouTube Screenshot Helper: Options page loaded');
 
 class OptionsManager {
   constructor() {
     this.settings = {};
-    this.isConnecting = false; // Track cloud connection state
+  this.isConnecting = false;
     this.defaults = {
       enabledSites: ['youtube.com', 'vimeo.com', 'twitch.tv'],
       fullscreenShortcut: 'shift+enter',
@@ -23,6 +23,7 @@ class OptionsManager {
       customFolderPattern: '{channel}/{date}',
       uploadToCloud: false,
       cloudService: 'none',
+  cloudFolderSelections: {},
       themePreference: 'auto',
       debugMode: false,
       fullscreenOnly: false,
@@ -35,6 +36,7 @@ class OptionsManager {
       fullscreenPopupDuration: 3,
       useCustomPath: false,
       customDownloadPath: '',
+      silentDownloads: false,
       overrideSiteShortcuts: false,
       disablePreviewByDefault: false
     };
@@ -48,10 +50,14 @@ class OptionsManager {
     this.initializeTheme();
     this.updateTitlePreview();
     this.disableFolderOrganizationForEdge();
+
+    if (this.settings.uploadToCloud) {
+      this.tryAutoConnectToCloud(this.settings.cloudService);
+    }
   }
 
   disableFolderOrganizationForEdge() {
-    // Disable folder organization controls in Edge due to browser limitations
+
     const organizeFoldersSelect = document.getElementById('organizeFolders');
     const customFolderPatternContainer = document.getElementById('customFolderPatternContainer');
     const folderPreview = document.getElementById('folderPreview');
@@ -70,7 +76,7 @@ class OptionsManager {
       folderPreview.style.display = 'none';
     }
     
-    // Force the setting to 'none' for Edge
+
     this.updateSetting('organizeFolders', 'none');
   }
 
@@ -78,6 +84,9 @@ class OptionsManager {
     try {
       const result = await browser.storage.sync.get(null);
       this.settings = { ...this.defaults, ...result };
+      if (!this.settings.cloudFolderSelections || typeof this.settings.cloudFolderSelections !== 'object') {
+        this.settings.cloudFolderSelections = {};
+      }
     } catch (error) {
       console.error('Failed to load settings:', error);
       this.settings = { ...this.defaults };
@@ -85,7 +94,7 @@ class OptionsManager {
   }
 
   setupEventListeners() {
-    // Tab navigation
+
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         console.log('Tab clicked:', e.target.dataset.tab);
@@ -99,9 +108,17 @@ class OptionsManager {
         }
     });
 
-    // Toggle switches - with null checks
+
     this.setupToggle('uploadToCloud', () => {
+      const serviceKey = this.settings.uploadToCloud
+        ? this.ensureDefaultCloudService()
+        : 'none';
+
       this.updateCloudServiceVisibility();
+
+      if (this.settings.uploadToCloud) {
+        this.tryAutoConnectToCloud(serviceKey);
+      }
     });
     this.setupToggle('debugMode');
     this.setupToggle('fullscreenOnly');
@@ -110,13 +127,14 @@ class OptionsManager {
     this.setupToggle('preventDefault');
     this.setupToggle('showFullscreenPopup');
     this.setupToggle('useCustomPath', () => {
-      console.log('💾 OPTIONS: useCustomPath toggled to:', this.settings.useCustomPath);
+      console.log('OPTIONS: useCustomPath toggled to:', this.settings.useCustomPath);
       this.updateCustomPathVisibility();
     });
+    this.setupToggle('silentDownloads');
     this.setupToggle('overrideSiteShortcuts');
     this.setupToggle('disablePreviewByDefault');
 
-    // Cloud storage controls
+
     this.setupControl('cloudService', 'change', (e) => {
       this.updateSetting('cloudService', e.target.value);
       this.updateCloudStatus();
@@ -126,7 +144,15 @@ class OptionsManager {
       this.connectToCloud();
     });
 
-    // Title builder toggles
+    this.setupButton('chooseCloudFolderBtn', () => {
+      this.chooseCloudFolder();
+    });
+
+    this.setupButton('disconnectCloudBtn', () => {
+      this.disconnectCloud();
+    });
+
+
     this.setupToggle('includeYoutube', () => this.updateTitlePreview());
     this.setupToggle('includeVideoTitle', () => this.updateTitlePreview());
     this.setupToggle('includeChannelName', () => this.updateTitlePreview());
@@ -136,13 +162,13 @@ class OptionsManager {
     this.setupToggle('includeDate', () => this.updateTitlePreview());
     this.setupToggle('includeTime', () => this.updateTitlePreview());
 
-    // Title separator control
+
     this.setupControl('titleSeparator', 'input', (e) => {
       this.updateSetting('titleSeparator', e.target.value);
       this.updateTitlePreview();
     });
 
-    // Other controls with null checks
+
     this.setupControl('themePreference', 'change', (e) => {
       this.updateSetting('themePreference', e.target.value);
       this.applyTheme(e.target.value);
@@ -157,30 +183,30 @@ class OptionsManager {
     });
 
     this.setupControl('customDownloadPath', 'input', (e) => {
-      const inputValue = e.target.value;
-      console.log('💾 OPTIONS: customDownloadPath changed to:', JSON.stringify(inputValue));
+  const inputValue = e.target.value;
+  console.log('OPTIONS: customDownloadPath changed to:', JSON.stringify(inputValue));
       
-      // Check if user entered an absolute path
+
       const isAbsolute = inputValue.startsWith('/') || inputValue.match(/^[a-zA-Z]:\\/);
       
       if (isAbsolute && inputValue.length > 0) {
-        // Block absolute paths and show warning
-        console.warn('❌ Absolute paths not allowed, converting to relative path');
+
+  console.warn('Absolute paths not allowed, converting to relative path');
         
-        // Extract folder name from absolute path
+
         const pathParts = inputValue.split(/[/\\]/).filter(part => part.length > 0);
         const folderName = pathParts[pathParts.length - 1] || '';
         
-        // Update input field with relative path
+
         e.target.value = folderName;
         
-        // Show warning message
+
         this.showToast(`Absolute paths are not supported. Using "${folderName}" instead. Files will save to Downloads/${folderName}/`, 'warning');
         
-        // Save the corrected relative path
+
         this.updateSetting('customDownloadPath', folderName);
       } else {
-        // Allow relative paths
+
         this.updateSetting('customDownloadPath', inputValue);
       }
     });
@@ -190,27 +216,27 @@ class OptionsManager {
       this.updateCloudServiceVisibility();
     });
 
-    // Folder organization controls
+
     this.setupControl('organizeFolders', 'change', (e) => {
-      console.log('💾 OPTIONS: organizeFolders changed to:', e.target.value);
+      console.log('OPTIONS: organizeFolders changed to:', e.target.value);
       this.updateSetting('organizeFolders', e.target.value);
       this.updateFolderOrganizationVisibility();
       this.updateFolderPreview();
     });
 
     this.setupControl('customFolderPattern', 'input', (e) => {
-      console.log('💾 OPTIONS: customFolderPattern changed to:', e.target.value);
+      console.log('OPTIONS: customFolderPattern changed to:', e.target.value);
       this.updateSetting('customFolderPattern', e.target.value);
       this.updateFolderPreview();
     });
 
-    // Pattern builder helpers
+
     this.setupPatternBuilderEvents();
     
-    // Sites management
+
     this.setupSitesTab();
 
-    // Button event listeners
+
     this.setupButton('openShortcutsBtn', () => {
       browser.tabs.create({ url: 'edge://extensions/shortcuts' });
     });
@@ -223,20 +249,16 @@ class OptionsManager {
       this.updateFolderPreview();
     });
 
-    this.setupButton('connectCloudBtn', () => {
-      this.connectToCloud();
-    });
-
     this.setupButton('addSiteBtn', () => {
       this.addSite();
     });
 
-    // Theme toggle button
+
     this.setupButton('themeToggle', () => {
       this.toggleTheme();
     });
 
-    // Data management buttons
+
     this.setupButton('exportBtn', () => {
       this.exportSettings();
     });
@@ -281,17 +303,17 @@ class OptionsManager {
   }
 
   switchTab(tabName) {
-    // Hide all tab contents
+
     document.querySelectorAll('.tab-content').forEach(tab => {
       tab.classList.remove('active');
     });
 
-    // Remove active class from all tab buttons
+
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.classList.remove('active');
     });
 
-    // Show selected tab
+
     const targetTab = document.getElementById(tabName);
     const targetBtn = document.querySelector(`[data-tab="${tabName}"]`);
     
@@ -300,43 +322,43 @@ class OptionsManager {
   }
 
   async updateSetting(key, value) {
-    console.log(`💾 OPTIONS: updateSetting called with key="${key}", value=${JSON.stringify(value)}`);
+  console.log(`OPTIONS: updateSetting called with key="${key}", value=${JSON.stringify(value)}`);
     
-    // Special logging for save path related settings
+
     if (key === 'useCustomPath' || key === 'customDownloadPath') {
-      console.log(`🔍 SAVE PATH SETTING UPDATE:`);
-      console.log(`  • Key: ${key}`);
-      console.log(`  • Value: ${JSON.stringify(value)}`);
-      console.log(`  • Value type: ${typeof value}`);
-      console.log(`  • Current settings before update:`, this.settings);
+  console.log('Save path setting update:');
+  console.log(`  - Key: ${key}`);
+  console.log(`  - Value: ${JSON.stringify(value)}`);
+  console.log(`  - Value type: ${typeof value}`);
+  console.log('  - Current settings before update:', this.settings);
     }
     
     this.settings[key] = value;
     
     try {
       await browser.storage.sync.set({ [key]: value });
-      console.log(`✅ Setting updated successfully: ${key} = ${JSON.stringify(value)}`);
+  console.log(`Setting updated successfully: ${key} = ${JSON.stringify(value)}`);
       
-      // Validate the setting was actually saved
+
       if (key === 'useCustomPath' || key === 'customDownloadPath') {
         setTimeout(async () => {
           const verification = await browser.storage.sync.get([key]);
-          console.log(`🔍 SAVE PATH VERIFICATION: ${key} saved as:`, verification[key]);
+          console.log(`Save path verification: ${key} saved as:`, verification[key]);
           if (verification[key] !== value) {
-            console.error(`❌ SAVE PATH VERIFICATION FAILED: Expected ${JSON.stringify(value)}, got ${JSON.stringify(verification[key])}`);
+            console.error(`Save path verification failed: expected ${JSON.stringify(value)}, received ${JSON.stringify(verification[key])}`);
           } else {
-            console.log(`✅ SAVE PATH VERIFICATION PASSED: ${key} correctly saved`);
+            console.log(`Save path verification passed: ${key} correctly saved`);
           }
         }, 100);
       }
       
     } catch (error) {
-      console.error(`❌ Failed to save setting ${key}:`, error);
+      console.error(`Failed to save setting ${key}:`, error);
     }
   }
 
   updateUI() {
-    // Update all form controls with current settings
+
     Object.keys(this.settings).forEach(key => {
       const element = document.getElementById(key);
       if (element) {
@@ -348,7 +370,7 @@ class OptionsManager {
       }
     });
 
-    // Update conditional visibility
+
     this.updateCustomPathVisibility();
     this.updateCloudServiceVisibility();
     this.updateFolderOrganizationVisibility();
@@ -367,18 +389,7 @@ class OptionsManager {
     }
   }
 
-  updateCloudServiceVisibility() {
-    const container = document.getElementById('cloudServiceContainer');
-    const connectBtn = document.getElementById('connectCloudBtn');
-    if (container) {
-      container.style.display = this.settings.uploadToCloud ? 'block' : 'none';
-    }
-    if (connectBtn) {
-      connectBtn.style.display = this.settings.uploadToCloud ? 'inline-block' : 'none';
-    }
-  }
 
-  // Theme management
   initializeTheme() {
     const savedTheme = this.settings.themePreference || 'auto';
     this.applyTheme(savedTheme);
@@ -388,7 +399,7 @@ class OptionsManager {
     const body = document.body;
     const themeSelect = document.getElementById('themePreference');
     
-    // Sync dropdown with current theme
+
     if (themeSelect) {
       themeSelect.value = theme;
     }
@@ -404,7 +415,7 @@ class OptionsManager {
       body.removeAttribute('data-theme');
     }
     
-    // Update theme toggle button
+
     this.updateThemeToggleButton();
   }
 
@@ -414,12 +425,12 @@ class OptionsManager {
 
     const isDark = document.body.getAttribute('data-theme') === 'dark';
     
-    // Update button text based on current theme
+
     if (isDark) {
-      themeToggle.textContent = '☀️ Light Mode';
+      themeToggle.textContent = 'Light Mode';
       themeToggle.title = 'Switch to Light Mode';
     } else {
-      themeToggle.textContent = '🌙 Dark Mode';
+      themeToggle.textContent = 'Dark Mode';
       themeToggle.title = 'Switch to Dark Mode';
     }
   }
@@ -428,7 +439,7 @@ class OptionsManager {
     const currentTheme = this.settings.themePreference || 'auto';
     let nextTheme;
     
-    // Cycle through themes: auto → light → dark → auto
+
     switch (currentTheme) {
       case 'auto':
         nextTheme = 'light';
@@ -447,21 +458,21 @@ class OptionsManager {
     this.applyTheme(nextTheme);
   }
 
-  // File browsing
+
   async browsePath() {
     try {
-      // Show manual input prompt with guidance
+
       const currentPath = this.settings.customDownloadPath || '';
-      const message = `Enter a relative folder path (within Downloads folder):\n\nExamples:\n• Screenshots\n• YouTube/Captures\n• Media/2025\n\nFiles will be saved to Downloads/[your-path]/`;
+  const message = `Enter a relative folder path (within Downloads folder):\n\nExamples:\n- Screenshots\n- YouTube/Captures\n- Media/2025\n\nFiles will be saved to Downloads/[your-path]/`;
       
       const path = prompt(message, currentPath);
       if (path !== null) {
-        // Check if user entered an absolute path
+
         const isAbsolute = path.startsWith('/') || path.match(/^[a-zA-Z]:\\/);
         
         let finalPath = path;
         if (isAbsolute && path.length > 0) {
-          // Extract folder name from absolute path
+
           const pathParts = path.split(/[/\\]/).filter(part => part.length > 0);
           finalPath = pathParts[pathParts.length - 1] || '';
           
@@ -479,103 +490,8 @@ class OptionsManager {
       this.showToast('Error selecting path. Please enter path manually.', 'error');
     }
   }
-
-  // Cloud setup
-  async setupCloudService() {
-    const service = this.settings.cloudService;
-    
-    try {
-      // Load cloud configuration if available
-      if (!window.CLOUD_CONFIG) {
-        const configScript = document.createElement('script');
-        configScript.src = '../utils/cloudConfig.js';
-        document.head.appendChild(configScript);
-        await new Promise(resolve => {
-          configScript.onload = resolve;
-          configScript.onerror = () => resolve();
-        });
-      }
-      
-      // Check if cloud service is configured
-      if (window.CLOUD_CONFIG) {
-        const isConfigured = service === 'google-drive' ? 
-          window.CLOUD_CONFIG.isConfigured('google') : 
-          false; // Only support Google Drive now
-          
-        if (!isConfigured && service === 'google-drive') {
-          const message = window.CLOUD_CONFIG.getConfigurationMessage('google');
-          this.showToast(message, 'warning');
-          
-          // Open setup documentation
-          const setupUrl = 'https://developers.google.com/drive/api/quickstart/js';
-          browser.tabs.create({ url: setupUrl });
-          return;
-        }
-      }
-      
-      switch (service) {
-        case 'google-drive':
-          await this.setupGoogleDrive();
-          break;
-        case 'none':
-          this.showToast('Cloud storage is disabled. Enable "Auto-Upload to Cloud" to configure.', 'info');
-          break;
-        default:
-          this.showToast('Please select a cloud service first', 'error');
-      }
-    } catch (error) {
-      console.error('Cloud setup failed:', error);
-      this.showToast(`Cloud setup failed: ${error.message}`, 'error');
-    }
-  }
-
-  async setupGoogleDrive() {
-    try {
-      // Load cloud storage manager if not available
-      if (!window.cloudStorageManager) {
-        const configScript = document.createElement('script');
-        configScript.src = '../utils/cloudConfig.js';
-        document.head.appendChild(configScript);
-        await new Promise(resolve => configScript.onload = resolve);
-        
-        const script = document.createElement('script');
-        script.src = '../utils/cloudStorage.js';
-        document.head.appendChild(script);
-        await new Promise(resolve => script.onload = resolve);
-      }
-
-      this.showToast('Connecting to Google Drive...', 'info');
-      const token = await window.cloudStorageManager.authenticateGoogleDrive();
-      
-      if (token) {
-        this.showToast('Google Drive connected successfully!', 'success');
-        this.updateCloudConnectionStatus('google-drive', true);
-      } else {
-        throw new Error('Authentication failed');
-      }
-    } catch (error) {
-      console.error('Google Drive setup failed:', error);
-      this.showToast('Google Drive setup failed. Please try again.', 'error');
-    }
-  }
-
-  updateCloudConnectionStatus(service, connected) {
-    const button = document.getElementById('setupCloudBtn');
-    if (button) {
-      button.textContent = connected ? 
-        'Google Drive Connected' : 
-        'Setup Cloud Service';
-      button.disabled = connected;
-    }
-  }
-
-  extractTokenFromUrl(url) {
-    const params = new URLSearchParams(url.split('#')[1]);
-    return params.get('access_token');
-  }
-
   showToast(message, type = 'info') {
-    // Create or update toast notification
+
     let toast = document.getElementById('toast');
     if (!toast) {
       toast = document.createElement('div');
@@ -635,9 +551,9 @@ class OptionsManager {
     previewElement.textContent = filename + '.png';
   }
 
-  // Folder Organization Methods
+
   setupPatternBuilderEvents() {
-    // Variable buttons - insert variable into custom pattern input
+
     document.querySelectorAll('.variable-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -649,15 +565,15 @@ class OptionsManager {
           const newValue = currentValue.slice(0, cursorPos) + variable + currentValue.slice(cursorPos);
           patternInput.value = newValue;
           patternInput.focus();
-          // Move cursor after inserted variable
+
           patternInput.setSelectionRange(cursorPos + variable.length, cursorPos + variable.length);
-          // Trigger input event to update preview
+
           patternInput.dispatchEvent(new Event('input'));
         }
       });
     });
 
-    // Preset buttons - set entire pattern
+
     document.querySelectorAll('.preset-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -666,7 +582,7 @@ class OptionsManager {
         if (patternInput && pattern) {
           patternInput.value = pattern;
           patternInput.focus();
-          // Trigger input event to update preview
+
           patternInput.dispatchEvent(new Event('input'));
         }
       });
@@ -678,12 +594,12 @@ class OptionsManager {
     const folderPreview = document.getElementById('folderPreview');
     const organizeFolders = this.settings.organizeFolders || 'none';
     
-    // Show/hide custom pattern input
+
     if (customPatternContainer) {
       customPatternContainer.style.display = organizeFolders === 'custom' ? 'block' : 'none';
     }
     
-    // Show/hide folder preview based on organization setting
+
     if (folderPreview) {
       folderPreview.style.display = organizeFolders !== 'none' ? 'block' : 'none';
     }
@@ -695,13 +611,13 @@ class OptionsManager {
 
     const organizeFolders = this.settings.organizeFolders || 'none';
     
-    // Mock metadata for preview
+
     const mockData = {
       channel: 'TechChannel',
       playlist: 'Tutorial Series',
       title: 'Amazing Video Tutorial',
-      date: new Date().toISOString().split('T')[0], // Current date YYYY-MM-DD
-      time: new Date().toTimeString().slice(0, 5).replace(':', '-'), // Current time HH-MM
+  date: new Date().toISOString().split('T')[0],
+  time: new Date().toTimeString().slice(0, 5).replace(':', '-'),
       site: 'YouTube'
     };
 
@@ -743,9 +659,9 @@ class OptionsManager {
         folderPath = '';
     }
 
-    // Clean and construct preview path
+
     if (folderPath) {
-      // Clean folder path for display
+
       folderPath = folderPath
         .replace(/[<>:"|?*\\]/g, '_')
         .replace(/\s+/g, ' ')
@@ -756,7 +672,7 @@ class OptionsManager {
     }
   }
 
-  // Template helper method for custom patterns
+
   applyTemplate(template, data) {
     if (!template) return '';
     
@@ -769,7 +685,141 @@ class OptionsManager {
       .replace(/\{site\}/g, data.site || 'Website');
   }
 
-  // Cloud Storage Methods
+  normalizeCloudServiceKey(service) {
+    switch (service) {
+      case 'google-drive':
+      case 'gdrive':
+        return 'google-drive';
+      case 'one-drive':
+      case 'onedrive':
+      case 'ms-onedrive':
+        return 'one-drive';
+      default:
+        return service || 'none';
+    }
+  }
+
+  getCloudProviderName(service) {
+    const key = this.normalizeCloudServiceKey(service);
+    switch (key) {
+      case 'google-drive':
+        return 'Google Drive';
+      case 'one-drive':
+        return 'Microsoft OneDrive';
+      default:
+        return 'Cloud Storage';
+    }
+  }
+
+  getCloudRootLabel(service) {
+    const key = this.normalizeCloudServiceKey(service);
+    switch (key) {
+      case 'google-drive':
+        return 'My Drive';
+      case 'one-drive':
+        return 'OneDrive';
+      default:
+        return 'Root';
+    }
+  }
+
+  getCloudFolderSelections() {
+    if (!this.settings.cloudFolderSelections || typeof this.settings.cloudFolderSelections !== 'object') {
+      this.settings.cloudFolderSelections = {};
+    }
+    return this.settings.cloudFolderSelections;
+  }
+
+  ensureDefaultCloudService() {
+    const current = this.normalizeCloudServiceKey(this.settings.cloudService);
+
+    if (!this.settings.uploadToCloud) {
+      return current;
+    }
+
+    if (!current || current === 'none') {
+      const defaultService = 'google-drive';
+      this.settings.cloudService = defaultService;
+
+      const select = document.getElementById('cloudService');
+      if (select) {
+        select.value = defaultService;
+      }
+
+      browser.storage.sync.set({ cloudService: defaultService }).catch(error => {
+        console.error('Failed to persist default cloud service:', error);
+      });
+
+      return defaultService;
+    }
+
+    return current;
+  }
+
+  async persistCloudFolderSelection(serviceKey, selection) {
+    const selections = { ...this.getCloudFolderSelections() };
+
+    if (selection) {
+      selections[serviceKey] = selection;
+    } else {
+      delete selections[serviceKey];
+    }
+
+    this.settings.cloudFolderSelections = selections;
+    await browser.storage.sync.set({ cloudFolderSelections: selections });
+    return selection || null;
+  }
+
+  async ensureDefaultFolderSelection(serviceKey, { interactive = false } = {}) {
+    const key = this.normalizeCloudServiceKey(serviceKey);
+    if (!key || key === 'none') {
+      return null;
+    }
+
+    await this.ensureCloudScriptsLoaded();
+
+    if (!window.cloudStorageManager?.ensureDefaultFolder) {
+      return null;
+    }
+
+    try {
+      const selection = await window.cloudStorageManager.ensureDefaultFolder(key, { interactive });
+      if (selection?.id) {
+        await this.persistCloudFolderSelection(key, selection);
+      }
+      return selection || null;
+    } catch (error) {
+      console.warn('Failed to ensure default folder selection:', error);
+      return null;
+    }
+  }
+
+  async tryAutoConnectToCloud(serviceKey = null) {
+    if (!this.settings.uploadToCloud || this.isConnecting) {
+      return;
+    }
+
+    const key = this.normalizeCloudServiceKey(serviceKey || this.settings.cloudService);
+    if (!key || key === 'none') {
+      return;
+    }
+
+    await this.ensureCloudScriptsLoaded();
+
+    if (!this.validateCloudConfiguration(key)) {
+      return;
+    }
+
+    if (window.cloudStorageManager?.isAuthenticated(key)) {
+      await this.ensureDefaultFolderSelection(key, { interactive: false });
+      this.updateCloudStatus();
+      return;
+    }
+
+    this.connectToCloud();
+  }
+
+
   updateCloudServiceVisibility() {
     const cloudServiceContainer = document.getElementById('cloudServiceContainer');
     const cloudStatusContainer = document.getElementById('cloudStatusContainer');
@@ -783,134 +833,430 @@ class OptionsManager {
     }
     
     if (isEnabled) {
-      this.updateCloudStatus();
+      const defaultService = this.ensureDefaultCloudService();
+      const select = document.getElementById('cloudService');
+      if (select && this.normalizeCloudServiceKey(select.value) !== defaultService) {
+        select.value = defaultService;
+      }
+    }
+
+    this.updateCloudStatus();
+  }
+
+  async updateCloudStatus() {
+    const serviceKey = this.normalizeCloudServiceKey(this.settings.cloudService);
+    const statusContainer = document.getElementById('cloudStatus');
+    if (!statusContainer) return;
+
+    const statusIndicator = statusContainer.querySelector('.status-indicator');
+    const statusText = statusContainer.querySelector('.status-text');
+    const connectBtn = document.getElementById('connectCloudBtn');
+    const chooseBtn = document.getElementById('chooseCloudFolderBtn');
+    const disconnectBtn = document.getElementById('disconnectCloudBtn');
+
+    if (!this.settings.uploadToCloud || serviceKey === 'none') {
+  if (statusIndicator) statusIndicator.textContent = 'info';
+      if (statusText) statusText.textContent = 'Cloud upload disabled';
+      statusContainer.className = 'cloud-status';
+      if (connectBtn) connectBtn.style.display = 'none';
+      if (chooseBtn) chooseBtn.style.display = 'none';
+      if (disconnectBtn) disconnectBtn.style.display = 'none';
+      this.updateCloudFolderSummary();
+      return;
+    }
+
+    await this.ensureCloudScriptsLoaded();
+    const providerName = this.getCloudProviderName(serviceKey);
+
+    if (!this.validateCloudConfiguration(serviceKey)) {
+  if (statusIndicator) statusIndicator.textContent = 'warn';
+      if (statusText) statusText.textContent = `${providerName} needs configuration`;
+      statusContainer.className = 'cloud-status warning';
+      if (connectBtn) {
+        connectBtn.style.display = 'inline-flex';
+        connectBtn.textContent = `Configure ${providerName}`;
+        connectBtn.disabled = false;
+      }
+      if (chooseBtn) chooseBtn.style.display = 'none';
+      if (disconnectBtn) disconnectBtn.style.display = 'none';
+      this.updateCloudFolderSummary();
+      return;
+    }
+
+    const isConnected = window.cloudStorageManager?.isAuthenticated(serviceKey);
+
+    if (isConnected) {
+      await this.ensureDefaultFolderSelection(serviceKey, { interactive: false });
+
+  if (statusIndicator) statusIndicator.textContent = 'ok';
+      if (statusText) statusText.textContent = `${providerName} connected`;
+      statusContainer.className = 'cloud-status connected';
+      if (connectBtn) {
+        connectBtn.style.display = 'inline-flex';
+        connectBtn.textContent = `Reconnect ${providerName}`;
+        connectBtn.disabled = false;
+      }
+      if (chooseBtn) {
+        chooseBtn.style.display = 'inline-flex';
+        chooseBtn.disabled = false;
+      }
+      if (disconnectBtn) {
+        disconnectBtn.style.display = 'inline-flex';
+        disconnectBtn.disabled = false;
+      }
+      this.updateCloudFolderSummary();
+    } else {
+  if (statusIndicator) statusIndicator.textContent = 'error';
+      if (statusText) statusText.textContent = `${providerName} not connected`;
+      statusContainer.className = 'cloud-status error';
+      if (connectBtn) {
+        connectBtn.style.display = 'inline-flex';
+        connectBtn.textContent = `Sign in to ${providerName}`;
+        connectBtn.disabled = false;
+      }
+      if (chooseBtn) {
+        chooseBtn.style.display = 'inline-flex';
+        chooseBtn.disabled = true;
+      }
+      if (disconnectBtn) {
+        disconnectBtn.style.display = 'none';
+      }
+      this.updateCloudFolderSummary();
     }
   }
 
-  updateCloudStatus() {
-    const service = this.settings.cloudService || 'none';
-    const statusContainer = document.getElementById('cloudStatus');
-    const statusIndicator = statusContainer?.querySelector('.status-indicator');
-    const statusText = statusContainer?.querySelector('.status-text');
-    const connectBtn = document.getElementById('connectCloudBtn');
-    
-    if (!statusContainer) return;
-    
-    // Only 'none' doesn't need authentication now
-    if (service === 'none') {
-      if (statusIndicator) statusIndicator.textContent = '✅';
-      if (statusText) statusText.textContent = 'Disabled';
-      if (connectBtn) {
-        connectBtn.style.display = 'none';
-      }
-      statusContainer.className = 'cloud-status connected';
-    } else if (service === 'google-drive') {
-      if (statusIndicator) statusIndicator.textContent = '❌';
-      if (statusText) statusText.textContent = 'Not configured';
-      if (connectBtn) {
-        connectBtn.style.display = 'inline-block';
-        connectBtn.textContent = 'Configure Google Drive';
-      }
-      statusContainer.className = 'cloud-status error';
-    } else {
-      if (statusIndicator) statusIndicator.textContent = '❌';
-      if (statusText) statusText.textContent = 'Unknown service';
-      if (connectBtn) {
-        connectBtn.style.display = 'inline-block';
-        connectBtn.textContent = 'Configure';
-      }
-      statusContainer.className = 'cloud-status error';
+  updateCloudFolderSummary() {
+    const summary = document.getElementById('cloudFolderSummary');
+    const summaryValue = document.getElementById('cloudFolderSummaryValue');
+    if (!summary || !summaryValue) return;
+
+    const serviceKey = this.normalizeCloudServiceKey(this.settings.cloudService);
+    if (!this.settings.uploadToCloud || serviceKey === 'none') {
+      summary.style.display = 'none';
+      return;
     }
+
+    const isConnected = window.cloudStorageManager?.isAuthenticated?.(serviceKey);
+    if (!isConnected) {
+      summary.style.display = 'none';
+      return;
+    }
+
+    const selections = this.getCloudFolderSelections();
+    const selection = selections[serviceKey];
+    const rootLabel = this.getCloudRootLabel(serviceKey);
+
+    if (selection && (selection.path || selection.name)) {
+      summaryValue.textContent = selection.path || selection.name;
+    } else {
+      summaryValue.textContent = `${rootLabel} (root)`;
+    }
+
+    summary.style.display = 'block';
   }
 
   async connectToCloud() {
-    const service = this.settings.cloudService;
+    const serviceKey = this.normalizeCloudServiceKey(this.settings.cloudService);
+    const providerName = this.getCloudProviderName(serviceKey);
     const statusContainer = document.getElementById('cloudStatus');
     const statusIndicator = statusContainer?.querySelector('.status-indicator');
     const statusText = statusContainer?.querySelector('.status-text');
-    
-    if (!statusContainer) return;
-    
-    console.log(`🔄 Connecting to cloud service: ${service}`);
-    
-    // Prevent multiple simultaneous connections
+
+    if (!this.settings.uploadToCloud || serviceKey === 'none') {
+      this.showToast('Enable cloud upload and pick a service first.', 'warning');
+      return;
+    }
+
+    if (!statusContainer) {
+      return;
+    }
+
     if (this.isConnecting) {
       this.showToast('Connection already in progress, please wait...', 'warning');
       return;
     }
-    
+
     this.isConnecting = true;
-    
+
     try {
-      // Update UI to show connecting state
-      if (statusIndicator) statusIndicator.textContent = '🔄';
-      if (statusText) statusText.textContent = 'Connecting...';
-      statusContainer.className = 'cloud-status connecting';
-      
-      // Load required scripts
       await this.ensureCloudScriptsLoaded();
-      
-      // Check configuration first
-      if (!this.validateCloudConfiguration(service)) {
-        if (service === 'google-drive') {
-          const configUrl = 'https://developers.google.com/drive/api/quickstart/js';
-          this.showToast(`${service} client ID not configured. Opening setup instructions...`, 'warning');
-          browser.tabs.create({ url: configUrl });
-        }
-        
-        if (statusIndicator) statusIndicator.textContent = '⚠️';
+
+      if (!this.validateCloudConfiguration(serviceKey)) {
+        const docsUrl = serviceKey === 'google-drive'
+          ? 'https://developers.google.com/drive/api/quickstart/js'
+          : 'https://learn.microsoft.com/azure/active-directory/develop/quickstart-register-app?tabs=azure-portal';
+        this.showToast(`${providerName} client ID not configured. Opening setup instructions...`, 'warning');
+        browser.tabs.create({ url: docsUrl });
+
+  if (statusIndicator) statusIndicator.textContent = 'warn';
         if (statusText) statusText.textContent = 'Requires configuration';
         statusContainer.className = 'cloud-status warning';
         return;
       }
-      
-      // Authenticate with timeout
-      this.showToast(`Connecting to ${service}...`, 'info');
-      const token = await this.authenticateWithTimeout(service, 30000);
-      
+
+  if (statusIndicator) statusIndicator.textContent = 'busy';
+      if (statusText) statusText.textContent = `Connecting to ${providerName}...`;
+      statusContainer.className = 'cloud-status connecting';
+
+      const token = await this.authenticateWithTimeout(serviceKey, 30000);
       if (token) {
-        console.log(`✅ ${service} connected successfully`);
-        if (statusIndicator) statusIndicator.textContent = '✅';
-        if (statusText) statusText.textContent = 'Connected';
-        statusContainer.className = 'cloud-status connected';
-        this.showToast(`${service} connected successfully!`, 'success');
-        
-        // Update connection status
-        this.updateCloudConnectionStatus(service, true);
+        await this.ensureDefaultFolderSelection(serviceKey, { interactive: true });
+        this.showToast(`${providerName} connected successfully!`, 'success');
       } else {
         throw new Error('Authentication failed - no token received');
       }
-      
     } catch (error) {
-      console.error(`❌ ${service} connection failed:`, error);
-      
-      // Handle specific error types
-      let errorMessage = error.message;
-      if (error.message.includes('timeout')) {
+      console.error(`${providerName} connection failed:`, error);
+      let errorMessage = error?.message || 'Unknown error';
+      if (errorMessage.includes('timed out')) {
         errorMessage = 'Connection timed out. Please try again.';
-      } else if (error.message.includes('User cancelled')) {
+      } else if (errorMessage.includes('cancelled')) {
         errorMessage = 'Authentication was cancelled.';
-      } else if (error.message.includes('client ID')) {
-        errorMessage = 'Service not configured. Please check setup instructions.';
       }
-      
-      if (statusIndicator) statusIndicator.textContent = '❌';
+
+  if (statusIndicator) statusIndicator.textContent = 'error';
       if (statusText) statusText.textContent = 'Connection failed';
       statusContainer.className = 'cloud-status error';
-      this.showToast(`${service} connection failed: ${errorMessage}`, 'error');
-      
+      this.showToast(`${providerName} connection failed: ${errorMessage}`, 'error');
     } finally {
       this.isConnecting = false;
+      this.updateCloudStatus();
     }
+  }
+
+  async chooseCloudFolder() {
+    const serviceKey = this.normalizeCloudServiceKey(this.settings.cloudService);
+    const providerName = this.getCloudProviderName(serviceKey);
+
+    if (!this.settings.uploadToCloud || serviceKey === 'none') {
+      this.showToast('Enable cloud upload before choosing a folder.', 'warning');
+      return;
+    }
+
+    await this.ensureCloudScriptsLoaded();
+
+    if (!window.cloudStorageManager?.isAuthenticated(serviceKey)) {
+      this.showToast(`Sign in to ${providerName} first.`, 'warning');
+      return;
+    }
+
+    try {
+      const selection = await this.openFolderPicker(serviceKey);
+      if (!selection) {
+        return;
+      }
+
+  await window.cloudStorageManager.setSelectedFolder(serviceKey, selection);
+  await this.persistCloudFolderSelection(serviceKey, selection);
+
+      this.updateCloudFolderSummary();
+      this.showToast(`Uploads will go to ${selection.path || selection.name} on ${providerName}.`, 'success');
+    } catch (error) {
+      console.error('Failed to choose folder:', error);
+      this.showToast(`Failed to choose folder: ${error.message}`, 'error');
+    }
+  }
+
+  async disconnectCloud() {
+    const serviceKey = this.normalizeCloudServiceKey(this.settings.cloudService);
+    const providerName = this.getCloudProviderName(serviceKey);
+
+    if (!this.settings.uploadToCloud || serviceKey === 'none') {
+      return;
+    }
+
+    await this.ensureCloudScriptsLoaded();
+
+    try {
+      await window.cloudStorageManager.clearAuthentication(serviceKey);
+      await window.cloudStorageManager.setSelectedFolder(serviceKey, null);
+
+  await this.persistCloudFolderSelection(serviceKey, null);
+
+      this.showToast(`${providerName} disconnected`, 'success');
+    } catch (error) {
+      console.error('Failed to disconnect service:', error);
+      this.showToast(`Failed to disconnect: ${error.message}`, 'error');
+    }
+
+    this.updateCloudStatus();
+  }
+
+  validateFolderName(name, serviceKey) {
+    if (!name || !name.trim()) {
+      this.showToast('Folder name cannot be empty.', 'error');
+      return false;
+    }
+
+    const trimmed = name.trim();
+    if (/[<>:"/\\|?*]/.test(trimmed)) {
+      this.showToast('Folder name cannot contain <>:"/\\|?* characters.', 'error');
+      return false;
+    }
+
+    if (serviceKey === 'one-drive' && /[. ]$/.test(trimmed)) {
+      this.showToast('OneDrive folders cannot end with a period or space.', 'error');
+      return false;
+    }
+
+    return true;
+  }
+
+  async openFolderPicker(serviceKey) {
+    const providerName = this.getCloudProviderName(serviceKey);
+    const rootLabel = this.getCloudRootLabel(serviceKey);
+
+    return new Promise((resolve) => {
+      const overlay = document.createElement('div');
+      overlay.className = 'cloud-folder-picker-overlay';
+      overlay.innerHTML = `
+        <div class="cloud-folder-picker">
+          <div class="picker-header">
+            <h3>Select folder for ${providerName}</h3>
+            <button type="button" class="picker-close" aria-label="Close">&times;</button>
+          </div>
+          <div class="picker-body">
+            <div class="picker-path" id="pickerPath"></div>
+            <div class="picker-list" id="pickerList"></div>
+          </div>
+          <div class="picker-footer">
+            <div class="picker-action-group">
+              <button type="button" class="btn btn-outline" id="pickerBackBtn">Back</button>
+              <button type="button" class="btn btn-outline" id="pickerNewFolderBtn">New Folder</button>
+            </div>
+            <div class="picker-action-group right">
+              <button type="button" class="btn btn-secondary" id="pickerSelectBtn">Use this folder</button>
+              <button type="button" class="btn btn-outline" id="pickerCancelBtn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      const pathEl = overlay.querySelector('#pickerPath');
+      const listEl = overlay.querySelector('#pickerList');
+      const backBtn = overlay.querySelector('#pickerBackBtn');
+      const newFolderBtn = overlay.querySelector('#pickerNewFolderBtn');
+      const selectBtn = overlay.querySelector('#pickerSelectBtn');
+      const cancelBtn = overlay.querySelector('#pickerCancelBtn');
+      const closeBtn = overlay.querySelector('.picker-close');
+
+      const stack = [{ id: 'root', name: rootLabel }];
+      let active = true;
+      let renderToken = 0;
+
+      const cleanup = () => {
+        if (!active) return;
+        active = false;
+        overlay.remove();
+      };
+
+      const render = async () => {
+        const token = ++renderToken;
+        const current = stack[stack.length - 1];
+        pathEl.textContent = stack.map(item => item.name).join(' / ');
+        backBtn.disabled = stack.length <= 1;
+  listEl.innerHTML = '<div class="picker-loading">Loading folders...</div>';
+
+        try {
+          const { folders } = await window.cloudStorageManager.listFolders(serviceKey, current.id);
+          if (token !== renderToken || !active) {
+            return;
+          }
+
+          if (!folders || folders.length === 0) {
+            listEl.innerHTML = '<div class="picker-empty">No subfolders here yet.</div>';
+            return;
+          }
+
+          listEl.innerHTML = '';
+          folders.forEach(folder => {
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'picker-item';
+            item.innerHTML = '<span class="picker-item-icon" aria-hidden="true">></span><span class="picker-item-name">' + folder.name + '</span>';
+            item.addEventListener('click', () => {
+              stack.push({ id: folder.id, name: folder.name || 'Unnamed Folder' });
+              render();
+            });
+            listEl.appendChild(item);
+          });
+        } catch (error) {
+          console.error('Failed to list folders:', error);
+          listEl.innerHTML = '<div class="picker-empty error">' + error.message + '</div>';
+        }
+      };
+
+      const finish = (result) => {
+        cleanup();
+        resolve(result || null);
+      };
+
+      backBtn.addEventListener('click', () => {
+        if (stack.length > 1) {
+          stack.pop();
+          render();
+        }
+      });
+
+      newFolderBtn.addEventListener('click', async () => {
+        const current = stack[stack.length - 1];
+        const input = prompt(`Create a new folder inside ${current.name}`, 'New Folder');
+        if (input === null) {
+          return;
+        }
+
+        const trimmed = input.trim();
+        if (!this.validateFolderName(trimmed, serviceKey)) {
+          return;
+        }
+
+        try {
+          newFolderBtn.disabled = true;
+          const created = await window.cloudStorageManager.createFolder(serviceKey, current.id, trimmed);
+          this.showToast(`Created folder "${trimmed}"`, 'success');
+          if (created?.id) {
+            stack.push({ id: created.id, name: created.name || trimmed });
+          }
+          await render();
+        } catch (error) {
+          console.error('Failed to create folder:', error);
+          this.showToast(`Failed to create folder: ${error.message}`, 'error');
+        } finally {
+          newFolderBtn.disabled = false;
+        }
+      });
+
+      selectBtn.addEventListener('click', () => {
+        const current = stack[stack.length - 1];
+        const path = stack.map(item => item.name).join(' / ');
+        finish({
+          id: current.id,
+          name: current.name,
+          path
+        });
+      });
+
+      cancelBtn.addEventListener('click', () => finish(null));
+      closeBtn.addEventListener('click', () => finish(null));
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) {
+          finish(null);
+        }
+      });
+
+      render();
+    });
   }
   
   async ensureCloudScriptsLoaded() {
-    // Load cloud config if not available
+
     if (!window.CLOUD_CONFIG) {
       await this.loadScript('../utils/cloudConfig.js');
     }
     
-    // Load cloud storage manager if not available  
+
     if (!window.cloudStorageManager) {
       await this.loadScript('../utils/cloudStorage.js');
     }
@@ -931,18 +1277,25 @@ class OptionsManager {
       console.error('Cloud config not loaded');
       return false;
     }
-    
-    const isConfigured = service === 'google-drive' ? 
-      window.CLOUD_CONFIG.isConfigured('google') : 
-      false; // Only Google Drive is supported now
-      
-    console.log(`Configuration check for ${service}: ${isConfigured}`);
-    return isConfigured;
+
+    const key = this.normalizeCloudServiceKey(service);
+    switch (key) {
+      case 'google-drive':
+        return typeof window.CLOUD_CONFIG.isConfigured === 'function'
+          ? window.CLOUD_CONFIG.isConfigured('google')
+          : window.CLOUD_CONFIG.GOOGLE_DRIVE_CLIENT_ID !== 'YOUR_GOOGLE_DRIVE_CLIENT_ID_HERE';
+      case 'one-drive':
+        return typeof window.CLOUD_CONFIG.isConfigured === 'function'
+          ? window.CLOUD_CONFIG.isConfigured('onedrive')
+          : window.CLOUD_CONFIG.ONEDRIVE_CLIENT_ID !== 'YOUR_ONEDRIVE_CLIENT_ID_HERE';
+      default:
+        return false;
+    }
   }
   
   async authenticateWithTimeout(service, timeoutMs = 30000) {
     return new Promise(async (resolve, reject) => {
-      // Set up timeout
+
       const timeoutId = setTimeout(() => {
         console.error(`Authentication timeout for ${service}`);
         reject(new Error(`Authentication timed out after ${timeoutMs/1000} seconds`));
@@ -950,8 +1303,11 @@ class OptionsManager {
       
       try {
         let token;
-        if (service === 'google-drive') {
+        const key = this.normalizeCloudServiceKey(service);
+        if (key === 'google-drive') {
           token = await window.cloudStorageManager.authenticateGoogleDrive();
+        } else if (key === 'one-drive') {
+          token = await window.cloudStorageManager.authenticateOneDrive();
         } else {
           throw new Error(`Unsupported service: ${service}`);
         }
@@ -965,11 +1321,11 @@ class OptionsManager {
     });
   }
 
-  // Sites Management Methods
+
   setupSitesTab() {
-    // Add site button handler already set up in setupEventListeners
+
     
-    // Remove site functionality
+
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('remove-site-btn')) {
         const site = e.target.dataset.site;
@@ -1019,7 +1375,7 @@ class OptionsManager {
       return;
     }
 
-    // Basic domain validation
+
     const domainRegex = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
     if (!domainRegex.test(newSite)) {
       this.showToast('Please enter a valid domain format (e.g., example.com)', 'error');
@@ -1033,11 +1389,11 @@ class OptionsManager {
       return;
     }
 
-    // Add the new site
+
     const updatedSites = [...currentSites, newSite];
     this.updateSetting('enabledSites', updatedSites);
     
-    // Clear input and refresh list
+
     newSiteInput.value = '';
     this.populateSitesList();
     
@@ -1048,7 +1404,7 @@ class OptionsManager {
     const currentSites = this.settings.enabledSites || [];
     const defaultSites = ['youtube.com', 'vimeo.com', 'twitch.tv'];
     
-    // Don't allow removing default sites
+
     if (defaultSites.includes(site)) {
       this.showToast('Cannot remove built-in sites', 'error');
       return;
@@ -1061,20 +1417,20 @@ class OptionsManager {
     this.showToast(`Removed ${site} from enabled sites`, 'success');
   }
 
-  // Data Management Methods
+
   exportSettings() {
     try {
-      // Create a settings object with current settings
+
       const settingsToExport = { ...this.settings };
       
-      // Add metadata
+
       const exportData = {
         version: '1.0',
         timestamp: new Date().toISOString(),
         settings: settingsToExport
       };
       
-      // Create and download the file
+
       const dataStr = JSON.stringify(exportData, null, 2);
       const dataBlob = new Blob([dataStr], { type: 'application/json' });
       
@@ -1083,7 +1439,7 @@ class OptionsManager {
       link.download = `youtube-screenshot-helper-settings-${new Date().toISOString().split('T')[0]}.json`;
       link.click();
       
-      // Clean up
+
       URL.revokeObjectURL(link.href);
       
       this.showToast('Settings exported successfully', 'success');
@@ -1109,23 +1465,23 @@ class OptionsManager {
         try {
           const importData = JSON.parse(e.target.result);
           
-          // Validate the import data structure
+
           if (!importData.settings) {
             this.showToast('Invalid settings file format', 'error');
             return;
           }
           
-          // Merge imported settings with defaults to ensure all required keys exist
+
           const importedSettings = { ...this.defaults, ...importData.settings };
           
-          // Update each setting
+
           Object.keys(importedSettings).forEach(key => {
             this.settings[key] = importedSettings[key];
           });
           
-          // Save all settings to storage
+
           browser.storage.sync.set(this.settings).then(() => {
-            // Update UI to reflect imported settings
+
             this.updateUI();
             this.updateTitlePreview();
             this.showToast('Settings imported successfully', 'success');
@@ -1142,25 +1498,25 @@ class OptionsManager {
       
       reader.readAsText(file);
       
-      // Reset file input
+
       fileInput.value = '';
     };
     
-    // Trigger file dialog
+
     fileInput.click();
   }
 
   resetToDefaults() {
     if (confirm('Are you sure you want to reset all settings to their default values? This action cannot be undone.')) {
       try {
-        // Reset settings to defaults
+
         this.settings = { ...this.defaults };
         
-        // Clear storage and set defaults
+
         browser.storage.sync.clear().then(() => {
           return browser.storage.sync.set(this.settings);
         }).then(() => {
-          // Update UI to reflect reset settings
+
           this.updateUI();
           this.updateTitlePreview();
           this.showToast('Settings reset to defaults successfully', 'success');
@@ -1176,10 +1532,10 @@ class OptionsManager {
     }
   }
 
-  // Cloud history functions removed - only Google Drive supported now
+
 }
 
-// Initialize when DOM is ready
+
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     window.optionsManager = new OptionsManager();

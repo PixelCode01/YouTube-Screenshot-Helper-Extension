@@ -1,6 +1,6 @@
-/* YouTube Screenshot Helper - Content Styles */
 
-/* Screenshot notification styles */
+
+
 .screenshot-notification {
   position: fixed !important;
   top: 20px !important;
@@ -48,7 +48,7 @@
   transform: translateX(0) !important;
 }
 
-/* Ready notification */
+
 .screenshot-ready-notification {
   position: fixed !important;
   top: 20px !important;
@@ -62,7 +62,7 @@
   line-height: 1.4 !important;
 }
 
-/* Fullscreen instructions */
+
 .screenshot-fullscreen-instructions {
   position: fixed !important;
   top: 50% !important;
@@ -87,7 +87,7 @@
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Annotation overlay styles */
+
 .screenshot-annotation-overlay {
   position: fixed !important;
   top: 0 !important;
@@ -240,7 +240,7 @@
   transform: translateY(-1px) !important;
 }
 
-/* Enhanced button visibility and interaction */
+
 .tool-btn,
 .download-btn,
 .close-btn {
@@ -250,7 +250,7 @@
   z-index: 10001 !important;
 }
 
-/* Dark mode annotation styles */
+
 @media (prefers-color-scheme: dark) {
   .annotation-container {
     background: #2d2d2d !important;
@@ -312,7 +312,7 @@
   }
 }
 
-/* High contrast mode support */
+
 @media (prefers-contrast: high) {
   .screenshot-notification {
     border: 2px solid white !important;
@@ -323,7 +323,7 @@
   }
 }
 
-/* Reduced motion support */
+
 @media (prefers-reduced-motion: reduce) {
   .screenshot-notification {
     transition: none !important;
@@ -338,7 +338,7 @@
   }
 }
 
-/* Dark mode support for content elements */
+
 @media (prefers-color-scheme: dark) {
   .screenshot-notification.success {
     background: linear-gradient(135deg, #059669, #047857) !important;
@@ -416,7 +416,7 @@
   }
 }
 
-/* High contrast dark mode */
+
 @media (prefers-color-scheme: dark) and (prefers-contrast: high) {
   .screenshot-notification {
     border: 3px solid #ffffff !important;
@@ -433,7 +433,7 @@
   }
 }
 
-/* Focus states for better accessibility */
+
 .tool-btn:focus {
   outline: none !important;
   box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.5) !important;
@@ -454,7 +454,7 @@
   box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.5) !important;
 }
 
-/* Improved placeholder text visibility */
+
 .annotation-canvas-container::before {
   content: "Click and drag to annotate the screenshot" !important;
   position: absolute !important;
@@ -475,7 +475,7 @@
     color: #aaaaaa !important;
   }
   
-  /* Enhanced focus states for dark mode */
+  
   .tool-btn:focus {
     box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.6) !important;
   }

@@ -1,13 +1,13 @@
-/* YouTube Screenshot Helper - Popup Styles - Dark Mode Fixed */
 
-/* Universal reset */
+
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* Light mode (default) */
+
 body {
   width: 380px;
   min-height: 500px;
@@ -24,7 +24,7 @@ body {
   min-height: 500px;
 }
 
-/* Header */
+
 .popup-header {
   background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
   color: #ffffff;
@@ -62,13 +62,13 @@ body {
   border-radius: 50%;
 }
 
-/* Main content */
+
 .popup-content {
   padding: 20px;
   background: #ffffff;
 }
 
-/* Page info */
+
 .current-page-info {
   margin-bottom: 20px;
 }
@@ -133,7 +133,7 @@ body {
   white-space: nowrap;
 }
 
-/* Quick actions */
+
 .quick-actions {
   display: flex;
   flex-direction: column;
@@ -169,7 +169,7 @@ body {
   background: linear-gradient(135deg, #5a6268, #343a40);
 }
 
-/* Quick settings */
+
 .quick-settings {
   margin-bottom: 20px;
 }
@@ -194,7 +194,7 @@ body {
   color: #333333;
 }
 
-/* Checkboxes */
+
 .setting-label input[type="checkbox"] {
   display: none;
 }
@@ -217,13 +217,13 @@ body {
 }
 
 .setting-label input[type="checkbox"]:checked + .checkmark::after {
-  content: '✓';
+  content: 'OK';
   color: #ffffff;
   font-size: 10px;
   font-weight: bold;
 }
 
-/* Focus states for accessibility */
+
 .setting-label input[type="checkbox"]:focus + .checkmark {
   box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.3);
   border-color: #2196f3;
@@ -240,7 +240,7 @@ body {
   border-radius: 4px;
 }
 
-/* Shortcut info */
+
 .shortcut-info {
   margin-bottom: 20px;
 }
@@ -274,7 +274,7 @@ kbd {
   font-weight: 500;
 }
 
-/* Footer */
+
 .popup-footer {
   background: #f8f9fa;
   padding: 16px 20px;
@@ -305,7 +305,7 @@ kbd {
   font-size: 12px;
 }
 
-/* Notification */
+
 .notification {
   position: fixed;
   top: 20px;
@@ -352,7 +352,7 @@ kbd {
   }
 }
 
-/* DARK MODE - Clean implementation */
+
 @media (prefers-color-scheme: dark) {
   body {
     background: #1e1e1e;
@@ -436,7 +436,7 @@ kbd {
     color: #b0b0b0;
   }
   
-  /* Fix blue button text visibility in dark mode */
+  
   .action-btn {
     background: linear-gradient(135deg, #1976d2, #1565c0);
     color: #ffffff;
@@ -460,7 +460,7 @@ kbd {
   }
 }
 
-/* Responsive adjustments */
+
 @media (max-width: 400px) {
   body {
     width: 100vw;

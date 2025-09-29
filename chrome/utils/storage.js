@@ -1,15 +1,16 @@
-// Storage utility functions for YouTube Screenshot Helper
+
 
 class StorageManager {
   constructor() {
     this.defaultSettings = {
-      enabledSites: ['youtube.com', 'vimeo.com', 'twitch.tv'],
+  enabledSites: ['youtube.com', 'youtube-nocookie.com', 'vimeo.com', 'twitch.tv'],
       fullscreenShortcut: 'shift+enter',
       fullscreenOnly: false,
       autoHideControls: true,
       uploadToCloud: false,
       annotationMode: false,
       cloudService: 'none',
+  cloudFolderSelections: {},
       screenshotQuality: 0.9,
       filenameTemplate: '',
       debugMode: false,
@@ -17,7 +18,7 @@ class StorageManager {
       captureDelay: 100,
       preventDefault: true,
       themePreference: 'auto',
-      // Title builder settings
+
       includeYoutube: true,
       includeVideoTitle: true,
       includeChannelName: false,
@@ -27,16 +28,18 @@ class StorageManager {
       includeDate: true,
       includeTime: false,
       titleSeparator: ' - ',
-      // Fullscreen popup settings (disabled - functionality removed per user request)
+
       showFullscreenPopup: false,
       fullscreenPopupDuration: 3000,
-      // Download path settings
+
       useCustomPath: false,
       customDownloadPath: '',
-      // Folder organization settings
+
+  silentDownloads: false,
+
       organizeFolders: 'none',
       customFolderPattern: '{channel}/{date}',
-      // Screenshot preview settings
+
       disablePreviewByDefault: false
     };
   }
@@ -45,7 +48,7 @@ class StorageManager {
     try {
       console.log('=== STORAGE MANAGER: GET SETTINGS DEBUG ===');
       
-      // Check if extension context is still valid
+
       if (!this.isExtensionContextValid()) {
         console.warn('Extension context invalidated, using default settings');
         return this.defaultSettings;
@@ -74,7 +77,7 @@ class StorageManager {
     } catch (error) {
       console.error('Error getting settings:', error);
       
-      // If extension context is invalidated, return defaults
+
       if (error.message && (
           error.message.includes('Extension context invalidated') ||
           error.message.includes('receiving end does not exist') ||
@@ -90,17 +93,17 @@ class StorageManager {
 
   isExtensionContextValid() {
     try {
-      // Check if chrome API is available
+
       if (!chrome || !chrome.runtime) {
         return false;
       }
       
-      // Check if extension runtime is still connected
+
       if (chrome.runtime.id === undefined) {
         return false;
       }
       
-      // Try to access chrome.storage to see if it's available
+
       if (!chrome.storage || !chrome.storage.sync) {
         return false;
       }
@@ -114,7 +117,7 @@ class StorageManager {
 
   async setSetting(key, value) {
     try {
-      // Check if extension context is still valid
+
       if (!this.isExtensionContextValid()) {
         console.warn('Extension context invalidated, cannot save setting');
         return false;
@@ -125,7 +128,7 @@ class StorageManager {
     } catch (error) {
       console.error('Error setting:', key, error);
       
-      // If extension context is invalidated, return false
+
       if (error.message && error.message.includes('Extension context invalidated')) {
         console.warn('Extension context invalidated, cannot save setting');
         return false;
@@ -137,7 +140,7 @@ class StorageManager {
 
   async setSettings(settings) {
     try {
-      // Check if extension context is still valid
+
       if (!this.isExtensionContextValid()) {
         console.warn('Extension context invalidated, cannot save settings');
         return false;
@@ -148,7 +151,7 @@ class StorageManager {
     } catch (error) {
       console.error('Error setting multiple settings:', error);
       
-      // If extension context is invalidated, return false
+
       if (error.message && error.message.includes('Extension context invalidated')) {
         console.warn('Extension context invalidated, cannot save settings');
         return false;
@@ -158,14 +161,23 @@ class StorageManager {
     }
   }
 
-  // Check if current site is enabled
+
   async isCurrentSiteEnabled() {
     const settings = await this.getSettings();
     const hostname = window.location.hostname;
-    return settings.enabledSites.some(site => hostname.includes(site));
+    const isDirectMatch = settings.enabledSites.some(site => hostname.includes(site));
+    if (isDirectMatch) {
+      return true;
+    }
+
+    if (hostname.includes('youtube-nocookie.com')) {
+      return settings.enabledSites.some(site => site.includes('youtube.com'));
+    }
+
+    return false;
   }
 
-  // Generate filename based on template
+
   generateFilename(template, metadata) {
     const now = new Date();
     
@@ -190,7 +202,7 @@ class StorageManager {
       filename = filename.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value || '');
     });
 
-    // Clean up filename
+
     filename = filename
       .replace(/[<>:"/\\|?*]/g, '-')
       .replace(/[-_\s]+/g, '-')
@@ -201,7 +213,7 @@ class StorageManager {
   }
 }
 
-// Create global instance only in browser environment
+
 if (typeof window !== 'undefined') {
   window.storageManager = new StorageManager();
 }

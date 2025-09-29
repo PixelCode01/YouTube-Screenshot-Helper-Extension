@@ -1,13 +1,13 @@
-/* YouTube Screenshot Helper - Options Styles - Dark Mode Fixed */
 
-/* Universal reset */
+
+
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* Light mode (default) */
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: #f8f9fa;
@@ -23,7 +23,7 @@ body {
   background: #ffffff;
 }
 
-/* Header */
+
 .header {
   background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
   color: #ffffff;
@@ -61,7 +61,7 @@ body {
   border-radius: 20px;
 }
 
-/* Theme toggle button */
+
 .theme-toggle {
   position: fixed;
   top: 20px;
@@ -85,7 +85,7 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-/* Navigation tabs */
+
 .nav-tabs {
   background: #ffffff;
   border-bottom: 1px solid #e0e0e0;
@@ -116,7 +116,7 @@ body {
   border-bottom-color: #2196f3;
 }
 
-/* Main content */
+
 .main-content {
   padding: 40px;
   background: #ffffff;
@@ -130,7 +130,7 @@ body {
   display: block;
 }
 
-/* Settings groups */
+
 .settings-group {
   margin-bottom: 40px;
   background: #fafafa;
@@ -152,7 +152,7 @@ body {
   font-size: 14px;
 }
 
-/* Setting items */
+
 .setting-item {
   display: flex;
   justify-content: space-between;
@@ -190,7 +190,7 @@ body {
   gap: 12px;
 }
 
-/* Toggle switch */
+
 .toggle {
   position: relative;
   display: inline-block;
@@ -237,7 +237,7 @@ body {
   transform: translateX(24px);
 }
 
-/* Form controls */
+
 input[type="text"], 
 input[type="number"], 
 input[type="range"],
@@ -261,7 +261,7 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
 }
 
-/* Buttons */
+
 .btn {
   padding: 10px 20px;
   border: none;
@@ -299,7 +299,7 @@ textarea:focus {
   background: #d32f2f;
 }
 
-/* Footer */
+
 .footer {
   background: #f8f9fa;
   padding: 20px 40px;
@@ -328,7 +328,7 @@ textarea:focus {
   text-decoration: underline;
 }
 
-/* Toast notification */
+
 .toast {
   position: fixed;
   top: 20px;
@@ -368,7 +368,7 @@ textarea:focus {
   border-left: 4px solid #1976d2;
 }
 
-/* DARK MODE - Clean implementation */
+
 body[data-theme='dark'] {
   background: #121212;
   color: #e0e0e0;
@@ -518,7 +518,7 @@ body[data-theme='dark'] .footer-links a {
   color: #64b5f6;
 }
 
-/* Action buttons group styling */
+
 .action-buttons {
   display: flex;
   gap: 12px;
@@ -531,7 +531,7 @@ body[data-theme='dark'] .footer-links a {
   font-weight: 600;
 }
 
-/* Enhanced dark mode styles for action buttons */
+
 body[data-theme='dark'] .action-buttons .btn-outline {
   background: rgba(100, 181, 246, 0.15);
   border-color: #64b5f6;
@@ -567,7 +567,7 @@ body[data-theme='dark'] .action-buttons .btn-danger:hover {
   transform: translateY(-2px);
 }
 
-/* Range slider styling */
+
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -610,7 +610,7 @@ body[data-theme='dark'] input[type="range"]::-moz-range-thumb {
   background: #64b5f6;
 }
 
-/* Title builder specific styles */
+
 .title-builder {
   margin-top: 15px;
 }
@@ -660,7 +660,7 @@ body[data-theme='dark'] .preview-output {
   border-left-color: #64b5f6;
 }
 
-/* Sites management */
+
 .sites-list {
   margin: 20px 0;
 }
@@ -729,7 +729,7 @@ body[data-theme='dark'] .site-status {
   margin-top: 15px;
 }
 
-/* Shortcut items */
+
 .shortcut-item {
   display: flex;
   justify-content: space-between;
@@ -799,7 +799,7 @@ body[data-theme='dark'] kbd {
   color: #e0e0e0;
 }
 
-/* Enhanced Configure button dark mode styles */
+
 body[data-theme='dark'] #openShortcutsBtn {
   background: rgba(100, 181, 246, 0.15);
   border: 2px solid #64b5f6;
@@ -817,7 +817,7 @@ body[data-theme='dark'] #openShortcutsBtn:hover {
   transform: translateY(-1px);
 }
 
-/* Toast Notifications */
+
 .toast {
   position: fixed;
   top: 20px;
@@ -860,7 +860,7 @@ body[data-theme='dark'] #openShortcutsBtn:hover {
   border-left: 4px solid #1976d2;
 }
 
-/* Dark mode toast styles */
+
 body[data-theme='dark'] .toast {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }

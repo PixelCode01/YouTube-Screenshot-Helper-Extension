@@ -1,7 +1,7 @@
 {
   "name": "youtube-screenshot-helper",
-  "version": "1.1.0",
-  "description": "Enhanced screenshot tool for YouTube and video sites - hide controls and capture clean frames with a single keypress",
+  "version": "1.2.0",
+  "description": "Grab clean video screenshots instantly with a single shortcut",
   "main": "manifest.json",
   "scripts": {
     "build": "echo 'Extension ready for loading in Chrome'",

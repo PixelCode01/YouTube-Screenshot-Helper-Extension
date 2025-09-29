@@ -1,10 +1,12 @@
-// Key handler for YouTube Screenshot Helper
+
 
 class KeyHandler {
   constructor() {
     this.settings = null;
     this.isListening = false;
     this.boundKeyHandler = this.handleKeyPress.bind(this);
+    this.lastTriggerTime = 0;
+  this.debounceDelay = 500;
     this.init();
   }
 
@@ -29,19 +31,29 @@ class KeyHandler {
   }
 
   async handleKeyPress(event) {
-    // Refresh settings periodically
+
+    const currentTime = Date.now();
+    if (currentTime - this.lastTriggerTime < this.debounceDelay) {
+      console.log('KeyHandler: Debounced - ignoring rapid keypress');
+      return;
+    }
+
+
     if (!this.settings) {
       this.settings = await window.storageManager.getSettings();
     }
 
-    // Check if we should handle this keypress
+
     const shouldHandle = this.shouldHandleKey(event);
     
     if (!shouldHandle) {
       return;
     }
 
-    // Check if we're in fullscreen mode (if required)
+
+    this.lastTriggerTime = currentTime;
+
+
     const isFullscreen = this.isInFullscreen();
     
     if (this.settings.fullscreenOnly && !isFullscreen) {
@@ -49,7 +61,7 @@ class KeyHandler {
       return;
     }
 
-    // Check if we're on an enabled site
+
     const isEnabledSite = await window.storageManager.isCurrentSiteEnabled();
     
     if (!isEnabledSite) {
@@ -57,7 +69,7 @@ class KeyHandler {
       return;
     }
 
-    // Prevent default behavior if preventDefault is enabled
+
     if (this.settings.preventDefault) {
       event.preventDefault();
       event.stopPropagation();
@@ -66,29 +78,29 @@ class KeyHandler {
 
     console.log('KeyHandler: Triggering screenshot capture');
     
-    // Get the configured fullscreen shortcut
+
     const configuredKey = this.settings.fullscreenShortcut || this.settings.shortcutKey || 'shift+enter';
     
-    // Check if this is Shift+Enter
+
     const isShiftEnter = event.code === 'Enter' && event.shiftKey;
     
-    // Shift+Enter behavior depends on annotation settings
+
     let forcePreview = false;
     let skipAnnotation = false;
     
     if (isShiftEnter && configuredKey === 'shift+enter') {
-      // For Shift+Enter: check annotation settings
+
       if (this.settings.annotationMode === true && !this.settings.disablePreviewByDefault) {
-        // Annotation is enabled, show annotation interface
+
         forcePreview = true;
         skipAnnotation = false;
       } else {
-        // Annotation is disabled, skip annotation interface
+
         forcePreview = false;
         skipAnnotation = true;
       }
     } else {
-      // For other keys, respect normal annotation settings (no forcing)
+
       forcePreview = false;
       skipAnnotation = false;
     }
@@ -103,41 +115,41 @@ class KeyHandler {
     console.log('  - skipAnnotation:', skipAnnotation);
     console.log('=== END KEY HANDLER DEBUG ===');
     
-    // Trigger screenshot
+
     if (window.screenshotManager) {
-      window.screenshotManager.captureScreenshot(forcePreview, skipAnnotation);
+      window.screenshotManager.captureScreenshot({}, forcePreview, skipAnnotation);
     } else {
       console.error('KeyHandler: ScreenshotManager not available');
     }
   }
 
   shouldHandleKey(event) {
-    // Get the key setting - try both fullscreenShortcut (new) and shortcutKey (old)
+
     const key = this.settings.fullscreenShortcut || this.settings.shortcutKey || 'shift+enter';
     
     console.log('KeyHandler: Checking key press - event.code:', event.code, 'setting key:', key);
     
-    // Check if we're focused on an input element
+
     if (this.isInputFocused()) {
       console.log('KeyHandler: Input focused, ignoring keypress');
       return false;
     }
     
-    // Handle different key formats
+
     switch (key.toLowerCase()) {
-      // Basic keys without modifiers
+
       case 'space':
         return event.code === 'Space' && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey;
       case 'enter':
         return event.code === 'Enter' && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey;
         
-      // Shift + key combinations
+
       case 'shift+enter':
         return event.code === 'Enter' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
       case 'shift+space':
         return event.code === 'Space' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
         
-      // Handle Shift+Key combinations
+
       case 'shift+keys':
         return event.code === 'KeyS' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
       case 'shift+keya':
@@ -191,7 +203,7 @@ class KeyHandler {
       case 'shift+keyz':
         return event.code === 'KeyZ' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
         
-      // Legacy single key support (without shift)
+
       case 'keys':
         return event.code === 'KeyS' && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey;
       case 'keya':
@@ -259,7 +271,7 @@ class KeyHandler {
     );
   }
 
-  // Check if we're focused on an input element
+
   isInputFocused() {
     const activeElement = document.activeElement;
     if (!activeElement) return false;
@@ -271,7 +283,7 @@ class KeyHandler {
     return isInput || isContentEditable;
   }
 
-  // Update settings
+
   async updateSettings() {
     this.settings = await window.storageManager.getSettings();
   }
@@ -281,7 +293,7 @@ class KeyHandler {
   }
 }
 
-// Create global instance
+
 if (typeof window !== 'undefined') {
   window.keyHandler = new KeyHandler();
 }

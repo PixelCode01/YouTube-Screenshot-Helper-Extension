@@ -1,4 +1,3 @@
-// Main content script for YouTube Screenshot Helper
 console.log('YouTube Screenshot Helper: Content script loaded');
 
 class ScreenshotExtension {
@@ -10,38 +9,29 @@ class ScreenshotExtension {
 
   async init() {
     try {
-      // Wait for utilities to load
       await this.waitForUtilities();
       
-      // Get initial settings
       this.settings = await window.storageManager.getSettings();
       
-      // Set up storage change listener for settings updates
       this.setupStorageListener();
       
-      // Check if extension should be active on this site
       const isEnabledSite = await window.storageManager.isCurrentSiteEnabled();
       if (!isEnabledSite) {
         console.log('YouTube Screenshot Helper: Not enabled for this site - waiting for click to activate');
-        // Don't return here - wait for user to click extension
         this.isInitialized = true;
         return;
       }
 
-      // Initialize components
       this.setupMessageListeners();
       this.setupMutationObserver();
       
-      // Setup fullscreen change listener
       this.setupFullscreenListener();
       
-      // Wait for video content to load on custom sites
       this.waitForVideoContent();
       
       this.isInitialized = true;
       console.log('YouTube Screenshot Helper: Initialized successfully');
       
-      // Notify that extension is ready
       this.showReadyNotification();
       
     } catch (error) {
@@ -50,7 +40,6 @@ class ScreenshotExtension {
   }
 
   async waitForUtilities() {
-    // Wait for utility scripts to load
     let attempts = 0;
     const maxAttempts = 50;
     
@@ -67,10 +56,9 @@ class ScreenshotExtension {
   }
 
   setupMessageListeners() {
-    // Listen for messages from background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      this.handleMessage(message, sender, sendResponse);
-      return true; // Keep message channel open
+  this.handleMessage(message, sender, sendResponse);
+  return true;
     });
   }
 
@@ -81,7 +69,6 @@ class ScreenshotExtension {
         break;
         
       case 'captureScreenshot':
-        // If not initialized yet (custom site), initialize now
         if (!this.isInitialized) {
           console.log('YouTube Screenshot Helper: Initializing for custom site via user action');
           this.setupMessageListeners();
@@ -127,7 +114,6 @@ class ScreenshotExtension {
   }
 
   setupMutationObserver() {
-    // Watch for DOM changes to handle dynamic content
     const observer = new MutationObserver((mutations) => {
       this.handleDOMChanges(mutations);
     });
@@ -141,7 +127,6 @@ class ScreenshotExtension {
   }
 
   handleDOMChanges(mutations) {
-    // Handle specific changes for different video sites
     const hostname = window.location.hostname;
     
     if (hostname.includes('youtube.com')) {
@@ -151,18 +136,15 @@ class ScreenshotExtension {
     } else if (hostname.includes('twitch.tv')) {
       this.handleTwitchChanges(mutations);
     } else {
-      // Handle custom/generic sites
       this.handleGenericSiteChanges(mutations);
     }
   }
 
   handleGenericSiteChanges(mutations) {
-    // For custom sites, look for any new video elements
     mutations.forEach(mutation => {
       if (mutation.type === 'childList') {
         mutation.addedNodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
-            // Check if the added node is a video or contains videos
             let videos = [];
             if (node.tagName === 'VIDEO') {
               videos.push(node);
@@ -181,10 +163,8 @@ class ScreenshotExtension {
   }
 
   handleYouTubeChanges(mutations) {
-    // Handle YouTube-specific DOM changes
     mutations.forEach(mutation => {
       if (mutation.type === 'childList') {
-        // Check for new video elements
         mutation.addedNodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const video = node.querySelector ? node.querySelector('video') : null;
@@ -199,19 +179,16 @@ class ScreenshotExtension {
   }
 
   handleVimeoChanges(mutations) {
-    // Handle Vimeo-specific DOM changes
     console.log('Vimeo DOM changes detected');
   }
 
   handleTwitchChanges(mutations) {
-    // Handle Twitch-specific DOM changes
     console.log('Twitch DOM changes detected');
   }
 
   waitForVideoContent() {
-    // For custom sites, wait for video elements to appear
     let attempts = 0;
-    const maxAttempts = 30; // 30 seconds max wait time
+  const maxAttempts = 30;
     
     const checkForVideo = () => {
       const videoElement = this.findVideoElement();
@@ -223,13 +200,12 @@ class ScreenshotExtension {
       
       attempts++;
       if (attempts < maxAttempts) {
-        setTimeout(checkForVideo, 1000); // Check every second
+  setTimeout(checkForVideo, 1000);
       } else {
         console.log('YouTube Screenshot Helper: No video found after waiting');
       }
     };
     
-    // Start checking after a brief delay
     setTimeout(checkForVideo, 1000);
   }
 
@@ -238,7 +214,6 @@ class ScreenshotExtension {
     
     video.hasScreenshotListeners = true;
     
-    // Add event listeners for video vents
     video.addEventListener('loadedmetadata', () => {
       console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
     });
@@ -287,7 +262,6 @@ class ScreenshotExtension {
   async updateSettings() {
     this.settings = await window.storageManager.getSettings();
     
-    // Update all utility managers
     if (window.keyHandler) {
       await window.keyHandler.updateSettings();
     }
@@ -327,7 +301,6 @@ class ScreenshotExtension {
       'Shift+KeyX': 'Shift+X',
       'Shift+KeyY': 'Shift+Y',
       'Shift+KeyZ': 'Shift+Z',
-      // Legacy support for non-shift keys
       'KeyS': 'S',
       'KeyA': 'A',
       'KeyB': 'B',
@@ -381,7 +354,6 @@ class ScreenshotExtension {
   showReadyNotification() {
     if (!this.settings.showNotifications) return;
     
-    // Show the global shortcut instead of the fullscreen key
     const globalShortcut = 'Ctrl+Shift+S';
     const notification = document.createElement('div');
     notification.className = 'screenshot-ready-notification';
@@ -412,13 +384,11 @@ class ScreenshotExtension {
 
     document.body.appendChild(notification);
 
-    // Animate in
     setTimeout(() => {
       notification.style.opacity = '1';
       notification.style.transform = 'translateX(0)';
     }, 100);
 
-    // Animate out
     setTimeout(() => {
       notification.style.opacity = '0';
       notification.style.transform = 'translateX(100%)';
@@ -432,7 +402,6 @@ class ScreenshotExtension {
   }
 
   setupFullscreenListener() {
-    // Listen for fullscreen changes
     document.addEventListener('fullscreenchange', () => {
       this.handleFullscreenChange();
     });
@@ -453,7 +422,6 @@ class ScreenshotExtension {
   async handleFullscreenChange() {
     const isFullscreen = this.isInFullscreen();
 
-    // Always remove popups on change
     const existingPopups = document.querySelectorAll('.fullscreen-screenshot-popup');
     existingPopups.forEach(popup => popup.remove());
     const existingStyles = document.querySelector('#fullscreen-popup-styles');
@@ -462,7 +430,6 @@ class ScreenshotExtension {
     }
 
     if (isFullscreen && this.settings.showFullscreenPopup) {
-        // Re-fetch settings to ensure they are up-to-date
         await this.updateSettings();
         
         const shortcut = this.settings.fullscreenShortcut || 'shift+enter';
@@ -531,7 +498,6 @@ class ScreenshotExtension {
   }
 
   setupStorageListener() {
-    // Listen for storage changes to update settings in real-time
     chrome.storage.onChanged.addListener(async (changes, namespace) => {
       if (namespace === 'sync') {
         console.log('YouTube Screenshot Helper: Storage changed, updating settings');
@@ -541,7 +507,6 @@ class ScreenshotExtension {
   }
 }
 
-// Initialize extension when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     new ScreenshotExtension();

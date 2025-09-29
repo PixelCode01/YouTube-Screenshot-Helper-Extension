@@ -1,0 +1,92 @@
+{
+  "manifest_version": 2,
+  "name": "YouTube Screenshot Helper",
+  "version": "1.2.0",
+  "description": "Grab clean video screenshots instantly with a single shortcut",
+  
+  "permissions": [
+    "activeTab",
+    "storage",
+    "tabs",
+    "downloads",
+    "notifications",
+    "alarms",
+    "https://*/*",
+    "http://*/*"
+  ],
+  
+  "background": {
+    "scripts": [
+      "browser-polyfill.js",
+      "utils/commonErrorPatterns.js",
+      "utils/browserDetector.js",
+      "utils/pathNormalizer.js",
+      "utils/errorHandler.js",
+      "background/background.js"
+    ],
+    "persistent": true
+  },
+  
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://youtube.com/*",
+        "https://www.youtube-nocookie.com/*",
+        "https://youtube-nocookie.com/*",
+        "https://vimeo.com/*",
+        "https://twitch.tv/*",
+        "https://www.twitch.tv/*"
+      ],
+      "js": [
+        "browser-polyfill.js",
+        "utils/storage.js",
+        "utils/keyHandler.js",
+        "utils/cloudConfig.js",
+        "utils/cloudStorage.js",
+        "utils/screenshot.js",
+        "content/content.js",
+        "content/youtube.js"
+      ],
+      "css": [
+        "styles/content.css"
+      ],
+      "run_at": "document_end",
+      "all_frames": true
+    }
+  ],
+  
+  "browser_action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "YouTube Screenshot Helper",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  
+  "options_page": "options/options.html",
+  
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  
+  "commands": {
+    "capture-screenshot": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Pause video and capture screenshot"
+    }
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "youtube-screenshot-helper@pixelcode",
+      "strict_min_version": "109.0"
+    }
+  }
+}

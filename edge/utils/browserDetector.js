@@ -1,7 +1,4 @@
-/**
- * Unified browser detection utility for YouTube Screenshot Helper
- * Provides consistent browser detection across Chrome and Edge versions
- */
+
 
 class BrowserDetector {
   constructor() {
@@ -9,10 +6,7 @@ class BrowserDetector {
     this.browserInfo = this.detectBrowser();
   }
 
-  /**
-   * Safely gets the user agent string
-   * @returns {string} User agent string or empty string if unavailable
-   */
+  
   getUserAgent() {
     try {
       return navigator.userAgent || '';
@@ -22,14 +16,11 @@ class BrowserDetector {
     }
   }
 
-  /**
-   * Detects the current browser and version
-   * @returns {Object} Browser information object
-   */
+  
   detectBrowser() {
     const ua = this.userAgent;
     
-    // Edge detection (must come before Chrome since Edge includes Chrome in UA)
+
     if (ua.includes('Edg/')) {
       const versionMatch = ua.match(/Edg\/([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
       return {
@@ -42,7 +33,7 @@ class BrowserDetector {
       };
     }
     
-    // Chrome detection
+
     if (ua.includes('Chrome/')) {
       const versionMatch = ua.match(/Chrome\/([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)/);
       return {
@@ -55,7 +46,7 @@ class BrowserDetector {
       };
     }
     
-    // Fallback for unknown browsers
+
     return {
       name: 'Unknown',
       isEdge: false,
@@ -66,50 +57,32 @@ class BrowserDetector {
     };
   }
 
-  /**
-   * Returns true if running in Microsoft Edge
-   * @returns {boolean} True if Edge browser
-   */
+  
   isEdge() {
     return this.browserInfo.isEdge;
   }
 
-  /**
-   * Returns true if running in Google Chrome
-   * @returns {boolean} True if Chrome browser
-   */
+  
   isChrome() {
     return this.browserInfo.isChrome;
   }
 
-  /**
-   * Returns the browser name
-   * @returns {string} Browser name (Edge, Chrome, or Unknown)
-   */
+  
   getBrowserName() {
     return this.browserInfo.name;
   }
 
-  /**
-   * Returns the browser version
-   * @returns {string} Browser version string
-   */
+  
   getBrowserVersion() {
     return this.browserInfo.version;
   }
 
-  /**
-   * Returns the major version number
-   * @returns {number} Major version number
-   */
+  
   getMajorVersion() {
     return this.browserInfo.majorVersion;
   }
 
-  /**
-   * Returns complete browser information
-   * @returns {Object} Complete browser info object
-   */
+  
   getBrowserInfo() {
     return {
       ...this.browserInfo,
@@ -117,11 +90,7 @@ class BrowserDetector {
     };
   }
 
-  /**
-   * Checks if the browser supports a specific feature
-   * @param {string} feature - Feature to check
-   * @returns {boolean} True if feature is supported
-   */
+  
   supportsFeature(feature) {
     switch (feature) {
       case 'downloads':
@@ -147,10 +116,7 @@ class BrowserDetector {
     }
   }
 
-  /**
-   * Gets browser-specific limitations
-   * @returns {Object} Object describing browser limitations
-   */
+  
   getBrowserLimitations() {
     if (this.browserInfo.isEdge) {
       return {
@@ -181,11 +147,7 @@ class BrowserDetector {
     };
   }
 
-  /**
-   * Applies browser-specific fixes or configurations
-   * @param {string} context - Context where fixes are being applied
-   * @returns {Object} Browser-specific configuration
-   */
+  
   getBrowserSpecificConfig(context) {
     const config = {
       browser: this.browserInfo.name,
@@ -214,9 +176,7 @@ class BrowserDetector {
     return config;
   }
 
-  /**
-   * Logs browser information for debugging
-   */
+  
   logBrowserInfo() {
     const info = this.getBrowserInfo();
     console.log('=== Browser Detection Results ===');
@@ -230,10 +190,10 @@ class BrowserDetector {
   }
 }
 
-// Create a singleton instance for global use
+
 const browserDetector = new BrowserDetector();
 
-// Export both the class and singleton instance
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { BrowserDetector, browserDetector };
   module.exports.default = { BrowserDetector, browserDetector };
@@ -245,12 +205,12 @@ if (typeof module !== 'undefined' && module.exports) {
   globalThis.browserDetector = browserDetector;
 }
 
-// Legacy compatibility functions
+
 const isEdgeBrowser = () => browserDetector.isEdge();
 const isChromeBrowser = () => browserDetector.isChrome();
 const getBrowserName = () => browserDetector.getBrowserName();
 
-// Export legacy functions for backward compatibility
+
 if (typeof window !== 'undefined') {
   window.isEdgeBrowser = isEdgeBrowser;
   window.isChromeBrowser = isChromeBrowser;

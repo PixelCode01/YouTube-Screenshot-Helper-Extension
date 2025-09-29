@@ -1,4 +1,4 @@
-// Screenshot utility for YouTube Screenshot Helper
+
 
 class ScreenshotManager {
   constructor() {
@@ -22,31 +22,31 @@ class ScreenshotManager {
   }
 
   cleanupExistingPopups() {
-    // Remove any existing fullscreen popups that might be left from previous sessions
+
     const existingPopups = document.querySelectorAll('.fullscreen-screenshot-popup');
     existingPopups.forEach(popup => popup.remove());
     
-    // Also remove the popup styles
+
     const popupStyles = document.querySelector('#fullscreen-popup-styles');
     if (popupStyles) {
       popupStyles.remove();
     }
   }
 
-  async captureScreenshot(forcePreview = false, skipAnnotation = false) {
+  async captureScreenshot(metadata = {}, forcePreview = false, skipAnnotation = false) {
     console.log('ScreenshotManager: Starting screenshot capture');
     
     try {
-      // Step 1: Check site configuration
+
       const siteConfig = await this.checkSiteConfiguration();
       
-      // Step 2: Find video element (with enhanced waiting for educational platforms)
+
       let video = this.findVideoElement();
       
       if (!video) {
         console.log('ScreenshotManager: No video found immediately, checking if this is an educational platform...');
         
-        // Check if this looks like an educational platform
+
         const hostname = window.location.hostname.toLowerCase();
         const isEducationalPlatform = hostname.includes('iit') || 
                                     hostname.includes('nptel') || 
@@ -59,12 +59,12 @@ class ScreenshotManager {
                                     hostname.includes('university') ||
                                     hostname.includes('academic');
         
-        // Special handling for IIT Madras seek platform
+
         const isIITMadras = hostname.includes('seek.onlinedegree.iitm.ac.in') ||
                            hostname.includes('iitm.ac.in') ||
                            hostname.includes('seek.') && hostname.includes('iit');
         
-        const waitTime = (isEducationalPlatform || isIITMadras) ? 10000 : 3000; // Even longer wait for IIT Madras
+        const waitTime = (isEducationalPlatform || isIITMadras) ? 10000 : 3000;
         console.log(`ScreenshotManager: Educational platform detected: ${isEducationalPlatform}, IIT Madras: ${isIITMadras}, waiting ${waitTime}ms...`);
         
         video = await this.waitForVideoElement(waitTime);
@@ -75,24 +75,26 @@ class ScreenshotManager {
         if (!siteConfig.isEnabledSite) {
           errorMessage = `This site (${siteConfig.hostname}) is not in your enabled sites list. Add it to custom sites in extension settings to use the screenshot feature.`;
         } else {
-          errorMessage = `No video element found on this page. This might be because:
-• The video player hasn't loaded yet - try waiting a moment
-• The video is embedded in a way the extension can't detect
-• The site uses a custom video player not yet supported
-• Try refreshing the page and waiting for the video to load
+          const iitMadrasHints = siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hostname.includes('iitm.ac.in')
+            ? '- Aggressive detection logic enabled for IIT Madras\n- Extended ten second wait applied\n- Fallback to any video element attempted\n- Check the console for additional diagnostics'
+            : '- Standard educational platform detection used\n- Consider adding custom video selectors if needed';
+
+          errorMessage = `No video element found on this page. Possible causes include:
+- The video player has not finished loading
+- The video is embedded in a way the extension cannot detect automatically
+- The site uses a custom video player that is not yet supported
+- Refreshing the page may help once the video is fully loaded
 
 Site: ${siteConfig.hostname}
 
-🏛️ IIT Madras Debugging Info:
-${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hostname.includes('iitm.ac.in') ? 
-  '• Ultra-aggressive detection was enabled for IIT Madras\n• Extended 10-second wait period was used\n• Fallback to any video element was attempted\n• Check console for detailed video analysis' : 
-  '• Standard educational platform detection was used\n• Consider manually adding video selectors if needed'}`;
+IIT Madras diagnostics:
+${iitMadrasHints}`;
         }
         
         console.error('ScreenshotManager:', errorMessage);
         this.showNotification(errorMessage, 'error');
         
-        // Log debugging info
+
         console.log('ScreenshotManager: Debugging info:');
         console.log('- Total video elements:', document.querySelectorAll('video').length);
         console.log('- Total iframes:', document.querySelectorAll('iframe').length);
@@ -105,7 +107,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
 
       console.log('ScreenshotManager: Video element found, proceeding with capture');
 
-      // Step 3: Check if video is playing and pause it
+
       let wasPlaying = false;
       
       if (video && !video.paused) {
@@ -114,37 +116,37 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
         console.log('ScreenshotManager: Video paused (was playing)');
       }
 
-      // Step 4: Hide controls if auto-hide is enabled
+
       let hiddenElements = [];
       if (this.settings.autoHideControls) {
         hiddenElements = this.hideVideoControls();
         console.log('ScreenshotManager: Controls hidden');
       }
 
-      // Step 5: Wait a moment for UI to settle
+
       const delay = this.settings.captureDelay || 100;
       await this.sleep(delay);
 
-      // Step 6: Capture the screenshot
+
       const dataUrl = await this.captureVideoFrame(video);
       
-      // Step 7: Restore hidden elements
+
       if (hiddenElements.length > 0) {
         this.restoreVideoControls(hiddenElements);
         console.log('ScreenshotManager: Controls restored');
       }
 
-      // Step 8: Resume video if it was playing
+
       if (wasPlaying && video) {
         setTimeout(() => {
           video.play();
           console.log('ScreenshotManager: Video resumed');
-        }, 200); // Small delay to ensure controls are restored
+        }, 200);
       }
 
-      // Step 9: Process and download the screenshot
+
       if (dataUrl) {
-        await this.processScreenshot(dataUrl, forcePreview, skipAnnotation);
+        await this.processScreenshot(dataUrl, metadata, forcePreview, skipAnnotation);
         console.log('ScreenshotManager: Screenshot captured successfully');
       } else {
         throw new Error('Failed to capture screenshot');
@@ -157,24 +159,24 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
   }
 
   findVideoElement() {
-    // Enhanced video selectors for comprehensive detection
+
     const selectors = [
-      // YouTube selectors
+
       '.video-stream',
       '.html5-video-player video',
       '#movie_player video',
       'video.video-stream',
       
-      // Vimeo selectors
+
       '.vp-video',
       '.vp-video-wrapper video',
       '.player video',
       
-      // Twitch selectors
+
       'video[data-a-target="video-player"]',
       '.video-player video',
       
-      // Educational platform selectors (common patterns)
+
       '.lesson-video video',
       '.course-video video',
       '.lecture-video video',
@@ -186,7 +188,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       '.content-video video',
       '.stream-video video',
       
-      // Indian educational platform specific selectors
+
       '.nptel-player video',
       '.swayam-player video',
       '.mooc-player video',
@@ -201,7 +203,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       '.module-video video',
       '.chapter-video video',
       
-      // IIT Madras seek platform specific selectors
+
       '.seek-video video',
       '.seek-player video',
       '.player-seek video',
@@ -220,13 +222,13 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       '.embed-video video',
       '.iframe-video video',
       
-      // Generic container patterns for IIT platforms
+
       '[class*="video"] video',
       '[class*="player"] video',
       '[id*="video"] video',
       '[id*="player"] video',
       
-      // IIT/Academic platform patterns
+
       '.academic-video video',
       '.university-video video',
       '.iit-video video',
@@ -236,7 +238,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       '.online-course video',
       '.e-learning video',
       
-      // Video.js and common video players
+
       '.video-js video',
       '.vjs-tech',
       '.videojs video',
@@ -245,7 +247,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       '.jwplayer video',
       '.flowplayer video',
       
-      // Generic video selectors for custom sites
+
       'video[src]',
       'video[poster]',
       'video[width]',
@@ -263,7 +265,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       '#video-player video',
       '.video-element video',
       
-      // LMS and educational platform patterns
+
       '.video-content video',
       '.lesson-content video',
       '.course-content video',
@@ -271,21 +273,21 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       '.tutorial-video video',
       '.training-video video',
       
-      // Iframe embedded videos (look inside iframes)
+
       'iframe video',
       
-      // Generic fallback - any video element
+
       'video'
     ];
 
     console.log('ScreenshotManager: Looking for video elements...');
     console.log('ScreenshotManager: Current URL:', window.location.href);
 
-    // Enhanced detection with better logging
+
     const allVideos = document.querySelectorAll('video');
     console.log('ScreenshotManager: Total video elements found:', allVideos.length);
 
-    // Log details about all video elements found
+
     allVideos.forEach((video, index) => {
       console.log(`Video ${index + 1}:`, {
         element: video,
@@ -310,7 +312,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       });
     });
 
-    // First try to find playing videos with proper dimensions
+
     for (const selector of selectors) {
       const videos = document.querySelectorAll(selector);
       for (const video of videos) {
@@ -321,7 +323,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       }
     }
 
-    // Then try any video with dimensions (even if paused)
+
     for (const selector of selectors) {
       const videos = document.querySelectorAll(selector);
       for (const video of videos) {
@@ -332,7 +334,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       }
     }
 
-    // Try videos that are loaded (readyState >= 1) even without dimensions yet
+
     for (const video of allVideos) {
       if (video && video.readyState >= 1 && video.clientWidth > 100 && video.clientHeight > 50) {
         console.log('Found loaded video by readyState:', {
@@ -343,7 +345,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       }
     }
 
-    // Try videos with visible dimensions (even if not fully loaded)
+
     for (const video of allVideos) {
       if (video && (video.videoWidth > 0 || video.clientWidth > 100)) {
         const style = getComputedStyle(video);
@@ -359,7 +361,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       }
     }
 
-    // Final attempt: try any video element that's not hidden
+
     for (const video of allVideos) {
       const style = getComputedStyle(video);
       if (style.display !== 'none' && style.visibility !== 'hidden') {
@@ -368,7 +370,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       }
     }
 
-    // Educational platform specific fallback: try videos with any indication of being active
+
     const hostname = window.location.hostname.toLowerCase();
     const isEducationalPlatform = hostname.includes('iit') || hostname.includes('nptel') || 
                                 hostname.includes('swayam') || hostname.includes('mooc') || 
@@ -383,15 +385,15 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       console.log(`ScreenshotManager: Educational platform detected (${hostname}), trying more lenient video detection...`);
       
       for (const video of allVideos) {
-        // For educational platforms, accept videos with any of these conditions:
-        if (video.readyState >= 1 || // Has loaded metadata
-            video.networkState !== HTMLMediaElement.NETWORK_EMPTY || // Has network activity
-            video.currentTime > 0 || // Has played
-            video.duration > 0 || // Has duration  
-            (video.src || video.currentSrc) || // Has a source
-            video.clientWidth > 30 || // Has some width (very lenient)
-            video.offsetWidth > 30 || // Or offset width
-            video.getBoundingClientRect().width > 30) { // Or computed width
+
+        if (video.readyState >= 1 ||
+            video.networkState !== HTMLMediaElement.NETWORK_EMPTY ||
+            video.currentTime > 0 ||
+            video.duration > 0 ||
+            (video.src || video.currentSrc) ||
+            video.clientWidth > 30 ||
+            video.offsetWidth > 30 ||
+            video.getBoundingClientRect().width > 30) {
           
           console.log('ScreenshotManager: Found educational platform video (lenient detection):', {
             hostname: hostname,
@@ -412,7 +414,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
         }
       }
       
-      // Ultra-lenient fallback for IIT Madras - accept ANY video element that exists
+
       if (isIITMadras && allVideos.length > 0) {
         console.log('ScreenshotManager: IIT Madras ultra-lenient fallback - using first video found');
         const video = allVideos[0];
@@ -428,7 +430,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       }
     }
 
-    // Check for videos inside iframes
+
     const iframes = document.querySelectorAll('iframe');
     console.log('ScreenshotManager: Checking', iframes.length, 'iframes for videos');
     
@@ -439,11 +441,11 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
           const iframeVideos = iframeDoc.querySelectorAll('video');
           console.log('Found', iframeVideos.length, 'videos in iframe:', iframe.src);
           if (iframeVideos.length > 0) {
-            return iframeVideos[0]; // Return first video found in iframe
+            return iframeVideos[0];
           }
         }
       } catch (e) {
-        // Cross-origin iframe, can't access content
+
         console.log('Cannot access iframe content (cross-origin):', iframe.src);
       }
     }
@@ -459,7 +461,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
   hideVideoControls() {
     const hiddenElements = [];
     
-    // YouTube specific selectors
+
     const youtubeSelectors = [
       '.ytp-chrome-top',
       '.ytp-chrome-bottom',
@@ -472,14 +474,14 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       '.ytp-endscreen-element'
     ];
 
-    // Vimeo specific selectors
+
     const vimeoSelectors = [
       '.vp-controls',
       '.vp-title',
       '.vp-overlay'
     ];
 
-    // Twitch specific selectors
+
     const twitchSelectors = [
       '.player-controls',
       '.player-overlay-background',
@@ -517,14 +519,14 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
 
   async captureVideoFrame(video) {
     if (!video) {
-      // If no video found, try to capture the whole page or ask user to add site
+
       console.log('ScreenshotManager: No video element found, attempting page capture');
       throw new Error('No video element found on this page. Try adding this site to custom sites in settings.');
     }
 
-    // Check if video has valid dimensions
+
     if (!video.videoWidth || !video.videoHeight) {
-      // Video exists but no dimensions - might be loading
+
       console.log('ScreenshotManager: Video found but no dimensions, checking for IIT Madras...');
       
       const hostname = window.location.hostname.toLowerCase();
@@ -535,36 +537,36 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       if (isIITMadras) {
         console.log('ScreenshotManager: IIT Madras detected - using client dimensions as fallback');
         
-        // For IIT Madras, try using client dimensions
+
         const clientWidth = video.clientWidth || video.offsetWidth || 640;
         const clientHeight = video.clientHeight || video.offsetHeight || 360;
         
         console.log('ScreenshotManager: Using client dimensions:', clientWidth + 'x' + clientHeight);
         
-        // Set canvas dimensions to client size
+
         this.canvas.width = clientWidth;
         this.canvas.height = clientHeight;
         
         try {
-          // Draw video frame to canvas using client dimensions
+
           this.context.drawImage(video, 0, 0, clientWidth, clientHeight);
           
-          // Convert to data URL
+
           const dataUrl = this.canvas.toDataURL('image/png', this.settings.screenshotQuality || 0.9);
           
           console.log('ScreenshotManager: IIT Madras fallback capture successful');
           return dataUrl;
         } catch (error) {
           console.log('ScreenshotManager: IIT Madras fallback capture failed:', error.message);
-          // Continue to normal error handling
+
         }
       }
       
-      // Wait a bit for video to load
+
       await this.sleep(1000);
       
       if (!video.videoWidth || !video.videoHeight) {
-        // One more attempt for IIT Madras with minimal dimensions
+
         if (isIITMadras) {
           console.log('ScreenshotManager: IIT Madras final attempt with minimal dimensions');
           
@@ -586,19 +588,19 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       }
     }
 
-    // Set canvas dimensions to match video
+
     this.canvas.width = video.videoWidth;
     this.canvas.height = video.videoHeight;
 
-    // Draw video frame to canvas
+
     this.context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
 
-    // Convert to data URL
+
     return this.canvas.toDataURL('image/png', this.settings.screenshotQuality || 0.9);
   }
 
-  async processScreenshot(dataUrl, forcePreview = false, skipAnnotation = false) {
-    // Refresh settings to get latest title builder preferences
+  async processScreenshot(dataUrl, metadata = {}, forcePreview = false, skipAnnotation = false) {
+
     await this.updateSettings();
     
     console.log('=== SCREENSHOT PROCESSING DEBUG ===');
@@ -608,15 +610,18 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     console.log('  - settings.annotationMode:', this.settings.annotationMode);
     console.log('  - settings.disablePreviewByDefault:', this.settings.disablePreviewByDefault);
     
-    // Extract video metadata
-    const metadata = this.extractVideoMetadata();
+
+    const combinedMetadata = {
+      ...this.extractVideoMetadata(),
+      ...metadata
+    };
     
-    const filename = this.generateCustomFilename(metadata, this.settings.filenameTemplate);
+    const filename = this.generateCustomFilename(combinedMetadata, this.settings.filenameTemplate);
     
     console.log('Generated filename:', filename);
     
-    // Determine whether to show preview/annotation interface
-    // Skip annotation if explicitly requested (e.g., for Shift+Enter)
+
+
     const shouldShowPreview = !skipAnnotation && this.shouldShowPreview(forcePreview);
     
     console.log('=== ANNOTATION DECISION ===');
@@ -625,14 +630,14 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     console.log('  - Final action:', shouldShowPreview ? 'SHOW ANNOTATION' : 'DIRECT DOWNLOAD');
     
     if (shouldShowPreview) {
-      console.log('📝 Showing annotation interface');
+  console.log('Showing annotation interface');
       this.showAnnotationInterface(dataUrl, filename);
     } else {
-      console.log('💾 Direct download - skipping annotation');
-      // Direct download
+  console.log('Direct download requested - skipping annotation');
+
       await this.downloadScreenshot(dataUrl, filename);
       
-      // Also upload to cloud if enabled
+
       if (this.settings.uploadToCloud && this.settings.cloudService !== 'none') {
         await this.uploadToCloud(dataUrl, filename);
       }
@@ -645,19 +650,19 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     console.log('ScreenshotManager: shouldShowPreview check - forcePreview:', forcePreview);
     console.log('ScreenshotManager: Settings - annotationMode:', this.settings.annotationMode, 'disablePreviewByDefault:', this.settings.disablePreviewByDefault);
     
-    // If forced to show preview (e.g., specific Shift+Enter combination), always show
+
     if (forcePreview) {
       console.log('ScreenshotManager: Forcing preview due to forcePreview=true');
       return true;
     }
     
-    // If preview is disabled by default, don't show annotation interface
+
     if (this.settings.disablePreviewByDefault === true) {
       console.log('ScreenshotManager: Preview disabled by default setting');
       return false;
     }
     
-    // Only show preview if annotation mode is explicitly enabled
+
     const shouldShow = this.settings.annotationMode === true;
     console.log('ScreenshotManager: Final shouldShowPreview result:', shouldShow);
     return shouldShow;
@@ -669,7 +674,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       console.log('ScreenshotManager: Starting download process');
       console.log('Initial filename:', filename);
       
-      // Validate settings are loaded
+
       if (!this.settings) {
         console.error('CRITICAL: Settings not loaded!');
         this.settings = await window.storageManager.getSettings();
@@ -682,10 +687,10 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       console.log('- customDownloadPath:', this.settings.customDownloadPath);
       console.log('- customFolderPattern:', this.settings.customFolderPattern);
       
-      // Generate folder path if folder organization is enabled
+
       let folderPath = '';
       if (this.settings.organizeFolders && this.settings.organizeFolders !== 'none') {
-        console.log('✓ Folder organization enabled:', this.settings.organizeFolders);
+  console.log('Folder organization enabled:', this.settings.organizeFolders);
         
         const metadata = this.extractVideoMetadata();
         console.log('Extracted metadata:');
@@ -696,27 +701,29 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
         console.log('- currentTime:', metadata.currentTime);
         
         folderPath = this.generateFolderPath(metadata);
-        console.log('✓ Generated folder path:', folderPath);
+  console.log('Generated folder path:', folderPath);
         
         if (!folderPath) {
           console.warn('WARNING: generateFolderPath returned empty string!');
         }
       } else {
-        console.log('⚠️ Folder organization disabled or set to none');
+  console.log('Folder organization disabled or set to none');
       }
 
-      // Prepare download message
+
       const downloadMessage = {
         action: 'downloadScreenshot',
         dataUrl: dataUrl,
         filename: filename,
-        folderPath: folderPath
+        folderPath: folderPath,
+        silentDownloads: !!this.settings.silentDownloads
       };
       
       console.log('Sending download message to background script:');
       console.log('- action:', downloadMessage.action);
       console.log('- filename:', downloadMessage.filename);
       console.log('- folderPath:', downloadMessage.folderPath);
+      console.log('- silentDownloads:', downloadMessage.silentDownloads);
       console.log('- dataUrl length:', downloadMessage.dataUrl ? downloadMessage.dataUrl.length : 'null');
       
       const response = await chrome.runtime.sendMessage(downloadMessage);
@@ -727,14 +734,14 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
         throw new Error(response?.error || 'Unknown download error');
       }
       
-      console.log('✓ Download completed successfully with ID:', response.downloadId);
+  console.log('Download completed successfully with ID:', response.downloadId);
       console.log('=== ScreenshotManager: DOWNLOAD DEBUG END ===');
     } catch (error) {
       console.error('=== DOWNLOAD ERROR ===');
       console.error('Error details:', error);
       console.error('Error stack:', error.stack);
       
-      // Check if this is an extension context invalidation error
+
       if (error.message && (
           error.message.includes('Extension context invalidated') ||
           error.message.includes('receiving end does not exist') ||
@@ -753,34 +760,66 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     }
   }
 
-  /**
-   * Upload screenshot to cloud storage
-   */
+  
   async uploadToCloud(dataUrl, filename) {
     try {
       const service = this.settings.cloudService;
-      console.log(`🔄 Uploading to cloud service: ${service}`);
+  console.log(`Uploading to cloud service: ${service}`);
 
-      if (service === 'google-drive') {
-        // Google Drive upload (requires authentication)
-        if (!window.cloudStorageManager) {
-          throw new Error('Cloud storage manager not available. Please check extension setup.');
-        }
-        
-        const result = await window.cloudStorageManager.uploadToGoogleDrive(dataUrl, filename);
-        this.showNotification('Screenshot uploaded to Google Drive!', 'success');
-        return result;
-      } else {
-        throw new Error(`Cloud service "${service}" is not supported. Please select Google Drive.`);
+      if (!window.cloudStorageManager) {
+        throw new Error('Cloud storage manager not available. Please check extension setup.');
       }
+
+      let folderPath = '';
+      if (this.settings.organizeFolders && this.settings.organizeFolders !== 'none') {
+        const metadata = this.extractVideoMetadata();
+        folderPath = this.generateFolderPath(metadata) || '';
+      }
+
+      const normalizedService = this.normalizeCloudServiceKey(service);
+      const result = await window.cloudStorageManager.uploadScreenshot({
+        service: normalizedService,
+        dataUrl,
+        filename,
+        folderPath
+      });
+
+      const providerName = this.getCloudProviderName(normalizedService);
+      this.showNotification(`Screenshot uploaded to ${providerName}!`, 'success');
+      return result;
     } catch (error) {
-      console.error('❌ Cloud upload failed:', error);
+  console.error('Cloud upload failed:', error);
       this.showNotification(`Cloud upload failed: ${error.message}`, 'error');
       throw error;
     }
   }
 
-  // All Imgur upload methods removed - Imgur service no longer supported
+  normalizeCloudServiceKey(service) {
+    switch (service) {
+      case 'google-drive':
+      case 'gdrive':
+        return 'google-drive';
+      case 'one-drive':
+      case 'onedrive':
+      case 'ms-onedrive':
+        return 'one-drive';
+      default:
+        return service;
+    }
+  }
+
+  getCloudProviderName(serviceKey) {
+    switch (serviceKey) {
+      case 'google-drive':
+        return 'Google Drive';
+      case 'one-drive':
+        return 'OneDrive';
+      default:
+        return 'Cloud Storage';
+    }
+  }
+
+
 
   generateFolderPath(metadata) {
     console.log('=== FOLDER PATH GENERATION DEBUG ===');
@@ -788,7 +827,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     console.log('Settings organizeFolders:', this.settings.organizeFolders);
     
     if (!this.settings.organizeFolders || this.settings.organizeFolders === 'none') {
-      console.log('✓ Folder organization is disabled, returning empty string');
+  console.log('Folder organization is disabled, returning empty string');
       return '';
     }
 
@@ -797,52 +836,52 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     switch (this.settings.organizeFolders) {
       case 'channel':
         folderName = metadata.channelName || 'Unknown Channel';
-        console.log('✓ Channel folder:', folderName);
+  console.log('Channel folder:', folderName);
         break;
       case 'playlist':
         folderName = metadata.playlistName || metadata.channelName || 'No Playlist';
-        console.log('✓ Playlist folder:', folderName);
+  console.log('Playlist folder:', folderName);
         break;
       case 'video':
         folderName = metadata.title || 'Unknown Video';
-        console.log('✓ Video folder:', folderName);
+  console.log('Video folder:', folderName);
         break;
       case 'date':
         folderName = new Date().toISOString().split('T')[0];
-        console.log('✓ Date folder:', folderName);
+  console.log('Date folder:', folderName);
         break;
       case 'channel-date':
         const channelName = metadata.channelName || 'Unknown Channel';
         const date = new Date().toISOString().split('T')[0];
         folderName = `${channelName}/${date}`;
-        console.log('✓ Channel-Date folder:', folderName);
+  console.log('Channel-Date folder:', folderName);
         break;
       case 'channel-video':
         const channelName2 = metadata.channelName || 'Unknown Channel';
         const videoTitle = metadata.title || 'Unknown Video';
         folderName = `${channelName2}/${videoTitle}`;
-        console.log('✓ Channel-Video folder:', folderName);
+  console.log('Channel-Video folder:', folderName);
         break;
       case 'date-channel':
         const date2 = new Date().toISOString().split('T')[0];
         const channelName3 = metadata.channelName || 'Unknown Channel';
         folderName = `${date2}/${channelName3}`;
-        console.log('✓ Date-Channel folder:', folderName);
+  console.log('Date-Channel folder:', folderName);
         break;
       case 'channel-playlist':
         const channelName4 = metadata.channelName || 'Unknown Channel';
         const playlistName = metadata.playlistName || 'No Playlist';
         folderName = `${channelName4}/${playlistName}`;
-        console.log('✓ Channel-Playlist folder:', folderName);
+  console.log('Channel-Playlist folder:', folderName);
         break;
       case 'custom':
-        // Use custom folder pattern if specified
+
         if (this.settings.customFolderPattern) {
           console.log('Using custom pattern:', this.settings.customFolderPattern);
           folderName = this.applyTemplate(this.settings.customFolderPattern, metadata);
-          // Remove .png extension that applyTemplate adds
+
           folderName = folderName.replace('.png', '');
-          console.log('✓ Custom folder after template:', folderName);
+          console.log('Custom folder after template:', folderName);
         } else {
           console.warn('WARNING: Custom folder selected but no pattern provided!');
         }
@@ -854,23 +893,23 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
 
     console.log('Raw folder name before cleaning:', folderName);
 
-    // Clean folder name for file system compatibility
-    // Split by forward slash to preserve folder hierarchy
+
+
     const pathParts = folderName.split('/');
     console.log('Path parts before cleaning:', pathParts);
     
     const cleanedParts = pathParts.map(part => 
       part
-        .replace(/[<>:"|?*\\]/g, '_') // Remove illegal chars but keep forward slash
+  .replace(/[<>:"|?*\\]/g, '_')
         .replace(/\s+/g, ' ')
         .trim()
-        .substring(0, 50) // Limit each part length
-    ).filter(part => part.length > 0); // Remove empty parts
+        .substring(0, 50)
+    ).filter(part => part.length > 0);
     
     console.log('Path parts after cleaning:', cleanedParts);
     
     folderName = cleanedParts.join('/');
-    console.log('✓ Final cleaned folder path:', folderName);
+  console.log('Final cleaned folder path:', folderName);
     console.log('=== FOLDER PATH GENERATION END ===');
 
     return folderName;
@@ -886,16 +925,16 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
   }
 
   showAnnotationInterface(dataUrl, filename) {
-    // Create annotation overlay
+
     const overlay = document.createElement('div');
     overlay.className = 'screenshot-annotation-overlay';
     overlay.innerHTML = `
       <div class="annotation-container">
         <div class="annotation-header">
-          <h3>🎨 Annotate Your Screenshot</h3>
+          <h3>Annotate Your Screenshot</h3>
           <div class="header-controls">
-            <button class="undo-btn" title="Undo last action">↶ Undo</button>
-            <button class="clear-btn" title="Clear all annotations">🗑️ Clear</button>
+            <button class="undo-btn" title="Undo last action">Undo</button>
+            <button class="clear-btn" title="Clear all annotations">Clear</button>
             <button class="close-btn" title="Close without saving">&times;</button>
           </div>
         </div>
@@ -906,13 +945,13 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
         <div class="annotation-tools">
           <div class="tool-group">
             <label class="tool-group-label">Drawing Tools:</label>
-            <button class="tool-btn active" data-tool="arrow" title="Draw arrows">🏹 Arrow</button>
-            <button class="tool-btn" data-tool="rectangle" title="Draw rectangles">⬜ Rectangle</button>
-            <button class="tool-btn" data-tool="circle" title="Draw circles">⭕ Circle</button>
-            <button class="tool-btn" data-tool="highlight" title="Highlight areas">🖍️ Highlight</button>
-            <button class="tool-btn" data-tool="text" title="Add text">📝 Text</button>
-            <button class="tool-btn" data-tool="pen" title="Free drawing">✏️ Pen</button>
-            <button class="tool-btn" data-tool="crop" title="Crop image">✂️ Crop</button>
+            <button class="tool-btn active" data-tool="arrow" title="Draw arrows">Arrow</button>
+            <button class="tool-btn" data-tool="rectangle" title="Draw rectangles">Rectangle</button>
+            <button class="tool-btn" data-tool="circle" title="Draw circles">Circle</button>
+            <button class="tool-btn" data-tool="highlight" title="Highlight areas">Highlight</button>
+            <button class="tool-btn" data-tool="text" title="Add text">Text</button>
+            <button class="tool-btn" data-tool="pen" title="Free drawing">Pen</button>
+            <button class="tool-btn" data-tool="crop" title="Crop image">Crop</button>
           </div>
           <div class="tool-group">
             <label class="tool-group-label">Style:</label>
@@ -925,7 +964,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
             </select>
           </div>
           <div class="tool-group">
-            <button class="download-btn">💾 Save Screenshot</button>
+            <button class="download-btn">Save Screenshot</button>
           </div>
         </div>
       </div>
@@ -933,7 +972,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
 
     document.body.appendChild(overlay);
 
-    // Initialize annotation canvas
+
     const canvas = overlay.querySelector('.annotation-canvas');
     const img = new Image();
     img.onload = () => {
@@ -942,13 +981,13 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
       ctx.drawImage(img, 0, 0);
       
-      // Hide the hint after image loads
+
       const hint = overlay.querySelector('.canvas-hint');
       if (hint) hint.style.display = 'none';
     };
     img.src = dataUrl;
 
-    // Add event listeners for annotation tools
+
     this.setupAnnotationTools(overlay, canvas, filename);
   }
 
@@ -961,22 +1000,22 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     let undoStack = [];
     let redoStack = [];
 
-    // Store the original image data for redrawing
+
     const storeOriginalImage = () => {
       originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     };
 
-    // Push current state to undo stack
+
     const pushToUndoStack = () => {
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       undoStack.push(imageData);
-      redoStack = []; // Clear redo stack when new action is performed
-      if (undoStack.length > 20) { // Limit undo stack size
+      redoStack = [];
+      if (undoStack.length > 20) {
         undoStack.shift();
       }
     };
 
-    // Undo functionality
+
     const undo = () => {
       if (undoStack.length > 0) {
         const currentState = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -987,10 +1026,10 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       }
     };
 
-    // Clear functionality
+
     const clearCanvas = () => {
       pushToUndoStack();
-      // Reload the original screenshot
+
       const img = new Image();
       img.onload = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1000,21 +1039,21 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       img.src = overlay.dataset.originalImage;
     };
 
-    // Store original image URL for clearing
+
     const originalImg = new Image();
     originalImg.onload = () => {
       overlay.dataset.originalImage = originalImg.src;
-      pushToUndoStack(); // Store initial state
+      pushToUndoStack();
     };
     originalImg.src = canvas.toDataURL();
 
-    // Set the first tool as active by default
+
     const firstToolBtn = overlay.querySelector('.tool-btn[data-tool="arrow"]');
     if (firstToolBtn) {
       firstToolBtn.classList.add('active');
     }
 
-    // Tool selection
+
     overlay.querySelectorAll('.tool-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -1025,7 +1064,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
         overlay.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         
-        // Update canvas cursor based on tool
+
         if (currentTool === 'crop') {
           canvas.style.cursor = 'crosshair';
           canvas.className = 'annotation-canvas crop-mode';
@@ -1037,7 +1076,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       });
     });
 
-    // Undo button
+
     const undoBtn = overlay.querySelector('.undo-btn');
     if (undoBtn) {
       undoBtn.addEventListener('click', (e) => {
@@ -1047,7 +1086,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       });
     }
 
-    // Clear button
+
     const clearBtn = overlay.querySelector('.clear-btn');
     if (clearBtn) {
       clearBtn.addEventListener('click', (e) => {
@@ -1057,7 +1096,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       });
     }
 
-    // Mouse events for drawing
+
     canvas.addEventListener('mousedown', (e) => {
       isDrawing = true;
       const rect = canvas.getBoundingClientRect();
@@ -1066,12 +1105,12 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       startX = (e.clientX - rect.left) * scaleX;
       startY = (e.clientY - rect.top) * scaleY;
       
-      // Store original image when starting to draw
+
       if (!originalImageData) {
         storeOriginalImage();
       }
       
-      // Push to undo stack before starting new drawing
+
       pushToUndoStack();
       
       console.log('Mouse down at:', startX, startY, 'Tool:', currentTool);
@@ -1086,7 +1125,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       const currentX = (e.clientX - rect.left) * scaleX;
       const currentY = (e.clientY - rect.top) * scaleY;
       
-      // Set drawing properties
+
       const color = overlay.querySelector('.color-picker').value;
       const lineWidth = overlay.querySelector('.line-width-select').value;
       ctx.strokeStyle = color;
@@ -1095,13 +1134,13 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       ctx.lineCap = 'round';
       
       if (currentTool === 'arrow') {
-        // Restore original image and draw arrow
+
         if (originalImageData) {
           ctx.putImageData(originalImageData, 0, 0);
         }
         this.drawArrow(ctx, startX, startY, currentX, currentY);
       } else if (currentTool === 'rectangle') {
-        // Restore original image and draw rectangle
+
         if (originalImageData) {
           ctx.putImageData(originalImageData, 0, 0);
         }
@@ -1109,7 +1148,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
         ctx.rect(startX, startY, currentX - startX, currentY - startY);
         ctx.stroke();
       } else if (currentTool === 'circle') {
-        // Restore original image and draw circle
+
         if (originalImageData) {
           ctx.putImageData(originalImageData, 0, 0);
         }
@@ -1118,7 +1157,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
         ctx.arc(startX, startY, radius, 0, 2 * Math.PI);
         ctx.stroke();
       } else if (currentTool === 'highlight') {
-        // Draw continuous highlight
+
         ctx.globalCompositeOperation = 'multiply';
         ctx.globalAlpha = 0.3;
         ctx.beginPath();
@@ -1127,15 +1166,15 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
         ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = 1.0;
       } else if (currentTool === 'crop') {
-        // Show crop preview
+
         if (originalImageData) {
           ctx.putImageData(originalImageData, 0, 0);
         }
-        // Draw crop area with overlay
+
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Clear the crop selection area
+
         const cropX = Math.min(startX, currentX);
         const cropY = Math.min(startY, currentY);
         const cropWidth = Math.abs(currentX - startX);
@@ -1143,26 +1182,26 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
         
         ctx.clearRect(cropX, cropY, cropWidth, cropHeight);
         
-        // Draw crop border with dashed line
+
         ctx.strokeStyle = '#ff0000';
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 5]);
         ctx.strokeRect(cropX, cropY, cropWidth, cropHeight);
-        ctx.setLineDash([]); // Reset line dash
+        ctx.setLineDash([]);
         
-        // Draw corner handles
+
         const handleSize = 8;
         ctx.fillStyle = '#ff0000';
-        // Top-left
+
         ctx.fillRect(cropX - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
-        // Top-right  
+
         ctx.fillRect(cropX + cropWidth - handleSize/2, cropY - handleSize/2, handleSize, handleSize);
-        // Bottom-left
+
         ctx.fillRect(cropX - handleSize/2, cropY + cropHeight - handleSize/2, handleSize, handleSize);
-        // Bottom-right
+
         ctx.fillRect(cropX + cropWidth - handleSize/2, cropY + cropHeight - handleSize/2, handleSize, handleSize);
       } else if (currentTool === 'pen') {
-        // Free drawing
+
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(currentX, currentY);
@@ -1176,7 +1215,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       if (isDrawing) {
         isDrawing = false;
         
-        // Handle crop tool
+
         if (currentTool === 'crop') {
           const rect = canvas.getBoundingClientRect();
           const scaleX = canvas.width / rect.width;
@@ -1184,20 +1223,20 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
           const endX = (e.clientX - rect.left) * scaleX;
           const endY = (e.clientY - rect.top) * scaleY;
           
-          // Calculate crop dimensions
+
           const cropX = Math.min(startX, endX);
           const cropY = Math.min(startY, endY);
           const cropWidth = Math.abs(endX - startX);
           const cropHeight = Math.abs(endY - startY);
           
           if (cropWidth > 10 && cropHeight > 10) {
-            // Create new canvas with cropped content
+
             const croppedCanvas = document.createElement('canvas');
             const croppedCtx = croppedCanvas.getContext('2d');
             croppedCanvas.width = cropWidth;
             croppedCanvas.height = cropHeight;
             
-            // Draw cropped portion
+
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
             tempCanvas.width = canvas.width;
@@ -1206,7 +1245,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
             
             croppedCtx.drawImage(tempCanvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
             
-            // Update main canvas with cropped image
+
             canvas.width = cropWidth;
             canvas.height = cropHeight;
             ctx.drawImage(croppedCanvas, 0, 0);
@@ -1215,19 +1254,19 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
           }
         }
         
-        // Handle text tool
+
         if (currentTool === 'text') {
-          // Create a text input overlay for better UX
+
           this.createTextInput(overlay, canvas, ctx, startX, startY);
         }
         
-        // Store the new state as original for next drawing
+
         storeOriginalImage();
         console.log('Mouse up - drawing completed');
       }
     });
 
-    // Download button
+
     overlay.querySelector('.download-btn').addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -1238,7 +1277,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       document.body.removeChild(overlay);
     });
 
-    // Close button
+
     overlay.querySelector('.close-btn').addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -1249,16 +1288,16 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
   }
 
   drawArrow(ctx, fromX, fromY, toX, toY) {
-    const headlen = 15; // Length of the arrow head
+    const headlen = 15;
     const angle = Math.atan2(toY - fromY, toX - fromX);
 
-    // Draw the main line
+
     ctx.beginPath();
     ctx.moveTo(fromX, fromY);
     ctx.lineTo(toX, toY);
     ctx.stroke();
 
-    // Draw the arrow head
+
     ctx.beginPath();
     ctx.moveTo(toX, toY);
     ctx.lineTo(
@@ -1274,7 +1313,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
   }
 
   showNotification(message, type = 'info') {
-    // Remove any existing notifications first
+
     const existingNotifications = document.querySelectorAll('.screenshot-notification');
     existingNotifications.forEach(n => n.remove());
 
@@ -1282,10 +1321,10 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     notification.className = `screenshot-notification ${type}`;
     notification.textContent = message;
     
-    // Use CSS classes instead of inline styles for better consistency
+
     document.body.appendChild(notification);
 
-    // Trigger show animation
+
     setTimeout(() => {
       notification.classList.add('show');
     }, 100);
@@ -1302,7 +1341,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     }, 3000);
   }
 
-  // Check if in fullscreen mode
+
   isInFullscreen() {
     return !!(
       document.fullscreenElement ||
@@ -1314,12 +1353,85 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
   }
 
   async updateSettings() {
-    // Refresh settings from storage - this is called when settings change
+
     this.settings = await window.storageManager.getSettings();
     console.log('ScreenshotManager: Settings updated', this.settings);
   }
 
-  // Video metadata extraction methods
+  sanitizeFilePart(value, maxLength = 100) {
+    if (!value || typeof value !== 'string') {
+      return '';
+    }
+
+    return value
+      .replace(/[\t\n\r]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/[<>:"/\\|?*]/g, '_')
+      .trim()
+      .substring(0, maxLength);
+  }
+
+  getYouTubePlayerDetails() {
+    try {
+      const initialDetails = window.ytInitialPlayerResponse?.videoDetails;
+      if (initialDetails && typeof initialDetails.title === 'string') {
+        return initialDetails;
+      }
+
+      const ytPlayerArgs = window.ytplayer?.config?.args;
+      if (ytPlayerArgs?.player_response) {
+        const response = typeof ytPlayerArgs.player_response === 'string'
+          ? JSON.parse(ytPlayerArgs.player_response)
+          : ytPlayerArgs.player_response;
+
+        if (response?.videoDetails) {
+          return response.videoDetails;
+        }
+      }
+    } catch (error) {
+      console.warn('Error accessing YouTube player details:', error);
+    }
+
+    return null;
+  }
+
+  getYouTubePlaylistTitleFromData() {
+    try {
+      const data = window.ytInitialData;
+      if (!data) return '';
+
+      const playlistContainer = data?.contents?.twoColumnWatchNextResults?.playlist;
+      if (!playlistContainer) return '';
+
+      const sources = [
+        playlistContainer.playlist?.title,
+        playlistContainer.playlistPanelRenderer?.title,
+        playlistContainer.playlistPanelRenderer?.header?.playlistHeaderRenderer?.title
+      ];
+
+      for (const source of sources) {
+        if (!source) continue;
+        if (typeof source === 'string' && source.trim()) {
+          return source.trim();
+        }
+        if (source.simpleText && source.simpleText.trim()) {
+          return source.simpleText.trim();
+        }
+        if (Array.isArray(source.runs)) {
+          const text = source.runs.map(run => run.text).join('').trim();
+          if (text) {
+            return text;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Error accessing YouTube playlist data:', error);
+    }
+
+    return '';
+  }
+
+
   extractVideoMetadata() {
     const metadata = {
       title: this.getVideoTitle(),
@@ -1337,42 +1449,46 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
   }
 
   getVideoTitle() {
-    const hostname = window.location.hostname;
+    const hostname = window.location.hostname.toLowerCase();
     let title = '';
 
     try {
       if (hostname.includes('youtube.com')) {
-        // YouTube title selectors (try multiple)
-        const selectors = [
-          'h1.ytd-video-primary-info-renderer',
-          '.ytd-video-primary-info-renderer h1',
-          'h1.style-scope.ytd-video-primary-info-renderer',
-          '.ytp-title-text',
-          '#container h1',
-          'ytd-video-primary-info-renderer h1'
-        ];
-        
-        for (const selector of selectors) {
-          const titleElement = document.querySelector(selector);
-          if (titleElement && titleElement.textContent.trim()) {
-            title = titleElement.textContent.trim();
-            break;
+        const videoDetails = this.getYouTubePlayerDetails();
+        if (videoDetails?.title) {
+          title = videoDetails.title;
+        }
+
+        if (!title) {
+          const selectors = [
+            'ytd-watch-metadata h1 > yt-formatted-string',
+            'ytd-watch-metadata #title h1',
+            '#title.ytd-watch-metadata h1',
+            '#title h1.ytd-watch-metadata',
+            '#container h1.ytd-watch-metadata',
+            '.ytp-title-text'
+          ];
+
+          for (const selector of selectors) {
+            const titleElement = document.querySelector(selector);
+            if (titleElement && titleElement.textContent.trim()) {
+              title = titleElement.textContent.trim();
+              break;
+            }
           }
         }
-        
-        // Fallback to page title
-        if (!title) {
-          title = document.title.replace(' - YouTube', '');
+
+        if (!title && document.title) {
+          title = document.title.replace(/ - YouTube$/, '');
         }
       } else if (hostname.includes('vimeo.com')) {
-        // Vimeo title selectors 
         const selectors = [
           '.player_title',
           'h1[data-test-id="title"]',
           '.clip_info-wrapper h1',
           '.title'
         ];
-        
+
         for (const selector of selectors) {
           const titleElement = document.querySelector(selector);
           if (titleElement && titleElement.textContent.trim()) {
@@ -1380,18 +1496,17 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
             break;
           }
         }
-        
-        if (!title) {
-          title = document.title.replace(' on Vimeo', '');
+
+        if (!title && document.title) {
+          title = document.title.replace(/ on Vimeo$/, '');
         }
       } else if (hostname.includes('twitch.tv')) {
-        // Twitch title selectors
         const selectors = [
           '[data-a-target="stream-title"]',
           '.channel-info-content h2',
           '.tw-title'
         ];
-        
+
         for (const selector of selectors) {
           const titleElement = document.querySelector(selector);
           if (titleElement && titleElement.textContent.trim()) {
@@ -1399,12 +1514,11 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
             break;
           }
         }
-        
-        if (!title) {
-          title = document.title.replace(' - Twitch', '');
+
+        if (!title && document.title) {
+          title = document.title.replace(/ - Twitch$/, '');
         }
       } else {
-        // Generic fallback
         title = document.title;
       }
     } catch (error) {
@@ -1412,36 +1526,47 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       title = document.title;
     }
 
-    // Clean up title
-    return title.replace(/[<>:"/\\|?*]/g, '_').substring(0, 100);
+    return this.sanitizeFilePart(title, 100);
   }
 
   getChannelName() {
-    const hostname = window.location.hostname;
+    const hostname = window.location.hostname.toLowerCase();
     let channelName = '';
 
     try {
       if (hostname.includes('youtube.com')) {
-        // YouTube channel name selectors
+        const videoDetails = this.getYouTubePlayerDetails();
+        if (videoDetails?.author) {
+          channelName = videoDetails.author;
+        }
+
         const selectors = [
-          'ytd-channel-name a',
-          '#channel-name a',
-          '.ytd-channel-name a',
-          'a.yt-simple-endpoint.style-scope.yt-formatted-string',
-          '.ytd-video-owner-renderer .ytd-channel-name a',
-          '#owner-text a',
-          '.owner-text a'
+          'ytd-video-owner-renderer #channel-name yt-formatted-string a',
+          'ytd-watch-metadata #owner-name a',
+          'ytd-watch-metadata ytd-channel-name a',
+          '#owner-text a.yt-simple-endpoint',
+          '#channel-name a.yt-simple-endpoint'
         ];
         
-        for (const selector of selectors) {
-          const channelElement = document.querySelector(selector);
-          if (channelElement && channelElement.textContent.trim()) {
-            channelName = channelElement.textContent.trim();
-            break;
+        if (!channelName) {
+          for (const selector of selectors) {
+            const channelElement = document.querySelector(selector);
+            if (channelElement && channelElement.textContent.trim()) {
+              channelName = channelElement.textContent.trim();
+              break;
+            }
+          }
+        }
+
+        if (!channelName) {
+          const metaAuthor = document.querySelector('meta[itemprop="author"]') ||
+            document.querySelector('link[itemprop="name"]');
+          if (metaAuthor?.content) {
+            channelName = metaAuthor.content;
           }
         }
       } else if (hostname.includes('vimeo.com')) {
-        // Vimeo channel/user name selectors
+
         const selectors = [
           '.user-link',
           '.byline a',
@@ -1456,7 +1581,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
           }
         }
       } else if (hostname.includes('twitch.tv')) {
-        // Twitch channel name selectors
+
         const selectors = [
           '[data-a-target="user-display-name"]',
           '.channel-info-content h1',
@@ -1471,7 +1596,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
           }
         }
         
-        // Extract from URL path
+
         if (!channelName) {
           const pathParts = window.location.pathname.split('/');
           if (pathParts.length > 1) {
@@ -1483,33 +1608,36 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       console.warn('Error extracting channel name:', error);
     }
 
-    // Clean up channel name
-    return channelName.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50);
+    return this.sanitizeFilePart(channelName, 50);
   }
 
   getPlaylistName() {
-    const hostname = window.location.hostname;
+    const hostname = window.location.hostname.toLowerCase();
     let playlistName = '';
 
     try {
       if (hostname.includes('youtube.com')) {
-        // Check if we're in a playlist
+
         const urlParams = new URLSearchParams(window.location.search);
         const playlistId = urlParams.get('list');
         
         if (playlistId) {
-          // Try to get playlist title from the page
-          const playlistSelectors = [
-            '.ytd-playlist-header-renderer h1',
-            '.ytd-playlist-sidebar-renderer .title',
-            '.playlist-title'
-          ];
-          
-          for (const selector of playlistSelectors) {
-            const playlistElement = document.querySelector(selector);
-            if (playlistElement && playlistElement.textContent.trim()) {
-              playlistName = playlistElement.textContent.trim();
-              break;
+          playlistName = this.getYouTubePlaylistTitleFromData();
+
+          if (!playlistName) {
+            const playlistSelectors = [
+              'ytd-playlist-panel-renderer #header #title-text',
+              'ytd-playlist-panel-renderer #header h3',
+              'ytd-playlist-panel-renderer #title a',
+              'ytd-engagement-panel-section-list-renderer[visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"] ytd-playlist-panel-renderer #header #title-text'
+            ];
+
+            for (const selector of playlistSelectors) {
+              const playlistElement = document.querySelector(selector);
+              if (playlistElement && playlistElement.textContent.trim()) {
+                playlistName = playlistElement.textContent.trim();
+                break;
+              }
             }
           }
         }
@@ -1518,8 +1646,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       console.warn('Error extracting playlist name:', error);
     }
 
-    // Clean up playlist name
-    return playlistName.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50);
+    return this.sanitizeFilePart(playlistName, 50);
   }
 
   getCurrentChapter() {
@@ -1528,7 +1655,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
 
     try {
       if (hostname.includes('youtube.com')) {
-        // YouTube chapter selectors
+
         const chapterSelectors = [
           '.ytp-chapter-title-content',
           '.ytp-chapter-title',
@@ -1544,7 +1671,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
           }
         }
       }
-      // Vimeo and Twitch don't typically have chapters
+
     } catch (error) {
       console.warn('Error extracting chapter:', error);
     }
@@ -1575,17 +1702,17 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
   }
 
   generateCustomFilename(metadata, template = null) {
-    // If user has a custom template (advanced mode), use that
+
     if (template && template.trim()) {
       return this.applyTemplate(template, metadata);
     }
     
-    // If filenameTemplate setting exists and not empty, use old template system
+
     if (this.settings.filenameTemplate && this.settings.filenameTemplate.trim()) {
       return this.applyTemplate(this.settings.filenameTemplate, metadata);
     }
     
-    // Otherwise use the new title builder system
+
     const components = [];
     const separator = this.settings.titleSeparator || ' - ';
     
@@ -1604,7 +1731,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     }
     
     if (this.settings.includeVideoTitle && metadata.title) {
-      // Clean title for filename
+
       const cleanTitle = metadata.title.replace(/[<>:"/\\|?*]/g, '').substring(0, 50);
       components.push(cleanTitle);
     }
@@ -1630,7 +1757,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     
     let filename = components.join(separator) || 'youtube-screenshot';
     
-    // Clean up filename and ensure it ends with .png
+
     filename = filename
       .replace(/[<>:"/\\|?*]/g, '')
       .replace(/\s+/g, ' ')
@@ -1656,7 +1783,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       '{hour}': now.getHours().toString().padStart(2, '0'),
       '{minute}': now.getMinutes().toString().padStart(2, '0'),
       '{second}': now.getSeconds().toString().padStart(2, '0'),
-      // New template variables
+
       '{channel}': metadata.channelName || '',
       '{playlist}': metadata.playlistName || ''
     };
@@ -1666,7 +1793,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
       filename = filename.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value || '');
     });
 
-    // Clean up consecutive separators and ensure it ends with .png
+
     filename = filename
       .replace(/[-_\s]+/g, '-')
       .replace(/^[-_\s]+|[-_\s]+$/g, '')
@@ -1676,7 +1803,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
   }
 
   createTextInput(overlay, canvas, ctx, x, y) {
-    // Create text input overlay
+
     const textOverlay = document.createElement('div');
     textOverlay.style.cssText = `
       position: absolute;
@@ -1702,7 +1829,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     `;
     
     const confirmBtn = document.createElement('button');
-    confirmBtn.textContent = '✓';
+  confirmBtn.textContent = 'OK';
     confirmBtn.style.cssText = `
       background: #4CAF50;
       color: white;
@@ -1714,7 +1841,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     `;
     
     const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = '✕';
+  cancelBtn.textContent = 'Cancel';
     cancelBtn.style.cssText = `
       background: #f44336;
       color: white;
@@ -1729,7 +1856,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     textOverlay.appendChild(confirmBtn);
     textOverlay.appendChild(cancelBtn);
     
-    // Position the text input correctly
+
     const canvasRect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / canvasRect.width;
     const scaleY = canvas.height / canvasRect.height;
@@ -1777,9 +1904,9 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     console.log('ScreenshotManager: Waiting for video element to load...');
     
     const startTime = Date.now();
-    const pollInterval = 150; // Check more frequently (every 150ms)
+    const pollInterval = 150;
     
-    // Check if this is IIT Madras for ultra-aggressive detection
+
     const hostname = window.location.hostname.toLowerCase();
     const isIITMadras = hostname.includes('seek.onlinedegree.iitm.ac.in') ||
                        hostname.includes('iitm.ac.in') ||
@@ -1791,23 +1918,23 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
     
     return new Promise((resolve) => {
       const checkForVideo = () => {
-        // Try multiple detection strategies
+
         let video = this.findVideoElement();
         
-        // If main detection didn't work, try more aggressive detection
+
         if (!video) {
-          // Check for any video elements that might be loading
+
           const allVideos = document.querySelectorAll('video');
           console.log(`ScreenshotManager: Found ${allVideos.length} video elements, analyzing...`);
           
           for (const videoEl of allVideos) {
-            // Standard criteria
-            if (videoEl.readyState >= 1 || // Has metadata
-                videoEl.networkState !== HTMLMediaElement.NETWORK_EMPTY || // Network activity
-                videoEl.currentTime > 0 || // Has played
-                videoEl.duration > 0 || // Has duration
-                videoEl.src || videoEl.currentSrc || // Has source
-                (videoEl.clientWidth > 50 && videoEl.clientHeight > 50)) { // Has visible size
+
+            if (videoEl.readyState >= 1 ||
+                videoEl.networkState !== HTMLMediaElement.NETWORK_EMPTY ||
+                videoEl.currentTime > 0 ||
+                videoEl.duration > 0 ||
+                videoEl.src || videoEl.currentSrc ||
+                (videoEl.clientWidth > 50 && videoEl.clientHeight > 50)) {
               
               console.log('ScreenshotManager: Found potentially ready video:', {
                 readyState: videoEl.readyState,
@@ -1824,7 +1951,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
             }
           }
           
-          // Ultra-aggressive detection for IIT Madras - accept ANY video element
+
           if (!video && isIITMadras && allVideos.length > 0) {
             console.log('ScreenshotManager: IIT Madras ultra-aggressive - accepting any video element');
             video = allVideos[0];
@@ -1849,7 +1976,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
         if (elapsed >= maxWaitTime) {
           console.log('ScreenshotManager: Timeout waiting for video element');
           
-          // Final attempt: log detailed info about what we found
+
           const allVideos = document.querySelectorAll('video');
           if (allVideos.length > 0) {
             console.log('ScreenshotManager: Videos found but none suitable:');
@@ -1867,7 +1994,7 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
               });
             });
             
-            // For IIT Madras, try one last time with the first video found
+
             if (isIITMadras) {
               console.log('ScreenshotManager: IIT Madras final fallback - using first video regardless');
               resolve(allVideos[0]);
@@ -1901,11 +2028,13 @@ ${siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hos
   }
 }
 
-// Initialize screenshot manager when DOM is ready
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
+
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      window.screenshotManager = new ScreenshotManager();
+    });
+  } else {
     window.screenshotManager = new ScreenshotManager();
-  });
-} else {
-  window.screenshotManager = new ScreenshotManager();
+  }
 }

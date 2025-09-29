@@ -6,7 +6,6 @@
   <title>YouTube Screenshot Helper - Settings</title>
   <link rel="stylesheet" href="options.css">
   <style>
-    /* Enhanced folder organization styles */
     .variable-btn, .preset-btn {
       background: #f8f9fa;
       border: 1px solid #dee2e6;
@@ -53,7 +52,6 @@
       padding: 12px;
     }
     
-    /* Dark mode support for new elements */
     [data-theme="dark"] .variable-btn,
     [data-theme="dark"] .preset-btn {
       background: #495057;
@@ -94,7 +92,6 @@
       color: #a3cfbb !important;
     }
     
-    /* Edge browser warning dark mode */
     [data-theme="dark"] .browser-warning {
       background: #664d03 !important;
       border-color: #997404 !important;
@@ -107,8 +104,7 @@
   </style>
 </head>
 <body>
-  <!-- Theme Toggle button -->
-  <button class="theme-toggle" id="themeToggle">🌙 Dark Mode</button>
+  <button class="theme-toggle" id="themeToggle">Toggle Dark Mode</button>
   
   <div class="container">
     <header class="header">
@@ -134,7 +130,6 @@
     </nav>
 
     <main class="main-content">
-      <!-- General Settings Tab -->
       <section class="tab-content active" id="general">
         <div class="settings-group">
           <h2>Appearance</h2>
@@ -287,12 +282,11 @@
         </div>
 
         <div class="settings-group">
-          <h2>📁 Folder Organization</h2>
+          <h2>Folder Organization</h2>
           <p class="group-desc">Automatically organize screenshots into folders</p>
           
-          <!-- Edge Browser Warning -->
           <div class="browser-warning" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 12px; margin-bottom: 15px; display: flex; align-items: start; gap: 10px;">
-            <span style="font-size: 20px;">⚠️</span>
+            <span style="font-size: 20px; font-weight: bold;">!</span>
             <div>
               <strong style="color: #856404;">Microsoft Edge Limitation</strong>
               <p style="margin: 4px 0 0 0; color: #856404; font-size: 14px;">
@@ -313,10 +307,10 @@
                 <option value="playlist">By Playlist Name (fallback to Channel)</option>
                 <option value="video">By Video Title</option>
                 <option value="date">By Date (YYYY-MM-DD)</option>
-                <option value="channel-date">By Channel → Date</option>
-                <option value="channel-video">By Channel → Video Title</option>
-                <option value="date-channel">By Date → Channel</option>
-                <option value="channel-playlist">By Channel → Playlist</option>
+                <option value="channel-date">By Channel -> Date</option>
+                <option value="channel-video">By Channel -> Video Title</option>
+                <option value="date-channel">By Date -> Channel</option>
+                <option value="channel-playlist">By Channel -> Playlist</option>
                 <option value="custom">Custom Pattern (Advanced)</option>
               </select>
             </div>
@@ -331,18 +325,18 @@
               <input type="text" id="customFolderPattern" placeholder="{channel}/{date}" value="{channel}/{date}">
               <div class="pattern-helpers" style="margin-top: 10px;">
                 <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
-                  <strong>💡 Available Variables:</strong>
+                  <strong>Available Variables:</strong>
                 </div>
                 <div class="variable-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px;">
-                  <button type="button" class="variable-btn" data-variable="{channel}">📺 Channel</button>
-                  <button type="button" class="variable-btn" data-variable="{playlist}">📋 Playlist</button>
-                  <button type="button" class="variable-btn" data-variable="{title}">🎬 Video Title</button>
-                  <button type="button" class="variable-btn" data-variable="{date}">📅 Date</button>
-                  <button type="button" class="variable-btn" data-variable="{time}">⏰ Time</button>
-                  <button type="button" class="variable-btn" data-variable="{site}">🌐 Site</button>
+                  <button type="button" class="variable-btn" data-variable="{channel}">Channel</button>
+                  <button type="button" class="variable-btn" data-variable="{playlist}">Playlist</button>
+                  <button type="button" class="variable-btn" data-variable="{title}">Video Title</button>
+                  <button type="button" class="variable-btn" data-variable="{date}">Date</button>
+                  <button type="button" class="variable-btn" data-variable="{time}">Time</button>
+                  <button type="button" class="variable-btn" data-variable="{site}">Site</button>
                 </div>
                 <div style="font-size: 12px; color: #666; margin-bottom: 8px;">
-                  <strong>📂 Quick Patterns:</strong>
+                  <strong>Quick Patterns:</strong>
                 </div>
                 <div class="preset-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px;">
                   <button type="button" class="preset-btn" data-pattern="{channel}/{date}">Channel/Date</button>
@@ -358,12 +352,12 @@
 
           <div class="folder-preview" id="folderPreview" style="margin-top: 15px; padding: 15px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 8px; border: 1px solid #dee2e6; font-family: monospace; display: none;">
             <div style="display: flex; align-items: center; margin-bottom: 8px;">
-              <span style="font-weight: bold; color: #495057;">📂 Folder Preview:</span>
+              <span style="font-weight: bold; color: #495057;">Folder Preview:</span>
               <button type="button" id="refreshPreview" style="margin-left: auto; background: #007bff; color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">Refresh</button>
             </div>
             <div id="folderPreviewPath" style="background: white; padding: 8px; border-radius: 4px; border: 1px solid #ced4da; color: #0f5132; font-weight: 500;">Downloads/TechChannel/2025-01-20/screenshot.png</div>
             <div style="font-size: 11px; color: #6c757d; margin-top: 6px;">
-              💡 This shows where your next screenshot will be saved
+              Tip: This shows where your next screenshot will be saved
             </div>
           </div>
         </div>
@@ -371,6 +365,19 @@
         <div class="settings-group">
           <h2>Download Settings</h2>
           
+          <div class="setting-item">
+            <div class="setting-info">
+              <label for="silentDownloads">Silent Downloads</label>
+              <p class="setting-desc">Hide the browser's download shelf when saving screenshots (when supported)</p>
+            </div>
+            <div class="setting-control">
+              <label class="toggle">
+                <input type="checkbox" id="silentDownloads">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+
           <div class="setting-item">
             <div class="setting-info">
               <label for="useCustomPath">Choose Download Location</label>
@@ -388,14 +395,14 @@
             <div class="setting-info">
               <label for="customDownloadPath">Custom Save Path</label>
               <p class="setting-desc">
-                <strong>📁 Relative paths only</strong> - Files will be saved within your Downloads folder.<br>
+                <strong>Relative paths only</strong> - Files will be saved within your Downloads folder.<br>
                 <br>
-                <strong>✅ Examples:</strong><br>
-                • <code>Screenshots</code> → <code>Downloads/Screenshots/</code><br>
-                • <code>YouTube/Captures</code> → <code>Downloads/YouTube/Captures/</code><br>
-                • <code>Media/2025</code> → <code>Downloads/Media/2025/</code><br>
+                <strong>Examples:</strong><br>
+                - <code>Screenshots</code> -> <code>Downloads/Screenshots/</code><br>
+                - <code>YouTube/Captures</code> -> <code>Downloads/YouTube/Captures/</code><br>
+                - <code>Media/2025</code> -> <code>Downloads/Media/2025/</code><br>
                 <br>
-                <strong>⚠️ Note:</strong> Absolute paths like <code>/home/user/Pictures/</code> or <code>C:\Users\Name\Pictures\</code> are not supported due to browser security restrictions.
+                <strong>Note:</strong> Absolute paths like <code>/home/user/Pictures/</code> or <code>C:\Users\Name\Pictures\</code> are not supported due to browser security restrictions.
               </p>
             </div>
             <div class="setting-control">
@@ -480,14 +487,12 @@
         </div>
       </section>
 
-      <!-- Sites Tab -->
       <section class="tab-content" id="sites">
         <div class="settings-group">
           <h2>Enabled Sites</h2>
           <p class="group-desc">Configure which video sites the extension should work on</p>
           
           <div class="sites-list" id="sitesList">
-            <!-- Sites will be populated by JavaScript -->
           </div>
           
           <div class="add-site">
@@ -517,7 +522,6 @@
         </div>
       </section>
 
-      <!-- Shortcuts Tab -->
       <section class="tab-content" id="shortcuts">
         <div class="settings-group">
           <h2>Keyboard Shortcuts</h2>
@@ -558,10 +562,9 @@
         </div>
       </section>
 
-      <!-- Advanced Tab -->
       <section class="tab-content" id="advanced">
         <div class="settings-group">
-          <h2>☁️ Cloud Storage</h2>
+          <h2>Cloud Storage</h2>
           <p class="group-desc">Automatically upload screenshots to cloud storage services</p>
           
           <div class="setting-item">
@@ -586,6 +589,7 @@
               <select id="cloudService">
                 <option value="none">None</option>
                 <option value="google-drive">Google Drive (Requires Setup)</option>
+                <option value="one-drive">Microsoft OneDrive (Requires Setup)</option>
               </select>
             </div>
           </div>
@@ -597,9 +601,22 @@
             </div>
             <div class="setting-control">
               <div id="cloudStatus" class="cloud-status">
-                <span class="status-indicator">❌</span>
-                <span class="status-text">Not connected</span>
-                <button class="btn btn-outline" id="connectCloudBtn">Connect</button>
+                <div class="cloud-status-line">
+                  <span class="status-indicator">X</span>
+                  <span class="status-text">Not connected</span>
+                </div>
+                <div class="cloud-action-row">
+                  <button class="btn btn-outline" id="connectCloudBtn">Sign in</button>
+                  <button class="btn btn-outline" id="chooseCloudFolderBtn" style="display: none;">Choose Folder</button>
+                  <button class="btn btn-secondary" id="disconnectCloudBtn" style="display: none;">Sign out</button>
+                </div>
+                <div class="cloud-folder-summary" id="cloudFolderSummary" style="display: none;">
+                  <div class="summary-line">
+                    <span class="summary-label">Upload location:</span>
+                    <span class="summary-value" id="cloudFolderSummaryValue">Root</span>
+                  </div>
+                  <p class="summary-hint">We'll mirror your folder organization underneath this folder.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -650,7 +667,7 @@
         </div>
 
         <div class="settings-group">
-          <h2>📷 Screenshot Preview</h2>
+          <h2>Screenshot Preview</h2>
           
           <div class="setting-item">
             <div class="setting-info">
@@ -683,8 +700,8 @@
     <footer class="footer">
       <div class="footer-content">
         <div class="footer-links">
-          <a href="https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension" target="_blank">GitHub</a>
-          <a href="https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/issues" target="_blank">Report Issue</a>
+          <a href="https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension" target="_blank" rel="noopener noreferrer">GitHub</a>
+          <a href="https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/issues" target="_blank" rel="noopener noreferrer">Report Issue</a>
           <a href="#" id="aboutBtn">About</a>
         </div>
         <div class="save-status" id="saveStatus">
@@ -694,7 +711,6 @@
     </footer>
   </div>
 
-  <!-- Toast notification -->
   <div class="toast" id="toast" style="display: none;">
     <span class="toast-text"></span>
   </div>

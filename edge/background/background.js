@@ -1,27 +1,27 @@
-// Import browser polyfill first
+
 importScripts('../browser-polyfill.js');
 
-// Import utility scripts in order
+
 importScripts('../utils/commonErrorPatterns.js');
 importScripts('../utils/browserDetector.js');
 importScripts('../utils/pathNormalizer.js');
 importScripts('../utils/errorHandler.js');
 
-// Initialize global error handler for background script
+
 const errorHandler = new ErrorHandler('background');
 
-// --- Service Worker Keep-Alive --- //
+
 const KEEP_ALIVE_ALARM = 'youtube-screenshot-helper-keep-alive';
 
-// The alarm listener can be empty. Its existence is what keeps the service worker alive.
+
 browser.alarms.onAlarm.addListener(alarm => {
   if (alarm.name === KEEP_ALIVE_ALARM) {
-    // console.log('Keep-alive alarm fired.');
+
   }
 });
 
-// Create the alarm when the extension is installed, updated, or the browser starts.
-// This ensures the alarm is always set.
+
+
 browser.runtime.onStartup.addListener(() => {
   console.log('Browser startup: Setting keep-alive alarm.');
   createKeepAliveAlarm();
@@ -37,7 +37,7 @@ async function createKeepAliveAlarm() {
     const alarm = await browser.alarms.get(KEEP_ALIVE_ALARM);
     if (!alarm) {
       await browser.alarms.create(KEEP_ALIVE_ALARM, {
-        periodInMinutes: 0.5 // Fire every 30 seconds
+  periodInMinutes: 0.5
       });
       console.log('Keep-alive alarm created.');
     }
@@ -45,43 +45,43 @@ async function createKeepAliveAlarm() {
   }, 'createKeepAliveAlarm');
 }
 
-// Background service worker for YouTube Screenshot Helper
 
-// Log browser detection results
+
+
 browserDetector.logBrowserInfo();
 
 console.log(`YouTube Screenshot Helper: Background script loaded (${browserDetector.getBrowserName()} detected)`);
 
-// Edge-specific folder organization warning
+
 if (browserDetector.isEdge()) {
-  console.warn('📁 YouTube Screenshot Helper: Folder organization is not supported in Microsoft Edge due to browser security restrictions. Screenshots will be saved to your Downloads folder with descriptive filenames.');
+  console.warn('YouTube Screenshot Helper: Folder organization is not supported in Microsoft Edge due to browser security restrictions. Screenshots will be saved to your Downloads folder with descriptive filenames.');
 }
 
-// Edge-specific error handling is now integrated into the ErrorHandler class
 
-// Handle extension installation
+
+
 browser.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') {
     console.log('YouTube Screenshot Helper installed');
     
-    // Set default settings
+
     browser.storage.sync.set({
-      enabledSites: ['youtube.com', 'vimeo.com', 'twitch.tv'],
-      fullscreenShortcut: 'shift+enter', // Default to Shift+Enter
+      enabledSites: ['youtube.com', 'youtube-nocookie.com', 'vimeo.com', 'twitch.tv'],
+  fullscreenShortcut: 'shift+enter',
       fullscreenOnly: false,
       autoHideControls: true,
       uploadToCloud: false,
       annotationMode: false,
       cloudService: 'none',
       screenshotQuality: 0.9,
-      filenameTemplate: '', // Empty means use title builder
+  filenameTemplate: '',
       debugMode: false,
       showNotifications: true,
       captureDelay: 100,
       preventDefault: true,
-      // Theme settings
+
       themePreference: 'auto',
-      // Title builder settings
+
       includeYoutube: true,
       includeVideoTitle: true,
       includeChannelName: false,
@@ -91,49 +91,52 @@ browser.runtime.onInstalled.addListener(async (details) => {
       includeDate: true,
       includeTime: false,
       titleSeparator: ' - ',
-      // Folder organization settings
+
       organizeFolders: 'none',
       customFolderPattern: '{channel}/{date}',
-      // Download path settings
+
       customDownloadPath: '',
       useCustomPath: false,
-      // Fullscreen popup settings
+
+  silentDownloads: false,
+
       showFullscreenPopup: false,
       fullscreenPopupDuration: 3000,
-      // Screenshot preview settings
+
       disablePreviewByDefault: false
     });
     
-    // Open options page on first install
+
     console.log('Opening options page after installation...');
-    // Add a small delay to ensure extension is fully loaded
+
     setTimeout(async () => {
       try {
         await browser.runtime.openOptionsPage();
         console.log('Options page opened successfully');
       } catch (error) {
-      console.error('Failed to open options page:', error);
-      // Fallback: try opening in a new tab
-      try {
-        await browser.tabs.create({ url: browser.runtime.getURL('options/options.html') });
-        console.log('Options page opened in new tab as fallback');
-      } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError);
-        // Show notification as last resort
-        if (browser.notifications) {
-          browser.notifications.create({
-            type: 'basic',
-            iconUrl: 'icons/icon48.png',
-            title: 'YouTube Screenshot Helper',
-            message: 'Extension installed! Click the extension icon to access settings.'
-          });
+        console.error('Failed to open options page:', error);
+
+        try {
+          await browser.tabs.create({ url: browser.runtime.getURL('options/options.html') });
+          console.log('Options page opened in new tab as fallback');
+        } catch (fallbackError) {
+          console.error('Fallback also failed:', fallbackError);
+
+          if (browser.notifications) {
+            browser.notifications.create({
+              type: 'basic',
+              iconUrl: 'icons/icon48.png',
+              title: 'YouTube Screenshot Helper',
+              message: 'Extension installed! Click the extension icon to access settings.'
+            });
+          }
         }
       }
-    }, 1000); // Wait 1 second before trying to open options
+  }, 1000);
   }
 });
 
-// Handle messages from content scripts and extension pages
+
 browser.runtime.onMessage.addListener(async (message, sender) => {
   console.log('Background: Received message:', message.action, 'from tab:', sender.tab?.id);
 
@@ -146,50 +149,135 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
           browser: browserDetector.getBrowserName()
         });
 
-      case 'downloadScreenshot':
+      case 'downloadScreenshot': {
+        const storageResult = await browser.storage.sync.get(['useCustomPath', 'customDownloadPath', 'silentDownloads']);
+        console.log('Storage result:', storageResult);
+
+        const silentDownloadsEnabled = typeof message.silentDownloads === 'boolean'
+          ? message.silentDownloads
+          : !!storageResult.silentDownloads;
+        console.log('Silent downloads enabled for this request:', silentDownloadsEnabled);
+
+        const restoreActions = [];
+        let silentUiDisabled = false;
+
+        const scheduleRestore = (() => {
+          let scheduled = false;
+          return () => {
+            if (scheduled || restoreActions.length === 0) {
+              return;
+            }
+            scheduled = true;
+            setTimeout(() => {
+              restoreActions.forEach(action => {
+                try {
+                  action();
+                } catch (restoreError) {
+                  console.warn('Error restoring download UI (Edge):', restoreError);
+                }
+              });
+              restoreActions.length = 0;
+              silentUiDisabled = false;
+            }, 1500);
+          };
+        })();
+
+        const nativeDownloadsApi = (typeof chrome !== 'undefined' && chrome.downloads)
+          ? chrome.downloads
+          : (browser.downloads || null);
+        const runtimeApi = (typeof chrome !== 'undefined' && chrome.runtime)
+          ? chrome.runtime
+          : (typeof browser !== 'undefined' ? browser.runtime : null);
+
+        const prepareSilentMode = () => {
+          if (!silentDownloadsEnabled || silentUiDisabled) {
+            return;
+          }
+          silentUiDisabled = true;
+
+          if (nativeDownloadsApi && typeof nativeDownloadsApi.setShelfEnabled === 'function') {
+            try {
+              nativeDownloadsApi.setShelfEnabled(false);
+              console.log('Download shelf disabled for silent screenshot download (Edge)');
+              restoreActions.push(() => {
+                try {
+                  nativeDownloadsApi.setShelfEnabled(true);
+                  console.log('Download shelf restored after silent screenshot download (Edge)');
+                } catch (restoreError) {
+                  console.warn('Failed to restore download shelf (Edge):', restoreError);
+                }
+              });
+            } catch (shelfError) {
+              console.warn('Unable to disable download shelf (Edge):', shelfError);
+            }
+          } else {
+            console.log('setShelfEnabled API not available; shelf may remain visible (Edge)');
+          }
+
+          if (nativeDownloadsApi && typeof nativeDownloadsApi.setUiOptions === 'function') {
+            try {
+              nativeDownloadsApi.setUiOptions({ enabled: false }, () => {
+                if (runtimeApi && runtimeApi.lastError) {
+                  console.warn('setUiOptions disable failed (Edge):', runtimeApi.lastError);
+                } else {
+                  console.log('Download UI disabled via setUiOptions for silent mode (Edge)');
+                }
+              });
+              restoreActions.push(() => {
+                nativeDownloadsApi.setUiOptions({ enabled: true }, () => {
+                  if (runtimeApi && runtimeApi.lastError) {
+                    console.warn('Failed to re-enable download UI (Edge):', runtimeApi.lastError);
+                  } else {
+                    console.log('Download UI re-enabled after silent screenshot download (Edge)');
+                  }
+                });
+              });
+            } catch (uiError) {
+              console.warn('Unable to adjust download UI options (Edge):', uiError);
+            }
+          }
+        };
+
         return errorHandler.handleAsyncOperation(async () => {
           console.log('=== BACKGROUND SCRIPT: DOWNLOAD DEBUG START ===');
           console.log('Download request received:', { filename: message.filename, folderPath: message.folderPath });
           console.log('DataURL length:', message.dataUrl ? message.dataUrl.length : 'null');
           console.log('DataURL preview:', message.dataUrl ? message.dataUrl.substring(0, 100) + '...' : 'null');
 
-          // Check if downloads API is available
+
           if (!browser.downloads) {
             throw new Error('browser.downloads API is not available');
           }
-          console.log('✓ browser.downloads API is available');
+          console.log('browser.downloads API is available');
 
-          const result = await browser.storage.sync.get(['useCustomPath', 'customDownloadPath']);
-          console.log('Storage result:', result);
 
-          // Use PathNormalizer for consistent path handling
           const pathNormalizer = new PathNormalizer();
           const pathResult = pathNormalizer.normalizePath(
             message.filename || `youtube-screenshot-${Date.now()}.png`,
             message.folderPath,
-            result.useCustomPath ? result.customDownloadPath : ''
+            storageResult.useCustomPath ? storageResult.customDownloadPath : ''
           );
 
           console.log('Path normalization result:', pathResult);
 
-          // Edge-specific folder handling attempt
+
           const isEdge = navigator.userAgent.includes('Edg/');
           let downloadOptions = {
             url: message.dataUrl,
             filename: pathResult.path,
-            saveAs: false, // Always save directly to Downloads in Edge
+            saveAs: false,
             conflictAction: 'uniquify'
           };
           
-          // Try alternative path formats for Edge
+
           if (isEdge && message.folderPath) {
             console.log('Edge detected - trying alternative folder path formats...');
             
-            // Try with backslashes (Windows-style)
+
             const windowsPath = pathResult.path.replace(/\//g, '\\');
             console.log('Trying Windows-style path:', windowsPath);
             
-            // Try with suggested downloads directory
+
             try {
               const suggestedPath = message.folderPath.replace(/\//g, '\\') + '\\' + message.filename;
               console.log('Trying suggested path:', suggestedPath);
@@ -206,14 +294,24 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
             saveAs: downloadOptions.saveAs,
             conflictAction: downloadOptions.conflictAction
           });
-          
-          console.log('Calling browser.downloads.download...');
-          const downloadId = await browser.downloads.download(downloadOptions);
+
+          prepareSilentMode();
+
+          let downloadId;
+          try {
+            console.log('Calling browser.downloads.download...');
+            downloadId = await browser.downloads.download(downloadOptions);
+          } catch (downloadError) {
+            scheduleRestore();
+            throw downloadError;
+          }
 
           console.log('=== DOWNLOAD SUCCESS ===');
           console.log('Screenshot downloaded with ID:', downloadId);
+
+          scheduleRestore();
           
-          // Check the actual download info to see where it was saved
+
           setTimeout(async () => {
             try {
               const downloadInfo = await browser.downloads.search({ id: downloadId });
@@ -238,7 +336,7 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
             debug: true
           };
         }, 'downloadScreenshot', async (errorInfo) => {
-          // If this is a path-related error, try with a fallback path
+
           if (errorInfo.message.includes('filename') || errorInfo.message.includes('path') || 
               errorInfo.message.includes('Invalid filename')) {
             console.log('Path-related error detected, attempting fallback download...');
@@ -247,11 +345,14 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
             const fallbackResult = pathNormalizer.createFallbackPath(message.filename);
             
             try {
+              prepareSilentMode();
               const downloadId = await browser.downloads.download({
                 url: message.dataUrl,
                 filename: fallbackResult.path,
                 saveAs: false
               });
+              
+              scheduleRestore();
               
               return { 
                 success: true, 
@@ -260,12 +361,16 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
                 note: 'Used fallback filename due to path restrictions'
               };
             } catch (fallbackError) {
+              scheduleRestore();
               console.error('Fallback download also failed:', fallbackError);
               return { success: false, error: fallbackError.message };
             }
           }
+
+          scheduleRestore();
           return { success: false, error: errorInfo.message };
         });
+      }
 
       case 'getSettings':
         return errorHandler.handleAsyncOperation(async () => {
@@ -290,7 +395,7 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
         return errorHandler.createErrorResponse('Unknown action: ' + message.action, 'UNKNOWN_ACTION');
     }
   } catch (unexpectedError) {
-    // Global error handler for any unexpected errors in message processing
+
     const errorInfo = errorHandler.handleError(unexpectedError, 'message processing');
     return { 
       success: false, 
@@ -300,12 +405,12 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
   }
 });
 
-// Background script Imgur upload function removed - Imgur service no longer supported
 
-// Handle keyboard shortcuts
+
+
 browser.commands.onCommand.addListener((command, tab) => {
   if (command === 'capture-screenshot') {
-    // Send message to content script
+
     browser.tabs.sendMessage(tab.id, {
       action: 'captureScreenshot',
       source: 'shortcut'
@@ -313,29 +418,29 @@ browser.commands.onCommand.addListener((command, tab) => {
   }
 });
 
-// Handle tab updates to inject content scripts if needed
+
 browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
     try {
-      // Check if we should inject into this tab
-      const result = await browser.storage.sync.get(['enabledSites']);
-      const enabledSites = result.enabledSites || ['youtube.com', 'vimeo.com', 'twitch.tv'];
+
+  const result = await browser.storage.sync.get(['enabledSites']);
+  const enabledSites = result.enabledSites || ['youtube.com', 'youtube-nocookie.com', 'vimeo.com', 'twitch.tv'];
       const url = new URL(tab.url);
       
-      // Check if this is a custom site (not a built-in site)
-      const builtInSites = ['youtube.com', 'vimeo.com', 'twitch.tv'];
+
+  const builtInSites = ['youtube.com', 'youtube-nocookie.com', 'vimeo.com', 'twitch.tv'];
       const isBuiltInSite = builtInSites.some(site => url.hostname.includes(site));
       const isEnabledCustomSite = enabledSites.some(site => 
         url.hostname.includes(site) && !builtInSites.includes(site)
       );
       
       if (isEnabledCustomSite) {
-        // This is a custom site, check if content script is already loaded
+
         try {
           const response = await browser.tabs.sendMessage(tabId, { action: 'ping' });
           console.log('Content script already active on custom site:', url.hostname);
         } catch (error) {
-          // Content script not loaded, inject it
+
           console.log('Injecting content script into custom site:', url.hostname);
           await injectContentScripts(tabId);
         }
@@ -346,10 +451,10 @@ browser.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   }
 });
 
-// Function to inject content scripts programmatically
+
 async function injectContentScripts(tabId) {
   try {
-    // Inject scripts in the correct order
+
     const scripts = [
       'browser-polyfill.js',
       'utils/storage.js',
@@ -361,13 +466,13 @@ async function injectContentScripts(tabId) {
       'content/youtube.js'
     ];
     
-    // Inject CSS first
+
     await browser.scripting.insertCSS({
       target: { tabId },
       files: ['styles/content.css']
     });
     
-    // Inject JavaScript files
+
     for (const script of scripts) {
       await browser.scripting.executeScript({
         target: { tabId },
@@ -381,23 +486,23 @@ async function injectContentScripts(tabId) {
   }
 }
 
-// Handle extension icon clicks for custom sites
+
 browser.action.onClicked.addListener(async (tab) => {
   if (tab.url) {
     try {
-      // Check if this might be a custom site that needs script injection
+
       const result = await browser.storage.sync.get(['enabledSites']);
-      const enabledSites = result.enabledSites || ['youtube.com', 'vimeo.com', 'twitch.tv'];
+  const enabledSites = result.enabledSites || ['youtube.com', 'youtube-nocookie.com', 'vimeo.com', 'twitch.tv'];
       const url = new URL(tab.url);
       
       const isEnabledSite = enabledSites.some(site => url.hostname.includes(site));
       
       if (isEnabledSite) {
-        // Try to ping content script
+
         try {
           await browser.tabs.sendMessage(tab.id, { action: 'ping' });
         } catch (error) {
-          // Content script not loaded, inject it
+
           console.log('Injecting content script via extension click:', url.hostname);
           await injectContentScripts(tab.id);
         }

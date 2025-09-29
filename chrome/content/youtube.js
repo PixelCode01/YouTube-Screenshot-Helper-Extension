@@ -1,4 +1,3 @@
-// YouTube-specific functionality for Screenshot Helper
 
 class YouTubeHandler {
   constructor() {
@@ -51,7 +50,6 @@ class YouTubeHandler {
         event.stopPropagation();
         event.preventDefault();
         
-        // The shouldHandleKey method already determines if it's a screenshot key
         if (!window.keyHandler || !window.storageManager) return false;
         window.keyHandler.handleKeyPress(event);
       }
@@ -135,8 +133,8 @@ class YouTubeHandler {
   }
 }
 
-// Initialize YouTube handler when this script loads
-if (window.location.hostname.includes('youtube.com')) {
+const youtubeHostPatterns = ['youtube.com', 'youtube-nocookie.com'];
+if (youtubeHostPatterns.some(domain => window.location.hostname.includes(domain))) {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       window.youtubeHandler = new YouTubeHandler();
