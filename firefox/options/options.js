@@ -1,7 +1,3 @@
-
-
-console.log('YouTube Screenshot Helper: Options page loaded');
-
 class OptionsManager {
   constructor() {
     this.settings = {};
@@ -44,66 +40,27 @@ class OptionsManager {
   }
 
   async init() {
-    console.log('[Options] Starting initialization sequence');
     await this.loadSettings();
-    console.log('[Options] Settings ready with keys:', Object.keys(this.settings));
     this.setupEventListeners();
-    console.log('[Options] Event listeners bound');
     this.updateUI();
-    console.log('[Options] UI synchronized with settings');
     this.initializeTheme();
     this.updateTitlePreview();
-    this.disableFolderOrganizationForEdge();
-    console.log('[Options] Core UI setup complete');
 
     if (this.settings.uploadToCloud) {
-      console.log('[Options] Attempting auto-connect for cloud service:', this.settings.cloudService);
       this.tryAutoConnectToCloud(this.settings.cloudService);
     }
-    console.log('[Options] Initialization sequence finished');
-  }
-
-  disableFolderOrganizationForEdge() {
-    console.log('[Options] Disabling folder organization (Edge limitation guard)');
-
-    const organizeFoldersSelect = document.getElementById('organizeFolders');
-    const customFolderPatternContainer = document.getElementById('customFolderPatternContainer');
-    const folderPreview = document.getElementById('folderPreview');
-    
-    if (organizeFoldersSelect) {
-      organizeFoldersSelect.disabled = true;
-      organizeFoldersSelect.value = 'none';
-      organizeFoldersSelect.title = 'Folder organization is not supported in Microsoft Edge';
-    }
-    
-    if (customFolderPatternContainer) {
-      customFolderPatternContainer.style.display = 'none';
-    }
-    
-    if (folderPreview) {
-      folderPreview.style.display = 'none';
-    }
-    
-
-    this.updateSetting('organizeFolders', 'none');
   }
 
   async loadSettings() {
     try {
-      const result = await browser.storage.sync.get(null);
+      const result = await chrome.storage.sync.get(null);
       this.settings = { ...this.defaults, ...result };
-      console.log('[Options] Loaded settings from storage:', {
-        storedKeys: Object.keys(result),
-        enabledSitesCount: Array.isArray(this.settings.enabledSites) ? this.settings.enabledSites.length : 0,
-        uploadToCloud: this.settings.uploadToCloud
-      });
       if (!this.settings.cloudFolderSelections || typeof this.settings.cloudFolderSelections !== 'object') {
         this.settings.cloudFolderSelections = {};
       }
     } catch (error) {
       console.error('Failed to load settings:', error);
       this.settings = { ...this.defaults };
-      console.log('[Options] Falling back to defaults after load failure');
     }
   }
 
@@ -111,7 +68,6 @@ class OptionsManager {
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        console.log('Tab clicked:', e.target.dataset.tab);
         this.switchTab(e.target.dataset.tab);
       });
     });
@@ -141,7 +97,6 @@ class OptionsManager {
     this.setupToggle('preventDefault');
     this.setupToggle('showFullscreenPopup');
     this.setupToggle('useCustomPath', () => {
-      console.log('OPTIONS: useCustomPath toggled to:', this.settings.useCustomPath);
       this.updateCustomPathVisibility();
     });
     this.setupToggle('silentDownloads');
@@ -183,12 +138,6 @@ class OptionsManager {
     });
 
 
-    this.setupControl('filenameTemplate', 'input', (e) => {
-      this.updateSetting('filenameTemplate', e.target.value);
-      this.updateTitlePreview();
-    });
-
-
     this.setupControl('themePreference', 'change', (e) => {
       this.updateSetting('themePreference', e.target.value);
       this.applyTheme(e.target.value);
@@ -204,7 +153,6 @@ class OptionsManager {
 
     this.setupControl('customDownloadPath', 'input', (e) => {
   const inputValue = e.target.value;
-  console.log('OPTIONS: customDownloadPath changed to:', JSON.stringify(inputValue));
       
 
       const isAbsolute = inputValue.startsWith('/') || inputValue.match(/^[a-zA-Z]:\\/);
@@ -238,14 +186,12 @@ class OptionsManager {
 
 
     this.setupControl('organizeFolders', 'change', (e) => {
-      console.log('OPTIONS: organizeFolders changed to:', e.target.value);
       this.updateSetting('organizeFolders', e.target.value);
       this.updateFolderOrganizationVisibility();
       this.updateFolderPreview();
     });
 
     this.setupControl('customFolderPattern', 'input', (e) => {
-      console.log('OPTIONS: customFolderPattern changed to:', e.target.value);
       this.updateSetting('customFolderPattern', e.target.value);
       this.updateFolderPreview();
     });
@@ -258,7 +204,7 @@ class OptionsManager {
 
 
     this.setupButton('openShortcutsBtn', () => {
-      browser.tabs.create({ url: 'edge://extensions/shortcuts' });
+      chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
     });
 
     this.setupButton('browsePathBtn', () => {
@@ -271,16 +217,6 @@ class OptionsManager {
 
     this.setupButton('addSiteBtn', () => {
       this.addSite();
-    });
-
-
-    this.setupButton('resetTitleTemplateBtn', () => {
-      this.resetTitleTemplate();
-    });
-
-
-    this.setupButton('copyTitlePreviewBtn', () => {
-      this.copyTitlePreview();
     });
 
 
@@ -352,32 +288,23 @@ class OptionsManager {
   }
 
   async updateSetting(key, value) {
-  console.log(`OPTIONS: updateSetting called with key="${key}", value=${JSON.stringify(value)}`);
     
 
     if (key === 'useCustomPath' || key === 'customDownloadPath') {
-  console.log('Save path setting update:');
-  console.log(`  - Key: ${key}`);
-  console.log(`  - Value: ${JSON.stringify(value)}`);
-  console.log(`  - Value type: ${typeof value}`);
-  console.log('  - Current settings before update:', this.settings);
     }
     
     this.settings[key] = value;
     
     try {
-      await browser.storage.sync.set({ [key]: value });
-  console.log(`Setting updated successfully: ${key} = ${JSON.stringify(value)}`);
+      await chrome.storage.sync.set({ [key]: value });
       
 
       if (key === 'useCustomPath' || key === 'customDownloadPath') {
         setTimeout(async () => {
-          const verification = await browser.storage.sync.get([key]);
-          console.log(`Save path verification: ${key} saved as:`, verification[key]);
+          const verification = await chrome.storage.sync.get([key]);
           if (verification[key] !== value) {
             console.error(`Save path verification failed: expected ${JSON.stringify(value)}, received ${JSON.stringify(verification[key])}`);
           } else {
-            console.log(`Save path verification passed: ${key} correctly saved`);
           }
         }, 100);
       }
@@ -400,15 +327,12 @@ class OptionsManager {
       }
     });
 
-    console.log('[Options] Applied settings to DOM elements');
-
 
     this.updateCustomPathVisibility();
     this.updateCloudServiceVisibility();
     this.updateFolderOrganizationVisibility();
     this.updateFolderPreview();
     this.populateSitesList();
-    console.log('[Options] Ancillary UI components refreshed');
   }
 
   updateCustomPathVisibility() {
@@ -419,6 +343,17 @@ class OptionsManager {
     }
     if (browseBtn) {
       browseBtn.style.display = this.settings.useCustomPath ? 'inline-block' : 'none';
+    }
+  }
+
+  updateCloudServiceVisibility() {
+    const container = document.getElementById('cloudServiceContainer');
+    const connectBtn = document.getElementById('connectCloudBtn');
+    if (container) {
+      container.style.display = this.settings.uploadToCloud ? 'block' : 'none';
+    }
+    if (connectBtn) {
+      connectBtn.style.display = this.settings.uploadToCloud ? 'inline-block' : 'none';
     }
   }
 
@@ -523,6 +458,91 @@ class OptionsManager {
       this.showToast('Error selecting path. Please enter path manually.', 'error');
     }
   }
+
+
+  async setupCloudService() {
+    const service = this.settings.cloudService;
+    
+    try {
+
+      if (!window.CLOUD_CONFIG) {
+        const configScript = document.createElement('script');
+        configScript.src = '../utils/cloudConfig.js';
+        document.head.appendChild(configScript);
+        await new Promise(resolve => {
+          configScript.onload = resolve;
+          configScript.onerror = () => resolve();
+        });
+      }
+      
+
+      if (window.CLOUD_CONFIG) {
+        const isConfigured = service === 'google-drive' ? 
+          window.CLOUD_CONFIG.isConfigured('google') : 
+          false;
+          
+        if (!isConfigured && service === 'google-drive') {
+          const message = window.CLOUD_CONFIG.getConfigurationMessage('google');
+          this.showToast(message, 'warning');
+          
+
+          const setupUrl = 'https://developers.google.com/drive/api/quickstart/js';
+          chrome.tabs.create({ url: setupUrl });
+          return;
+        }
+      }
+      
+      switch (service) {
+        case 'google-drive':
+          await this.setupGoogleDrive();
+          break;
+        case 'none':
+          this.showToast('Cloud storage is disabled. Enable "Auto-Upload to Cloud" to configure.', 'info');
+          break;
+        default:
+          this.showToast('Please select a cloud service first', 'error');
+      }
+    } catch (error) {
+      console.error('Cloud setup failed:', error);
+      this.showToast(`Cloud setup failed: ${error.message}`, 'error');
+    }
+  }
+
+  async setupGoogleDrive() {
+    try {
+
+      if (!window.cloudStorageManager) {
+        const configScript = document.createElement('script');
+        configScript.src = '../utils/cloudConfig.js';
+        document.head.appendChild(configScript);
+        await new Promise(resolve => configScript.onload = resolve);
+        
+        const script = document.createElement('script');
+        script.src = '../utils/cloudStorage.js';
+        document.head.appendChild(script);
+        await new Promise(resolve => script.onload = resolve);
+      }
+
+      this.showToast('Connecting to Google Drive...', 'info');
+      const token = await window.cloudStorageManager.authenticateGoogleDrive();
+      
+      if (token) {
+        this.showToast('Google Drive connected successfully!', 'success');
+        this.updateCloudStatus();
+      } else {
+        throw new Error('Authentication failed');
+      }
+    } catch (error) {
+      console.error('Google Drive setup failed:', error);
+      this.showToast('Google Drive setup failed. Please try again.', 'error');
+    }
+  }
+
+  extractTokenFromUrl(url) {
+    const params = new URLSearchParams(url.split('#')[1]);
+    return params.get('access_token');
+  }
+
   showToast(message, type = 'info') {
 
     let toast = document.getElementById('toast');
@@ -544,30 +564,6 @@ class OptionsManager {
   updateTitlePreview() {
     const previewElement = document.getElementById('titlePreview');
     if (!previewElement) return;
-
-    const customTemplate = (this.settings.filenameTemplate || '').trim();
-    if (customTemplate) {
-      const sampleValues = {
-        site: 'YouTube',
-        title: 'Amazing Video',
-        channel: 'TechChannel',
-        playlist: 'Tutorial Series',
-        chapter: 'Chapter 1',
-        timestamp: '12m34s',
-        date: '2024-06-20',
-        time: '14-30'
-      };
-
-      let resolved = customTemplate;
-      Object.entries(sampleValues).forEach(([token, value]) => {
-        const regex = new RegExp(`\\{${token}\\}`, 'gi');
-        resolved = resolved.replace(regex, value);
-      });
-
-      const finalPreview = resolved.trim() || 'youtube-screenshot';
-      previewElement.textContent = finalPreview + '.png';
-      return;
-    }
 
     const components = [];
     const separator = this.settings.titleSeparator || ' - ';
@@ -606,84 +602,6 @@ class OptionsManager {
     
     const filename = components.join(separator) || 'youtube-screenshot';
     previewElement.textContent = filename + '.png';
-  }
-
-
-  async resetTitleTemplate() {
-    const templateKeys = [
-      'includeYoutube',
-      'includeVideoTitle',
-      'includeChannelName',
-      'includePlaylistName',
-      'includeChapter',
-      'includeTimestamp',
-      'includeDate',
-      'includeTime',
-      'titleSeparator',
-      'filenameTemplate'
-    ];
-
-    const updates = {};
-
-    templateKeys.forEach((key) => {
-      const defaultValue = this.defaults[key];
-      updates[key] = defaultValue;
-      this.settings[key] = defaultValue;
-
-      const element = document.getElementById(key);
-      if (element) {
-        if (element.type === 'checkbox') {
-          element.checked = Boolean(defaultValue);
-        } else {
-          element.value = defaultValue ?? '';
-        }
-      }
-    });
-
-    try {
-      await browser.storage.sync.set(updates);
-      this.updateTitlePreview();
-      this.showToast('Screenshot title template reset to defaults', 'success');
-    } catch (error) {
-      console.error('Failed to reset title template:', error);
-      this.showToast('Failed to reset title template', 'error');
-    }
-  }
-
-
-  async copyTitlePreview() {
-    const previewElement = document.getElementById('titlePreview');
-    if (!previewElement) {
-      this.showToast('Preview element not found', 'error');
-      return;
-    }
-
-    const previewText = (previewElement.textContent || '').trim();
-    if (!previewText) {
-      this.showToast('Nothing to copy yet', 'warning');
-      return;
-    }
-
-    try {
-      if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(previewText);
-      } else {
-        const textarea = document.createElement('textarea');
-        textarea.value = previewText;
-        textarea.setAttribute('readonly', '');
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-      }
-
-      this.showToast('Preview copied to clipboard', 'success');
-    } catch (error) {
-      console.error('Failed to copy preview:', error);
-      this.showToast('Failed to copy preview to clipboard', 'error');
-    }
   }
 
 
@@ -881,8 +799,10 @@ class OptionsManager {
         select.value = defaultService;
       }
 
-      browser.storage.sync.set({ cloudService: defaultService }).catch(error => {
-        console.error('Failed to persist default cloud service:', error);
+      chrome.storage.sync.set({ cloudService: defaultService }, () => {
+        if (chrome.runtime.lastError) {
+          console.error('Failed to persist default cloud service:', chrome.runtime.lastError);
+        }
       });
 
       return defaultService;
@@ -901,7 +821,7 @@ class OptionsManager {
     }
 
     this.settings.cloudFolderSelections = selections;
-    await browser.storage.sync.set({ cloudFolderSelections: selections });
+    await chrome.storage.sync.set({ cloudFolderSelections: selections });
     return selection || null;
   }
 
@@ -1121,7 +1041,7 @@ class OptionsManager {
           ? 'https://developers.google.com/drive/api/quickstart/js'
           : 'https://learn.microsoft.com/azure/active-directory/develop/quickstart-register-app?tabs=azure-portal';
         this.showToast(`${providerName} client ID not configured. Opening setup instructions...`, 'warning');
-        browser.tabs.create({ url: docsUrl });
+        chrome.tabs.create({ url: docsUrl });
 
   if (statusIndicator) statusIndicator.textContent = 'warn';
         if (statusText) statusText.textContent = 'Requires configuration';
@@ -1244,86 +1164,38 @@ class OptionsManager {
     return new Promise((resolve) => {
       const overlay = document.createElement('div');
       overlay.className = 'cloud-folder-picker-overlay';
-      const picker = document.createElement('div');
-      picker.className = 'cloud-folder-picker';
+      overlay.innerHTML = `
+        <div class="cloud-folder-picker">
+          <div class="picker-header">
+            <h3>Select folder for ${providerName}</h3>
+            <button type="button" class="picker-close" aria-label="Close">&times;</button>
+          </div>
+          <div class="picker-body">
+            <div class="picker-path" id="pickerPath"></div>
+            <div class="picker-list" id="pickerList"></div>
+          </div>
+          <div class="picker-footer">
+            <div class="picker-action-group">
+              <button type="button" class="btn btn-outline" id="pickerBackBtn">Back</button>
+              <button type="button" class="btn btn-outline" id="pickerNewFolderBtn">New Folder</button>
+            </div>
+            <div class="picker-action-group right">
+              <button type="button" class="btn btn-secondary" id="pickerSelectBtn">Use this folder</button>
+              <button type="button" class="btn btn-outline" id="pickerCancelBtn">Cancel</button>
+            </div>
+          </div>
+        </div>
+      `;
 
-      const header = document.createElement('div');
-      header.className = 'picker-header';
-
-      const title = document.createElement('h3');
-      title.textContent = `Select folder for ${providerName}`;
-
-      const closeBtn = document.createElement('button');
-      closeBtn.type = 'button';
-      closeBtn.className = 'picker-close';
-      closeBtn.setAttribute('aria-label', 'Close');
-      closeBtn.textContent = '\u00d7';
-
-      header.appendChild(title);
-      header.appendChild(closeBtn);
-
-      const body = document.createElement('div');
-      body.className = 'picker-body';
-
-      const pathEl = document.createElement('div');
-      pathEl.className = 'picker-path';
-      pathEl.id = 'pickerPath';
-
-      const listEl = document.createElement('div');
-      listEl.className = 'picker-list';
-      listEl.id = 'pickerList';
-
-      body.appendChild(pathEl);
-      body.appendChild(listEl);
-
-      const footer = document.createElement('div');
-      footer.className = 'picker-footer';
-
-      const actionGroupLeft = document.createElement('div');
-      actionGroupLeft.className = 'picker-action-group';
-
-      const backBtn = document.createElement('button');
-      backBtn.type = 'button';
-      backBtn.className = 'btn btn-outline';
-      backBtn.id = 'pickerBackBtn';
-      backBtn.textContent = 'Back';
-
-      const newFolderBtn = document.createElement('button');
-      newFolderBtn.type = 'button';
-      newFolderBtn.className = 'btn btn-outline';
-      newFolderBtn.id = 'pickerNewFolderBtn';
-      newFolderBtn.textContent = 'New Folder';
-
-      actionGroupLeft.appendChild(backBtn);
-      actionGroupLeft.appendChild(newFolderBtn);
-
-      const actionGroupRight = document.createElement('div');
-      actionGroupRight.className = 'picker-action-group right';
-
-      const selectBtn = document.createElement('button');
-      selectBtn.type = 'button';
-      selectBtn.className = 'btn btn-secondary';
-      selectBtn.id = 'pickerSelectBtn';
-      selectBtn.textContent = 'Use this folder';
-
-      const cancelBtn = document.createElement('button');
-      cancelBtn.type = 'button';
-      cancelBtn.className = 'btn btn-outline';
-      cancelBtn.id = 'pickerCancelBtn';
-      cancelBtn.textContent = 'Cancel';
-
-      actionGroupRight.appendChild(selectBtn);
-      actionGroupRight.appendChild(cancelBtn);
-
-      footer.appendChild(actionGroupLeft);
-      footer.appendChild(actionGroupRight);
-
-      picker.appendChild(header);
-      picker.appendChild(body);
-      picker.appendChild(footer);
-
-      overlay.appendChild(picker);
       document.body.appendChild(overlay);
+
+      const pathEl = overlay.querySelector('#pickerPath');
+      const listEl = overlay.querySelector('#pickerList');
+      const backBtn = overlay.querySelector('#pickerBackBtn');
+      const newFolderBtn = overlay.querySelector('#pickerNewFolderBtn');
+      const selectBtn = overlay.querySelector('#pickerSelectBtn');
+      const cancelBtn = overlay.querySelector('#pickerCancelBtn');
+      const closeBtn = overlay.querySelector('.picker-close');
 
       const stack = [{ id: 'root', name: rootLabel }];
       let active = true;
@@ -1335,19 +1207,12 @@ class OptionsManager {
         overlay.remove();
       };
 
-      const renderStatus = (className, text) => {
-        const message = document.createElement('div');
-        message.className = className;
-        message.textContent = text;
-        listEl.replaceChildren(message);
-      };
-
       const render = async () => {
         const token = ++renderToken;
         const current = stack[stack.length - 1];
         pathEl.textContent = stack.map(item => item.name).join(' / ');
         backBtn.disabled = stack.length <= 1;
-        renderStatus('picker-loading', 'Loading folders...');
+  listEl.innerHTML = '<div class="picker-loading">Loading folders...</div>';
 
         try {
           const { folders } = await window.cloudStorageManager.listFolders(serviceKey, current.id);
@@ -1356,26 +1221,16 @@ class OptionsManager {
           }
 
           if (!folders || folders.length === 0) {
-            renderStatus('picker-empty', 'No subfolders here yet.');
+            listEl.innerHTML = '<div class="picker-empty">No subfolders here yet.</div>';
             return;
           }
 
-          listEl.replaceChildren();
+          listEl.innerHTML = '';
           folders.forEach(folder => {
             const item = document.createElement('button');
             item.type = 'button';
             item.className = 'picker-item';
-            const icon = document.createElement('span');
-            icon.className = 'picker-item-icon';
-            icon.setAttribute('aria-hidden', 'true');
-            icon.textContent = '>';
-
-            const name = document.createElement('span');
-            name.className = 'picker-item-name';
-            name.textContent = folder.name || 'Unnamed Folder';
-
-            item.appendChild(icon);
-            item.appendChild(name);
+            item.innerHTML = '<span class="picker-item-icon" aria-hidden="true">></span><span class="picker-item-name">' + folder.name + '</span>';
             item.addEventListener('click', () => {
               stack.push({ id: folder.id, name: folder.name || 'Unnamed Folder' });
               render();
@@ -1384,7 +1239,7 @@ class OptionsManager {
           });
         } catch (error) {
           console.error('Failed to list folders:', error);
-          renderStatus('picker-empty error', error.message);
+          listEl.innerHTML = '<div class="picker-empty error">' + error.message + '</div>';
         }
       };
 
@@ -1541,7 +1396,7 @@ class OptionsManager {
     const enabledSites = this.settings.enabledSites || ['youtube.com', 'vimeo.com', 'twitch.tv'];
     const defaultSites = ['youtube.com', 'vimeo.com', 'twitch.tv'];
 
-    sitesList.replaceChildren();
+    sitesList.innerHTML = '';
 
     enabledSites.forEach(site => {
       const siteItem = document.createElement('div');
@@ -1552,30 +1407,13 @@ class OptionsManager {
         siteItem.classList.add('default');
       }
 
-      const nameSpan = document.createElement('span');
-      nameSpan.className = 'site-name';
-      nameSpan.textContent = site;
-
-      const controls = document.createElement('div');
-      controls.className = 'site-controls';
-
-      const statusSpan = document.createElement('span');
-      statusSpan.className = 'site-status';
-      statusSpan.textContent = isDefault ? 'Built-in support' : 'Custom site';
-      controls.appendChild(statusSpan);
-
-      if (!isDefault) {
-        const removeBtn = document.createElement('button');
-        removeBtn.type = 'button';
-        removeBtn.className = 'btn btn-danger btn-sm remove-site-btn';
-        removeBtn.dataset.site = site;
-        removeBtn.title = 'Remove site';
-        removeBtn.textContent = 'Remove';
-        controls.appendChild(removeBtn);
-      }
-
-      siteItem.appendChild(nameSpan);
-      siteItem.appendChild(controls);
+      siteItem.innerHTML = `
+        <span class="site-name">${site}</span>
+        <div class="site-controls">
+          <span class="site-status">${isDefault ? 'Built-in support' : 'Custom site'}</span>
+          ${!isDefault ? `<button class="btn btn-danger btn-sm remove-site-btn" data-site="${site}" title="Remove site">Remove</button>` : ''}
+        </div>
+      `;
 
       sitesList.appendChild(siteItem);
     });
@@ -1697,7 +1535,7 @@ class OptionsManager {
           });
           
 
-          browser.storage.sync.set(this.settings).then(() => {
+          chrome.storage.sync.set(this.settings).then(() => {
 
             this.updateUI();
             this.updateTitlePreview();
@@ -1730,8 +1568,8 @@ class OptionsManager {
         this.settings = { ...this.defaults };
         
 
-        browser.storage.sync.clear().then(() => {
-          return browser.storage.sync.set(this.settings);
+        chrome.storage.sync.clear().then(() => {
+          return chrome.storage.sync.set(this.settings);
         }).then(() => {
 
           this.updateUI();

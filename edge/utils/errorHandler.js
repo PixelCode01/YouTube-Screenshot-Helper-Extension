@@ -9,7 +9,6 @@ class ErrorHandler {
                           this.createFallbackDetector();
     this.isEdge = this.browserDetector.isEdge();
     this.isBrowserDetected = true;
-    console.log(`ErrorHandler: Browser detected as ${this.browserDetector.getBrowserName()}`);
   }
 
   
@@ -52,7 +51,6 @@ class ErrorHandler {
 
 
     if (this.isEdge && this.isEdgeSpecificError(error)) {
-      console.log('Applying Edge-specific error handling');
       errorInfo.edgeSpecific = true;
       this.handleEdgeSpecificError(error, operation);
     }
@@ -61,7 +59,6 @@ class ErrorHandler {
     if (errorPattern) {
       const recoveryStrategy = getRecoveryStrategy(errorPattern.recovery);
       if (recoveryStrategy) {
-        console.log(`Recovery strategy: ${recoveryStrategy.description}`);
         errorInfo.recoveryStrategy = recoveryStrategy;
       }
     }
@@ -112,8 +109,6 @@ class ErrorHandler {
 
     if (operation.includes('download') && 
         (message.includes('path') || message.includes('file'))) {
-      console.log('Edge download path error detected, will use fallback path');
-
     }
     
 

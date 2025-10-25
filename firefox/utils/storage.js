@@ -3,14 +3,14 @@
 class StorageManager {
   constructor() {
     this.defaultSettings = {
-  enabledSites: ['youtube.com', 'youtube-nocookie.com', 'vimeo.com', 'twitch.tv'],
+      enabledSites: ['youtube.com', 'youtube-nocookie.com', 'vimeo.com', 'twitch.tv'],
       fullscreenShortcut: 'shift+enter',
       fullscreenOnly: false,
       autoHideControls: true,
       uploadToCloud: false,
       annotationMode: false,
       cloudService: 'none',
-  cloudFolderSelections: {},
+      cloudFolderSelections: {},
       screenshotQuality: 0.9,
       filenameTemplate: '',
       debugMode: false,
@@ -18,7 +18,6 @@ class StorageManager {
       captureDelay: 100,
       preventDefault: true,
       themePreference: 'auto',
-
       includeYoutube: true,
       includeVideoTitle: true,
       includeChannelName: false,
@@ -28,130 +27,65 @@ class StorageManager {
       includeDate: true,
       includeTime: false,
       titleSeparator: ' - ',
-
       showFullscreenPopup: false,
       fullscreenPopupDuration: 3000,
-
       useCustomPath: false,
       customDownloadPath: '',
-
-  silentDownloads: false,
-
+      silentDownloads: false,
       organizeFolders: 'none',
       customFolderPattern: '{channel}/{date}',
-
       disablePreviewByDefault: false
     };
   }
 
-  canUseDirectSyncStorage() {
+  async getSettings() {
     try {
-      return typeof browser !== 'undefined' &&
-        browser?.storage?.sync &&
-        typeof browser.storage.sync.get === 'function' &&
-        typeof browser.storage.sync.set === 'function';
+      if (!this.isExtensionContextValid()) {
+        console.warn('Extension context invalidated, using default settings');
+        return this.defaultSettings;
+      }
+      const settings = await chrome.storage.sync.get(this.defaultSettings);
+      const mergedSettings = { ...this.defaultSettings, ...settings };
+      return mergedSettings;
     } catch (error) {
-      console.debug('StorageManager: Direct storage availability check failed:', error);
-      return false;
+      console.error('Error getting settings:', error);
+      if (error.message && (
+          error.message.includes('Extension context invalidated') ||
+          error.message.includes('receiving end does not exist') ||
+          error.message.includes('Could not establish connection')
+        )) {
+        console.warn('Extension context invalidated, using default settings');
+        return this.defaultSettings;
+      }
+      return this.defaultSettings;
     }
   }
 
-  async getSettings(retryCount = 3, delay = 100) {
-    if (this.canUseDirectSyncStorage()) {
-      try {
-        const directSettings = await browser.storage.sync.get(null);
-        return { ...this.defaultSettings, ...directSettings };
-      } catch (error) {
-        console.warn('StorageManager: Direct storage fetch failed, falling back to messaging.', error);
-      }
+  isExtensionContextValid() {
+    try {
+      if (!chrome || !chrome.runtime) return false;
+      if (chrome.runtime.id === undefined) return false;
+      if (!chrome.storage || !chrome.storage.sync) return false;
+      return true;
+    } catch (error) {
+      console.error('Extension context validation failed:', error);
+      return false;
     }
-
-    for (let i = 0; i < retryCount; i++) {
-      try {
-        if (typeof browser === 'undefined' || !browser.runtime || !browser.runtime.sendMessage) {
-          console.warn('StorageManager: browser.runtime.sendMessage not available. Returning default settings.');
-          return this.defaultSettings;
-        }
-
-        const response = await browser.runtime.sendMessage({ action: 'getSettings' });
-
-        if (response && response.success === false) {
-          console.error('StorageManager: Failed to get settings from background script:', response.error);
-          return this.defaultSettings;
-        }
-
-
-        return { ...this.defaultSettings, ...response };
-
-      } catch (error) {
-        const isInvalidated = error.message && (error.message.includes('receiving end does not exist') || error.message.includes('Could not establish connection'));
-
-        if (isInvalidated && i < retryCount - 1) {
-          console.debug(`StorageManager: Messaging attempt ${i + 1}/${retryCount} failed (${error.message}). Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          continue;
-        }
-
-        console.error('StorageManager: Error sending message to get settings:', error);
-        if (isInvalidated && typeof browser !== 'undefined' && browser.storage && browser.storage.sync && typeof browser.storage.sync.get === 'function') {
-          try {
-            const directSettings = await browser.storage.sync.get(null);
-            console.warn('StorageManager: Falling back to direct storage access after messaging failure.');
-            return { ...this.defaultSettings, ...directSettings };
-          } catch (directError) {
-            console.warn('StorageManager: Direct storage fallback failed:', directError);
-          }
-        }
-        if (isInvalidated) {
-          console.warn('StorageManager: Connection to background script failed after retries. Using default settings.');
-        }
-        return this.defaultSettings;
-      }
-    }
-    return this.defaultSettings;
   }
 
   async setSetting(key, value) {
     try {
-      if (this.canUseDirectSyncStorage()) {
-        await browser.storage.sync.set({ [key]: value });
-        return true;
-      }
-
-      if (typeof browser === 'undefined' || !browser.runtime || !browser.runtime.sendMessage) {
-        console.warn('StorageManager: browser.runtime.sendMessage not available. Cannot save setting.');
-        if (typeof browser !== 'undefined' && browser.storage && browser.storage.sync && typeof browser.storage.sync.set === 'function') {
-          await browser.storage.sync.set({ [key]: value });
-          return true;
-        }
+      if (!this.isExtensionContextValid()) {
+        console.warn('Extension context invalidated, cannot save setting');
         return false;
       }
-
-      const response = await browser.runtime.sendMessage({ action: 'setSetting', key, value });
-      if (response && response.success) {
-        return true;
-      }
-      console.error('StorageManager: Failed to set setting:', response?.error);
-      if (typeof browser !== 'undefined' && browser.storage && browser.storage.sync && typeof browser.storage.sync.set === 'function') {
-        try {
-          await browser.storage.sync.set({ [key]: value });
-          console.warn('StorageManager: Saved setting directly after messaging failure.');
-          return true;
-        } catch (directError) {
-          console.error('StorageManager: Direct storage fallback failed:', directError);
-        }
-      }
-      return false;
+      await chrome.storage.sync.set({ [key]: value });
+      return true;
     } catch (error) {
-      console.error('StorageManager: Error sending message to set setting:', error);
-      if (typeof browser !== 'undefined' && browser.storage && browser.storage.sync && typeof browser.storage.sync.set === 'function') {
-        try {
-          await browser.storage.sync.set({ [key]: value });
-          console.warn('StorageManager: Saved setting directly after error.');
-          return true;
-        } catch (directError) {
-          console.error('StorageManager: Direct storage fallback failed:', directError);
-        }
+      console.error('Error setting:', key, error);
+      if (error.message && error.message.includes('Extension context invalidated')) {
+        console.warn('Extension context invalidated, cannot save setting');
+        return false;
       }
       return false;
     }
@@ -159,45 +93,17 @@ class StorageManager {
 
   async setSettings(settings) {
     try {
-      if (this.canUseDirectSyncStorage()) {
-        await browser.storage.sync.set(settings);
-        return true;
-      }
-
-      if (typeof browser === 'undefined' || !browser.runtime || !browser.runtime.sendMessage) {
-        console.warn('StorageManager: browser.runtime.sendMessage not available. Cannot save settings.');
-        if (typeof browser !== 'undefined' && browser.storage && browser.storage.sync && typeof browser.storage.sync.set === 'function') {
-          await browser.storage.sync.set(settings);
-          return true;
-        }
+      if (!this.isExtensionContextValid()) {
+        console.warn('Extension context invalidated, cannot save settings');
         return false;
       }
-
-      const response = await browser.runtime.sendMessage({ action: 'setSettings', settings });
-      if (response && response.success) {
-        return true;
-      }
-      console.error('StorageManager: Failed to set multiple settings:', response?.error);
-      if (typeof browser !== 'undefined' && browser.storage && browser.storage.sync && typeof browser.storage.sync.set === 'function') {
-        try {
-          await browser.storage.sync.set(settings);
-          console.warn('StorageManager: Saved settings directly after messaging failure.');
-          return true;
-        } catch (directError) {
-          console.error('StorageManager: Direct storage fallback failed:', directError);
-        }
-      }
-      return false;
+      await chrome.storage.sync.set(settings);
+      return true;
     } catch (error) {
-      console.error('StorageManager: Error sending message to set settings:', error);
-      if (typeof browser !== 'undefined' && browser.storage && browser.storage.sync && typeof browser.storage.sync.set === 'function') {
-        try {
-          await browser.storage.sync.set(settings);
-          console.warn('StorageManager: Saved settings directly after error.');
-          return true;
-        } catch (directError) {
-          console.error('StorageManager: Direct storage fallback failed:', directError);
-        }
+      console.error('Error setting multiple settings:', error);
+      if (error.message && error.message.includes('Extension context invalidated')) {
+        console.warn('Extension context invalidated, cannot save settings');
+        return false;
       }
       return false;
     }
@@ -208,14 +114,10 @@ class StorageManager {
     const settings = await this.getSettings();
     const hostname = window.location.hostname;
     const isDirectMatch = settings.enabledSites.some(site => hostname.includes(site));
-    if (isDirectMatch) {
-      return true;
-    }
-
+    if (isDirectMatch) return true;
     if (hostname.includes('youtube-nocookie.com')) {
       return settings.enabledSites.some(site => site.includes('youtube.com'));
     }
-
     return false;
   }
 
@@ -243,7 +145,6 @@ class StorageManager {
     Object.entries(replacements).forEach(([placeholder, value]) => {
       filename = filename.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value || '');
     });
-
 
     filename = filename
       .replace(/[<>:"/\\|?*]/g, '-')

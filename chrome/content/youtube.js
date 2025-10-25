@@ -6,7 +6,6 @@ class YouTubeHandler {
   }
 
   init() {
-    console.log('YouTube Screenshot Helper: YouTube handler initialized');
     this.waitForYouTubePlayer();
   }
 
@@ -17,7 +16,6 @@ class YouTubeHandler {
                     document.querySelector('video');
       
       if (player) {
-        console.log('YouTube player found');
         this.setupYouTubeIntegration();
         return true;
       }
@@ -59,13 +57,8 @@ class YouTubeHandler {
   setupPlayerStateMonitoring() {
     const video = document.querySelector('video');
     if (video) {
-      video.addEventListener('play', () => {
-        console.log('YouTube: Video started playing');
-      });
-      
-      video.addEventListener('pause', () => {
-        console.log('YouTube: Video paused');
-      });
+      video.addEventListener('play', () => {});
+      video.addEventListener('pause', () => {});
     }
   }
 
@@ -96,29 +89,21 @@ class YouTubeHandler {
     });
 
     const fullscreenBtn = controlsBar.querySelector('.ytp-fullscreen-button');
-    if (fullscreenBtn) {
+    if (fullscreenBtn && fullscreenBtn.parentNode === controlsBar) {
       controlsBar.insertBefore(screenshotBtn, fullscreenBtn);
     } else {
       controlsBar.appendChild(screenshotBtn);
     }
-
-    console.log('YouTube: Screenshot button added to player controls');
   }
 
   onVideoChanged() {
-    console.log('YouTube: Video changed, refreshing screenshot button');
     setTimeout(() => {
       this.addScreenshotButton();
     }, 1000);
   }
 
   onFullscreenChange() {
-    const isFullscreen = !!(
-      document.fullscreenElement ||
-      document.webkitFullscreenElement
-    );
-    
-    console.log('YouTube: Fullscreen state changed:', isFullscreen);
+    const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
   }
 
   setupNavigationHandler() {

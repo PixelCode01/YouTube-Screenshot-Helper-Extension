@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "YouTube Screenshot Helper",
   "version": "1.2.0",
-  "description": "clean video screenshots(without video controls) with a single shortcut",
+  "description": "Grab clean video screenshots instantly with a single shortcut",
   
   "permissions": [
     "activeTab",

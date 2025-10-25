@@ -1,7 +1,3 @@
-
-
-console.log('YouTube Screenshot Helper: Options page loaded');
-
 class OptionsManager {
   constructor() {
     this.settings = {};
@@ -49,40 +45,15 @@ class OptionsManager {
     this.updateUI();
     this.initializeTheme();
     this.updateTitlePreview();
-    this.disableFolderOrganizationForEdge();
 
     if (this.settings.uploadToCloud) {
       this.tryAutoConnectToCloud(this.settings.cloudService);
     }
   }
 
-  disableFolderOrganizationForEdge() {
-
-    const organizeFoldersSelect = document.getElementById('organizeFolders');
-    const customFolderPatternContainer = document.getElementById('customFolderPatternContainer');
-    const folderPreview = document.getElementById('folderPreview');
-    
-    if (organizeFoldersSelect) {
-      organizeFoldersSelect.disabled = true;
-      organizeFoldersSelect.value = 'none';
-      organizeFoldersSelect.title = 'Folder organization is not supported in Microsoft Edge';
-    }
-    
-    if (customFolderPatternContainer) {
-      customFolderPatternContainer.style.display = 'none';
-    }
-    
-    if (folderPreview) {
-      folderPreview.style.display = 'none';
-    }
-    
-
-    this.updateSetting('organizeFolders', 'none');
-  }
-
   async loadSettings() {
     try {
-      const result = await browser.storage.sync.get(null);
+      const result = await chrome.storage.sync.get(null);
       this.settings = { ...this.defaults, ...result };
       if (!this.settings.cloudFolderSelections || typeof this.settings.cloudFolderSelections !== 'object') {
         this.settings.cloudFolderSelections = {};
@@ -97,7 +68,6 @@ class OptionsManager {
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        console.log('Tab clicked:', e.target.dataset.tab);
         this.switchTab(e.target.dataset.tab);
       });
     });
@@ -127,7 +97,6 @@ class OptionsManager {
     this.setupToggle('preventDefault');
     this.setupToggle('showFullscreenPopup');
     this.setupToggle('useCustomPath', () => {
-      console.log('OPTIONS: useCustomPath toggled to:', this.settings.useCustomPath);
       this.updateCustomPathVisibility();
     });
     this.setupToggle('silentDownloads');
@@ -184,7 +153,6 @@ class OptionsManager {
 
     this.setupControl('customDownloadPath', 'input', (e) => {
   const inputValue = e.target.value;
-  console.log('OPTIONS: customDownloadPath changed to:', JSON.stringify(inputValue));
       
 
       const isAbsolute = inputValue.startsWith('/') || inputValue.match(/^[a-zA-Z]:\\/);
@@ -218,14 +186,12 @@ class OptionsManager {
 
 
     this.setupControl('organizeFolders', 'change', (e) => {
-      console.log('OPTIONS: organizeFolders changed to:', e.target.value);
       this.updateSetting('organizeFolders', e.target.value);
       this.updateFolderOrganizationVisibility();
       this.updateFolderPreview();
     });
 
     this.setupControl('customFolderPattern', 'input', (e) => {
-      console.log('OPTIONS: customFolderPattern changed to:', e.target.value);
       this.updateSetting('customFolderPattern', e.target.value);
       this.updateFolderPreview();
     });
@@ -238,7 +204,7 @@ class OptionsManager {
 
 
     this.setupButton('openShortcutsBtn', () => {
-      browser.tabs.create({ url: 'edge://extensions/shortcuts' });
+      chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
     });
 
     this.setupButton('browsePathBtn', () => {
@@ -322,32 +288,23 @@ class OptionsManager {
   }
 
   async updateSetting(key, value) {
-  console.log(`OPTIONS: updateSetting called with key="${key}", value=${JSON.stringify(value)}`);
     
 
     if (key === 'useCustomPath' || key === 'customDownloadPath') {
-  console.log('Save path setting update:');
-  console.log(`  - Key: ${key}`);
-  console.log(`  - Value: ${JSON.stringify(value)}`);
-  console.log(`  - Value type: ${typeof value}`);
-  console.log('  - Current settings before update:', this.settings);
     }
     
     this.settings[key] = value;
     
     try {
-      await browser.storage.sync.set({ [key]: value });
-  console.log(`Setting updated successfully: ${key} = ${JSON.stringify(value)}`);
+      await chrome.storage.sync.set({ [key]: value });
       
 
       if (key === 'useCustomPath' || key === 'customDownloadPath') {
         setTimeout(async () => {
-          const verification = await browser.storage.sync.get([key]);
-          console.log(`Save path verification: ${key} saved as:`, verification[key]);
+          const verification = await chrome.storage.sync.get([key]);
           if (verification[key] !== value) {
             console.error(`Save path verification failed: expected ${JSON.stringify(value)}, received ${JSON.stringify(verification[key])}`);
           } else {
-            console.log(`Save path verification passed: ${key} correctly saved`);
           }
         }, 100);
       }
@@ -386,6 +343,17 @@ class OptionsManager {
     }
     if (browseBtn) {
       browseBtn.style.display = this.settings.useCustomPath ? 'inline-block' : 'none';
+    }
+  }
+
+  updateCloudServiceVisibility() {
+    const container = document.getElementById('cloudServiceContainer');
+    const connectBtn = document.getElementById('connectCloudBtn');
+    if (container) {
+      container.style.display = this.settings.uploadToCloud ? 'block' : 'none';
+    }
+    if (connectBtn) {
+      connectBtn.style.display = this.settings.uploadToCloud ? 'inline-block' : 'none';
     }
   }
 
@@ -490,6 +458,91 @@ class OptionsManager {
       this.showToast('Error selecting path. Please enter path manually.', 'error');
     }
   }
+
+
+  async setupCloudService() {
+    const service = this.settings.cloudService;
+    
+    try {
+
+      if (!window.CLOUD_CONFIG) {
+        const configScript = document.createElement('script');
+        configScript.src = '../utils/cloudConfig.js';
+        document.head.appendChild(configScript);
+        await new Promise(resolve => {
+          configScript.onload = resolve;
+          configScript.onerror = () => resolve();
+        });
+      }
+      
+
+      if (window.CLOUD_CONFIG) {
+        const isConfigured = service === 'google-drive' ? 
+          window.CLOUD_CONFIG.isConfigured('google') : 
+          false;
+          
+        if (!isConfigured && service === 'google-drive') {
+          const message = window.CLOUD_CONFIG.getConfigurationMessage('google');
+          this.showToast(message, 'warning');
+          
+
+          const setupUrl = 'https://developers.google.com/drive/api/quickstart/js';
+          chrome.tabs.create({ url: setupUrl });
+          return;
+        }
+      }
+      
+      switch (service) {
+        case 'google-drive':
+          await this.setupGoogleDrive();
+          break;
+        case 'none':
+          this.showToast('Cloud storage is disabled. Enable "Auto-Upload to Cloud" to configure.', 'info');
+          break;
+        default:
+          this.showToast('Please select a cloud service first', 'error');
+      }
+    } catch (error) {
+      console.error('Cloud setup failed:', error);
+      this.showToast(`Cloud setup failed: ${error.message}`, 'error');
+    }
+  }
+
+  async setupGoogleDrive() {
+    try {
+
+      if (!window.cloudStorageManager) {
+        const configScript = document.createElement('script');
+        configScript.src = '../utils/cloudConfig.js';
+        document.head.appendChild(configScript);
+        await new Promise(resolve => configScript.onload = resolve);
+        
+        const script = document.createElement('script');
+        script.src = '../utils/cloudStorage.js';
+        document.head.appendChild(script);
+        await new Promise(resolve => script.onload = resolve);
+      }
+
+      this.showToast('Connecting to Google Drive...', 'info');
+      const token = await window.cloudStorageManager.authenticateGoogleDrive();
+      
+      if (token) {
+        this.showToast('Google Drive connected successfully!', 'success');
+        this.updateCloudStatus();
+      } else {
+        throw new Error('Authentication failed');
+      }
+    } catch (error) {
+      console.error('Google Drive setup failed:', error);
+      this.showToast('Google Drive setup failed. Please try again.', 'error');
+    }
+  }
+
+  extractTokenFromUrl(url) {
+    const params = new URLSearchParams(url.split('#')[1]);
+    return params.get('access_token');
+  }
+
   showToast(message, type = 'info') {
 
     let toast = document.getElementById('toast');
@@ -746,8 +799,10 @@ class OptionsManager {
         select.value = defaultService;
       }
 
-      browser.storage.sync.set({ cloudService: defaultService }).catch(error => {
-        console.error('Failed to persist default cloud service:', error);
+      chrome.storage.sync.set({ cloudService: defaultService }, () => {
+        if (chrome.runtime.lastError) {
+          console.error('Failed to persist default cloud service:', chrome.runtime.lastError);
+        }
       });
 
       return defaultService;
@@ -766,7 +821,7 @@ class OptionsManager {
     }
 
     this.settings.cloudFolderSelections = selections;
-    await browser.storage.sync.set({ cloudFolderSelections: selections });
+    await chrome.storage.sync.set({ cloudFolderSelections: selections });
     return selection || null;
   }
 
@@ -986,7 +1041,7 @@ class OptionsManager {
           ? 'https://developers.google.com/drive/api/quickstart/js'
           : 'https://learn.microsoft.com/azure/active-directory/develop/quickstart-register-app?tabs=azure-portal';
         this.showToast(`${providerName} client ID not configured. Opening setup instructions...`, 'warning');
-        browser.tabs.create({ url: docsUrl });
+        chrome.tabs.create({ url: docsUrl });
 
   if (statusIndicator) statusIndicator.textContent = 'warn';
         if (statusText) statusText.textContent = 'Requires configuration';
@@ -1480,7 +1535,7 @@ class OptionsManager {
           });
           
 
-          browser.storage.sync.set(this.settings).then(() => {
+          chrome.storage.sync.set(this.settings).then(() => {
 
             this.updateUI();
             this.updateTitlePreview();
@@ -1513,8 +1568,8 @@ class OptionsManager {
         this.settings = { ...this.defaults };
         
 
-        browser.storage.sync.clear().then(() => {
-          return browser.storage.sync.set(this.settings);
+        chrome.storage.sync.clear().then(() => {
+          return chrome.storage.sync.set(this.settings);
         }).then(() => {
 
           this.updateUI();

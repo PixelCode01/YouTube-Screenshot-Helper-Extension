@@ -1,46 +1,13 @@
-console.log('YouTube Screenshot Helper: Popup loaded');
-
-class PopupErrorHandler {
-  constructor() {
-    this.context = 'popup';
-  }
-
-  handleError(error, operation) {
-    const errorInfo = {
-      message: error.message || 'Unknown error',
-      context: this.context,
-      operation,
-      timestamp: new Date().toISOString()
-    };
-
-    console.error(`=== ERROR in ${this.context} (${operation}) ===`);
-    console.error(`Message: ${errorInfo.message}`);
-    console.error(`Stack: ${error.stack}`);
-
-    return errorInfo;
-  }
-
-  async handleAsyncOperation(asyncFn, operation) {
-    try {
-      return await asyncFn();
-    } catch (error) {
-      const errorInfo = this.handleError(error, operation);
-      return { success: false, error: errorInfo };
-    }
-  }
-}
-
 class PopupManager {
   constructor() {
     this.currentTab = null;
     this.settings = {};
-    this.errorHandler = new PopupErrorHandler();
     this.init();
   }
 
   async init() {
-    const result = await this.errorHandler.handleAsyncOperation(async () => {
-      const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       this.currentTab = tabs[0];
 
       await this.loadSettings();
@@ -50,17 +17,15 @@ class PopupManager {
 
       await this.checkExtensionStatus();
       
-      return { success: true };
-    }, 'popup initialization');
-
-    if (!result.success) {
+    } catch (error) {
+      console.error('Popup initialization failed:', error);
       this.showNotification('Failed to initialize popup', 'error');
     }
   }
 
   async loadSettings() {
-    const result = await this.errorHandler.handleAsyncOperation(async () => {
-      const storageResult = await browser.storage.sync.get();
+    try {
+      const result = await chrome.storage.sync.get();
       this.settings = {
         enabledSites: ['youtube.com', 'vimeo.com', 'twitch.tv'],
         fullscreenShortcut: 'shift+enter',
@@ -91,13 +56,10 @@ class PopupManager {
         fullscreenPopupDuration: 3,
         useCustomPath: false,
         customDownloadPath: '',
-        ...storageResult
+        ...result
       };
-      return { success: true };
-    }, 'load settings');
-
-    if (!result.success) {
-      console.warn('Using default settings due to load failure');
+    } catch (error) {
+      console.error('Failed to load settings:', error);
     }
   }
 
@@ -107,7 +69,7 @@ class PopupManager {
     });
 
     document.getElementById('settingsBtn').addEventListener('click', () => {
-      browser.runtime.openOptionsPage();
+      chrome.runtime.openOptionsPage();
       window.close();
     });
 
@@ -124,11 +86,11 @@ class PopupManager {
     });
 
     document.getElementById('helpBtn').addEventListener('click', () => {
-      browser.tabs.create({ url: 'https://github.com/your-repo/youtube-screenshot-helper#readme' });
+      chrome.tabs.create({ url: 'https://github.com/your-repo/youtube-screenshot-helper#readme' });
     });
 
     document.getElementById('feedbackBtn').addEventListener('click', () => {
-      browser.tabs.create({ url: 'https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/issues' });
+      chrome.tabs.create({ url: 'https://github.com/PixelCode01/YouTube-Screenshot-Helper-Extension/issues' });
     });
 
     document.querySelector('.notification-close').addEventListener('click', () => {
@@ -203,7 +165,7 @@ class PopupManager {
       'Shift+KeyW': 'Shift+W',
       'Shift+KeyX': 'Shift+X',
       'Shift+KeyY': 'Shift+Y',
-  'Shift+KeyZ': 'Shift+Z',
+      'Shift+KeyZ': 'Shift+Z',
       'KeyS': 'S',
       'KeyA': 'A',
       'KeyB': 'B',
@@ -239,7 +201,7 @@ class PopupManager {
     if (!this.currentTab) return;
 
     try {
-      const response = await browser.tabs.sendMessage(this.currentTab.id, {
+      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
         action: 'getStatus'
       });
 
@@ -247,7 +209,6 @@ class PopupManager {
       this.updatePageInfo(response);
       
     } catch (error) {
-      console.log('Content script not loaded or tab not supported');
       this.updateStatusIndicator({ initialized: false });
       this.updatePageInfo({ 
         initialized: false, 
@@ -309,7 +270,7 @@ class PopupManager {
     }
 
     try {
-      const response = await browser.tabs.sendMessage(this.currentTab.id, {
+      const response = await chrome.tabs.sendMessage(this.currentTab.id, {
         action: 'captureScreenshot'
       });
 
@@ -329,17 +290,15 @@ class PopupManager {
   async updateSetting(key, value) {
     try {
       this.settings[key] = value;
-      await browser.storage.sync.set({ [key]: value });
+      await chrome.storage.sync.set({ [key]: value });
       
       if (this.currentTab) {
-        browser.tabs.sendMessage(this.currentTab.id, {
+        chrome.tabs.sendMessage(this.currentTab.id, {
           action: 'updateSettings'
-        }).catch(() => {
-        });
+        }).catch(() => {});
       }
       
       this.showNotification('Setting updated', 'success');
-      
     } catch (error) {
       console.error('Failed to update setting:', error);
       this.showNotification('Failed to update setting', 'error');
@@ -367,10 +326,4 @@ class PopupManager {
 
 document.addEventListener('DOMContentLoaded', () => {
   new PopupManager();
-});
-
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'popupUpdate') {
-    console.log('Popup update received:', message);
-  }
 });

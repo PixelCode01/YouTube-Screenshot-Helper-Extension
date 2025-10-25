@@ -1,36 +1,17 @@
 
 
-
 class ScreenshotManager {
   constructor() {
     this.settings = null;
     this.canvas = null;
     this.context = null;
-    this.isReady = false;
-    this.readyPromise = this.init();
-
-
-    Object.getOwnPropertyNames(Object.getPrototypeOf(this))
-      .filter(prop => typeof this[prop] === 'function' && prop !== 'constructor')
-      .forEach(method => { this[method] = this[method].bind(this); });
+    this.init();
   }
 
   async init() {
-    try {
-      this.settings = await window.storageManager.getSettings();
-      this.createCanvas();
-      this.cleanupExistingPopups();
-      this.isReady = true;
-      console.log('ScreenshotManager: Initialized successfully.');
-    } catch (error) {
-      console.error('ScreenshotManager: Failed to initialize.', error);
-
-      this.isReady = false;
-    }
-  }
-
-  async ready() {
-    return this.readyPromise;
+    this.settings = await window.storageManager.getSettings();
+    this.createCanvas();
+    this.cleanupExistingPopups();
   }
 
   createCanvas() {
@@ -53,28 +34,11 @@ class ScreenshotManager {
   }
 
   async captureScreenshot(metadata = {}, forcePreview = false, skipAnnotation = false) {
-    console.log('ScreenshotManager: Starting screenshot capture');
-
-
-    await this.ready();
-
-    if (!this.isReady || !this.settings) {
-      console.error('ScreenshotManager: Cannot capture, manager not ready or settings failed to load.');
-      this.showNotification('Screenshot Manager failed to initialize. Please reload the page.', 'error');
-      return;
-    }
-    
     try {
-
       const siteConfig = await this.checkSiteConfiguration();
-      
-
       let video = this.findVideoElement();
       
       if (!video) {
-        console.log('ScreenshotManager: No video found immediately, checking if this is an educational platform...');
-        
-
         const hostname = window.location.hostname.toLowerCase();
         const isEducationalPlatform = hostname.includes('iit') || 
                                     hostname.includes('nptel') || 
@@ -87,14 +51,11 @@ class ScreenshotManager {
                                     hostname.includes('university') ||
                                     hostname.includes('academic');
         
-
         const isIITMadras = hostname.includes('seek.onlinedegree.iitm.ac.in') ||
                            hostname.includes('iitm.ac.in') ||
                            hostname.includes('seek.') && hostname.includes('iit');
         
         const waitTime = (isEducationalPlatform || isIITMadras) ? 10000 : 3000;
-        console.log(`ScreenshotManager: Educational platform detected: ${isEducationalPlatform}, IIT Madras: ${isIITMadras}, waiting ${waitTime}ms...`);
-        
         video = await this.waitForVideoElement(waitTime);
       }
       
@@ -103,83 +64,45 @@ class ScreenshotManager {
         if (!siteConfig.isEnabledSite) {
           errorMessage = `This site (${siteConfig.hostname}) is not in your enabled sites list. Add it to custom sites in extension settings to use the screenshot feature.`;
         } else {
-          const iitMadrasHints = siteConfig.hostname.includes('seek.onlinedegree.iitm.ac.in') || siteConfig.hostname.includes('iitm.ac.in')
-            ? '- Aggressive detection logic enabled for IIT Madras\n- Extended ten second wait applied\n- Fallback to any video element attempted\n- Check the console for additional diagnostics'
-            : '- Standard educational platform detection used\n- Consider adding custom video selectors if needed';
-
-          errorMessage = `No video element found on this page. Possible causes include:
-- The video player has not finished loading
-- The video is embedded in a way the extension cannot detect automatically
-- The site uses a custom video player that is not yet supported
-- Refreshing the page may help once the video is fully loaded
-
-Site: ${siteConfig.hostname}
-
-IIT Madras diagnostics:
-${iitMadrasHints}`;
+          errorMessage = `No video element found on this page. The video player may not have finished loading yet. Please wait and try again.`;
         }
         
         console.error('ScreenshotManager:', errorMessage);
         this.showNotification(errorMessage, 'error');
-        
-
-        console.log('ScreenshotManager: Debugging info:');
-        console.log('- Total video elements:', document.querySelectorAll('video').length);
-        console.log('- Total iframes:', document.querySelectorAll('iframe').length);
-        console.log('- Page URL:', window.location.href);
-        console.log('- Page title:', document.title);
-        console.log('- Site enabled:', siteConfig.isEnabledSite);
-        
         throw new Error('No video element found');
       }
 
-      console.log('ScreenshotManager: Video element found, proceeding with capture');
-
-
       let wasPlaying = false;
-      
       if (video && !video.paused) {
         wasPlaying = true;
         video.pause();
-        console.log('ScreenshotManager: Video paused (was playing)');
       }
-
 
       let hiddenElements = [];
       if (this.settings.autoHideControls) {
         hiddenElements = this.hideVideoControls();
-        console.log('ScreenshotManager: Controls hidden');
       }
-
 
       const delay = this.settings.captureDelay || 100;
       await this.sleep(delay);
 
-
       const dataUrl = await this.captureVideoFrame(video);
       
-
       if (hiddenElements.length > 0) {
         this.restoreVideoControls(hiddenElements);
-        console.log('ScreenshotManager: Controls restored');
       }
-
 
       if (wasPlaying && video) {
         setTimeout(() => {
           video.play();
-          console.log('ScreenshotManager: Video resumed');
         }, 200);
       }
 
-
       if (dataUrl) {
         await this.processScreenshot(dataUrl, metadata, forcePreview, skipAnnotation);
-        console.log('ScreenshotManager: Screenshot captured successfully');
       } else {
         throw new Error('Failed to capture screenshot');
       }
-
     } catch (error) {
       console.error('ScreenshotManager: Error capturing screenshot:', error);
       this.showNotification('Failed to capture screenshot: ' + error.message, 'error');
@@ -187,24 +110,16 @@ ${iitMadrasHints}`;
   }
 
   findVideoElement() {
-
     const selectors = [
-
       '.video-stream',
       '.html5-video-player video',
       '#movie_player video',
       'video.video-stream',
-      
-
       '.vp-video',
       '.vp-video-wrapper video',
       '.player video',
-      
-
       'video[data-a-target="video-player"]',
       '.video-player video',
-      
-
       '.lesson-video video',
       '.course-video video',
       '.lecture-video video',
@@ -215,8 +130,6 @@ ${iitMadrasHints}`;
       '.media-wrapper video',
       '.content-video video',
       '.stream-video video',
-      
-
       '.nptel-player video',
       '.swayam-player video',
       '.mooc-player video',
@@ -230,8 +143,6 @@ ${iitMadrasHints}`;
       '.lecture-player video',
       '.module-video video',
       '.chapter-video video',
-      
-
       '.seek-video video',
       '.seek-player video',
       '.player-seek video',
@@ -249,14 +160,10 @@ ${iitMadrasHints}`;
       '.media-video video',
       '.embed-video video',
       '.iframe-video video',
-      
-
       '[class*="video"] video',
       '[class*="player"] video',
       '[id*="video"] video',
       '[id*="player"] video',
-      
-
       '.academic-video video',
       '.university-video video',
       '.iit-video video',
@@ -265,8 +172,6 @@ ${iitMadrasHints}`;
       '.education-video video',
       '.online-course video',
       '.e-learning video',
-      
-
       '.video-js video',
       '.vjs-tech',
       '.videojs video',
@@ -274,8 +179,6 @@ ${iitMadrasHints}`;
       '.plyr__video',
       '.jwplayer video',
       '.flowplayer video',
-      
-
       'video[src]',
       'video[poster]',
       'video[width]',
@@ -292,112 +195,57 @@ ${iitMadrasHints}`;
       '.player video',
       '#video-player video',
       '.video-element video',
-      
-
       '.video-content video',
       '.lesson-content video',
       '.course-content video',
       '.learning-video video',
       '.tutorial-video video',
       '.training-video video',
-      
-
       'iframe video',
-      
-
       'video'
     ];
 
-    console.log('ScreenshotManager: Looking for video elements...');
-    console.log('ScreenshotManager: Current URL:', window.location.href);
-
-
     const allVideos = document.querySelectorAll('video');
-    console.log('ScreenshotManager: Total video elements found:', allVideos.length);
-
-
-    allVideos.forEach((video, index) => {
-      console.log(`Video ${index + 1}:`, {
-        element: video,
-        src: video.src || video.currentSrc || 'no src',
-        videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight,
-        clientWidth: video.clientWidth,
-        clientHeight: video.clientHeight,
-        paused: video.paused,
-        readyState: video.readyState,
-        networkState: video.networkState,
-        duration: video.duration,
-        currentTime: video.currentTime,
-        classList: Array.from(video.classList),
-        id: video.id,
-        parentElement: video.parentElement?.tagName,
-        style: {
-          display: getComputedStyle(video).display,
-          visibility: getComputedStyle(video).visibility,
-          opacity: getComputedStyle(video).opacity
-        }
-      });
-    });
-
 
     for (const selector of selectors) {
       const videos = document.querySelectorAll(selector);
       for (const video of videos) {
         if (video && video.videoWidth && video.videoHeight && !video.paused) {
-          console.log('Found playing video with dimensions:', video.videoWidth + 'x' + video.videoHeight, 'using selector:', selector);
           return video;
         }
       }
     }
-
 
     for (const selector of selectors) {
       const videos = document.querySelectorAll(selector);
       for (const video of videos) {
         if (video && video.videoWidth && video.videoHeight) {
-          console.log('Found video with dimensions:', video.videoWidth + 'x' + video.videoHeight, 'using selector:', selector);
           return video;
         }
       }
     }
 
-
     for (const video of allVideos) {
       if (video && video.readyState >= 1 && video.clientWidth > 100 && video.clientHeight > 50) {
-        console.log('Found loaded video by readyState:', {
-          readyState: video.readyState,
-          clientSize: video.clientWidth + 'x' + video.clientHeight
-        });
         return video;
       }
     }
-
 
     for (const video of allVideos) {
       if (video && (video.videoWidth > 0 || video.clientWidth > 100)) {
         const style = getComputedStyle(video);
         if (style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0') {
-          console.log('Found fallback video:', {
-            videoSize: video.videoWidth + 'x' + video.videoHeight,
-            clientSize: video.clientWidth + 'x' + video.clientHeight,
-            display: style.display,
-            visibility: style.visibility
-          });
           return video;
         }
       }
     }
 
-
     for (const video of allVideos) {
       const style = getComputedStyle(video);
       if (style.display !== 'none' && style.visibility !== 'hidden') {
-        console.log('Found any visible video (last resort):', video);
         return video;
       }
     }
-
 
     const hostname = window.location.hostname.toLowerCase();
     const isEducationalPlatform = hostname.includes('iit') || hostname.includes('nptel') || 
@@ -410,10 +258,7 @@ ${iitMadrasHints}`;
                        hostname.includes('seek.') && hostname.includes('iit');
     
     if (isEducationalPlatform || isIITMadras) {
-      console.log(`ScreenshotManager: Educational platform detected (${hostname}), trying more lenient video detection...`);
-      
       for (const video of allVideos) {
-
         if (video.readyState >= 1 ||
             video.networkState !== HTMLMediaElement.NETWORK_EMPTY ||
             video.currentTime > 0 ||
@@ -422,63 +267,28 @@ ${iitMadrasHints}`;
             video.clientWidth > 30 ||
             video.offsetWidth > 30 ||
             video.getBoundingClientRect().width > 30) {
-          
-          console.log('ScreenshotManager: Found educational platform video (lenient detection):', {
-            hostname: hostname,
-            readyState: video.readyState,
-            networkState: video.networkState,
-            hasSource: !!(video.src || video.currentSrc),
-            clientWidth: video.clientWidth,
-            offsetWidth: video.offsetWidth,
-            boundingWidth: video.getBoundingClientRect().width,
-            currentTime: video.currentTime,
-            duration: video.duration,
-            classList: Array.from(video.classList),
-            id: video.id,
-            tagName: video.tagName
-          });
-          
           return video;
         }
       }
-      
 
       if (isIITMadras && allVideos.length > 0) {
-        console.log('ScreenshotManager: IIT Madras ultra-lenient fallback - using first video found');
-        const video = allVideos[0];
-        console.log('ScreenshotManager: IIT Madras fallback video:', {
-          element: video,
-          src: video.src || video.currentSrc || 'no source',
-          parent: video.parentElement?.tagName,
-          classList: Array.from(video.classList),
-          id: video.id,
-          clientRect: video.getBoundingClientRect()
-        });
-        return video;
+        return allVideos[0];
       }
     }
 
-
     const iframes = document.querySelectorAll('iframe');
-    console.log('ScreenshotManager: Checking', iframes.length, 'iframes for videos');
-    
     for (const iframe of iframes) {
       try {
         const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
         if (iframeDoc) {
           const iframeVideos = iframeDoc.querySelectorAll('video');
-          console.log('Found', iframeVideos.length, 'videos in iframe:', iframe.src);
           if (iframeVideos.length > 0) {
             return iframeVideos[0];
           }
         }
-      } catch (e) {
-
-        console.log('Cannot access iframe content (cross-origin):', iframe.src);
-      }
+      } catch (e) {}
     }
 
-    console.log('ScreenshotManager: No suitable video element found');
     return null;
   }
 
@@ -547,31 +357,19 @@ ${iitMadrasHints}`;
 
   async captureVideoFrame(video) {
     if (!video) {
-
-      console.log('ScreenshotManager: No video element found, attempting page capture');
       throw new Error('No video element found on this page. Try adding this site to custom sites in settings.');
     }
 
 
     if (!video.videoWidth || !video.videoHeight) {
-
-      console.log('ScreenshotManager: Video found but no dimensions, checking for IIT Madras...');
-      
       const hostname = window.location.hostname.toLowerCase();
       const isIITMadras = hostname.includes('seek.onlinedegree.iitm.ac.in') ||
                          hostname.includes('iitm.ac.in') ||
                          (hostname.includes('seek.') && hostname.includes('iit'));
       
       if (isIITMadras) {
-        console.log('ScreenshotManager: IIT Madras detected - using client dimensions as fallback');
-        
-
         const clientWidth = video.clientWidth || video.offsetWidth || 640;
         const clientHeight = video.clientHeight || video.offsetHeight || 360;
-        
-        console.log('ScreenshotManager: Using client dimensions:', clientWidth + 'x' + clientHeight);
-        
-
         this.canvas.width = clientWidth;
         this.canvas.height = clientHeight;
         
@@ -581,12 +379,8 @@ ${iitMadrasHints}`;
           
 
           const dataUrl = this.canvas.toDataURL('image/png', this.settings.screenshotQuality || 0.9);
-          
-          console.log('ScreenshotManager: IIT Madras fallback capture successful');
           return dataUrl;
         } catch (error) {
-          console.log('ScreenshotManager: IIT Madras fallback capture failed:', error.message);
-
         }
       }
       
@@ -596,19 +390,14 @@ ${iitMadrasHints}`;
       if (!video.videoWidth || !video.videoHeight) {
 
         if (isIITMadras) {
-          console.log('ScreenshotManager: IIT Madras final attempt with minimal dimensions');
-          
           this.canvas.width = 640;
           this.canvas.height = 360;
           
           try {
             this.context.drawImage(video, 0, 0, 640, 360);
             const dataUrl = this.canvas.toDataURL('image/png', this.settings.screenshotQuality || 0.9);
-            
-            console.log('ScreenshotManager: IIT Madras minimal dimensions capture successful');
             return dataUrl;
           } catch (error) {
-            console.log('ScreenshotManager: IIT Madras minimal dimensions capture failed:', error.message);
           }
         }
         
@@ -630,178 +419,54 @@ ${iitMadrasHints}`;
   async processScreenshot(dataUrl, metadata = {}, forcePreview = false, skipAnnotation = false) {
 
     await this.updateSettings();
-    
-    console.log('=== SCREENSHOT PROCESSING DEBUG ===');
-    console.log('processScreenshot called with:');
-    console.log('  - forcePreview:', forcePreview);
-    console.log('  - skipAnnotation:', skipAnnotation);
-    console.log('  - settings.annotationMode:', this.settings.annotationMode);
-    console.log('  - settings.disablePreviewByDefault:', this.settings.disablePreviewByDefault);
-    
-
     const combinedMetadata = {
       ...this.extractVideoMetadata(),
-      ...metadata,
+      ...metadata
     };
-
-    const filename = window.storageManager.generateFilename(this.settings.filenameTemplate, combinedMetadata);
     
-    console.log('Generated filename:', filename);
-    
-
-    const shouldShowAnnotation = !skipAnnotation && this.settings.annotationMode;
-    const shouldShowPreview = !shouldShowAnnotation && this.shouldShowPreview(forcePreview, skipAnnotation);
-
-    if (shouldShowAnnotation) {
-      console.log('=== ANNOTATION/PREVIEW DECISION ===');
-  console.log('Annotation mode is on, showing annotation interface.');
+    const filename = this.generateCustomFilename(combinedMetadata, this.settings.filenameTemplate);
+    const shouldShowPreview = !skipAnnotation && this.shouldShowPreview(forcePreview);
+    if (shouldShowPreview) {
       this.showAnnotationInterface(dataUrl, filename);
-    } else if (shouldShowPreview) {
-      console.log('=== ANNOTATION/PREVIEW DECISION ===');
-  console.log('Annotation is off, but preview is enabled. Showing screenshot preview.');
-      this.showScreenshotPreview(dataUrl, filename);
     } else {
-      console.log('=== DIRECT DOWNLOAD MODE ===');
-      console.log('Calling downloadScreenshot directly...');
-      try {
-        await this.downloadScreenshot(dataUrl, filename);
-  console.log('Direct download completed successfully');
-        
+      await this.downloadScreenshot(dataUrl, filename);
+      
 
-        if (this.settings.uploadToCloud && this.settings.cloudService !== 'none') {
-          console.log('Starting cloud upload...');
-          await this.uploadToCloud(dataUrl, filename);
-          console.log('Cloud upload completed');
-        }
-        
-        this.showNotification(`Screenshot saved as: ${filename}`, 'success');
-      } catch (error) {
-  console.error('Direct download failed:', error);
-        this.showNotification(`Download failed: ${error.message}`, 'error');
-        return;
+      if (this.settings.uploadToCloud && this.settings.cloudService !== 'none') {
+        await this.uploadToCloud(dataUrl, filename);
       }
     }
+
+    this.showNotification(`Screenshot saved as: ${filename}`, 'success');
   }
 
-  shouldShowPreview(forcePreview = false, skipAnnotation = false) {
-    console.log('ScreenshotManager: shouldShowPreview check - forcePreview:', forcePreview, 'skipAnnotation:', skipAnnotation);
-    console.log('ScreenshotManager: Settings - disablePreviewByDefault:', this.settings.disablePreviewByDefault);
-
-
-    if (skipAnnotation) {
-        return false;
-    }
-
-
+  shouldShowPreview(forcePreview = false) {
     if (forcePreview) {
-      console.log('ScreenshotManager: Forcing preview due to forcePreview=true');
       return true;
     }
+    
 
-
-    if (this.settings.disablePreviewByDefault) {
-      console.log('ScreenshotManager: Preview disabled by default setting');
+    if (this.settings.disablePreviewByDefault === true) {
       return false;
     }
+    
 
-
-    console.log('ScreenshotManager: Showing preview by default.');
-    return true;
-  }
-
-  showScreenshotPreview(dataUrl, filename) {
-    this.cleanupExistingPopups();
-
-    const popup = document.createElement('div');
-    popup.className = 'fullscreen-screenshot-popup';
-    popup.innerHTML = `
-      <div class="preview-container">
-        <div class="preview-header">
-          <h3>Screenshot Preview</h3>
-          <button class="close-btn" title="Close">&times;</button>
-        </div>
-        <div class="preview-image-container">
-          <img src="${dataUrl}" alt="Screenshot preview" />
-        </div>
-        <div class="preview-footer">
-          <button class="save-btn">Save Screenshot</button>
-        </div>
-      </div>
-    `;
-
-    document.body.appendChild(popup);
-
-    const close = () => document.body.removeChild(popup);
-
-    popup.querySelector('.close-btn').addEventListener('click', close);
-    popup.querySelector('.save-btn').addEventListener('click', async () => {
-      console.log('=== SAVE BUTTON CLICKED ===');
-      console.log('Starting download process...');
-      console.log('Filename:', filename);
-      console.log('DataURL length:', dataUrl ? dataUrl.length : 'null');
-      
-      try {
-        await this.downloadScreenshot(dataUrl, filename);
-  console.log('Download completed successfully');
-        
-
-        if (this.settings.uploadToCloud && this.settings.cloudService !== 'none') {
-          console.log('Starting cloud upload...');
-          await this.uploadToCloud(dataUrl, filename);
-          console.log('Cloud upload completed');
-        }
-      } catch (error) {
-  console.error('Save button error:', error);
-      }
-      
-      console.log('Closing preview popup...');
-      close();
-      console.log('=== SAVE BUTTON PROCESS COMPLETE ===');
-    });
+    const shouldShow = this.settings.annotationMode === true;
+    return shouldShow;
   }
 
   async downloadScreenshot(dataUrl, filename) {
     try {
-      console.log('=== ScreenshotManager: DOWNLOAD DEBUG START ===');
-      console.log('ScreenshotManager: Starting download process');
-      console.log('Initial filename:', filename);
-      
-
       if (!this.settings) {
-        console.error('CRITICAL: Settings not loaded!');
+        console.error('Settings not loaded');
         this.settings = await window.storageManager.getSettings();
-        console.log('Reloaded settings:', this.settings);
       }
-      
-      console.log('Current settings state:');
-      console.log('- organizeFolders:', this.settings.organizeFolders);
-      console.log('- useCustomPath:', this.settings.useCustomPath);
-      console.log('- customDownloadPath:', this.settings.customDownloadPath);
-      console.log('- customFolderPattern:', this.settings.customFolderPattern);
-      
 
       let folderPath = '';
       if (this.settings.organizeFolders && this.settings.organizeFolders !== 'none') {
-  console.log('Folder organization enabled:', this.settings.organizeFolders);
-        
         const metadata = this.extractVideoMetadata();
-        console.log('Extracted metadata:');
-        console.log('- site:', metadata.site);
-        console.log('- title:', metadata.title);
-        console.log('- channelName:', metadata.channelName);
-        console.log('- playlistName:', metadata.playlistName);
-        console.log('- currentTime:', metadata.currentTime);
-        
         folderPath = this.generateFolderPath(metadata);
-  console.log('Generated folder path:', folderPath);
-        
-        if (!folderPath) {
-          console.warn('WARNING: generateFolderPath returned empty string!');
-        }
-      } else {
-  console.log('Folder organization disabled or set to none');
       }
-
 
       const downloadMessage = {
         action: 'downloadScreenshot',
@@ -810,54 +475,30 @@ ${iitMadrasHints}`;
         folderPath: folderPath,
         silentDownloads: !!this.settings.silentDownloads
       };
-      
-      console.log('Sending download message to background script:');
-      console.log('- action:', downloadMessage.action);
-      console.log('- filename:', downloadMessage.filename);
-      console.log('- folderPath:', downloadMessage.folderPath);
-      console.log('- silentDownloads:', downloadMessage.silentDownloads);
-      console.log('- dataUrl length:', downloadMessage.dataUrl ? downloadMessage.dataUrl.length : 'null');
-      
-      const response = await browser.runtime.sendMessage(downloadMessage);
-      
-      console.log('Background script response:', response);
 
+      const response = await chrome.runtime.sendMessage(downloadMessage);
       if (!response || !response.success) {
         throw new Error(response?.error || 'Unknown download error');
       }
-      
-  console.log('Download completed successfully with ID:', response.downloadId);
-      console.log('=== ScreenshotManager: DOWNLOAD DEBUG END ===');
     } catch (error) {
-      console.error('=== DOWNLOAD ERROR ===');
-      console.error('Error details:', error);
-      console.error('Error stack:', error.stack);
+      console.error('Download error:', error);
       
-
       if (error.message && (
           error.message.includes('Extension context invalidated') ||
           error.message.includes('receiving end does not exist') ||
           error.message.includes('Could not establish connection')
         )) {
-        console.log('Extension context invalidated - using fallback download');
         this.showNotification('Extension was reloaded, using direct download fallback', 'warning');
       } else {
-        console.log('Download failed - using fallback download');
         this.showNotification('Download failed, using direct download fallback', 'warning');
       }
-      
-      console.log('Falling back to direct download');
       this.fallbackDownload(dataUrl, filename);
-      console.log('=== DOWNLOAD ERROR END ===');
     }
   }
 
-  
   async uploadToCloud(dataUrl, filename) {
     try {
       const service = this.settings.cloudService;
-  console.log(`Uploading to cloud service: ${service}`);
-
       if (!window.cloudStorageManager) {
         throw new Error('Cloud storage manager not available. Please check extension setup.');
       }
@@ -880,7 +521,7 @@ ${iitMadrasHints}`;
       this.showNotification(`Screenshot uploaded to ${providerName}!`, 'success');
       return result;
     } catch (error) {
-  console.error('Cloud upload failed:', error);
+      console.error('Cloud upload failed:', error);
       this.showNotification(`Cloud upload failed: ${error.message}`, 'error');
       throw error;
     }
@@ -914,12 +555,7 @@ ${iitMadrasHints}`;
 
 
   generateFolderPath(metadata) {
-    console.log('=== FOLDER PATH GENERATION DEBUG ===');
-    console.log('Input metadata:', metadata);
-    console.log('Settings organizeFolders:', this.settings.organizeFolders);
-    
     if (!this.settings.organizeFolders || this.settings.organizeFolders === 'none') {
-  console.log('Folder organization is disabled, returning empty string');
       return '';
     }
 
@@ -928,82 +564,56 @@ ${iitMadrasHints}`;
     switch (this.settings.organizeFolders) {
       case 'channel':
         folderName = metadata.channelName || 'Unknown Channel';
-  console.log('Channel folder:', folderName);
         break;
       case 'playlist':
         folderName = metadata.playlistName || metadata.channelName || 'No Playlist';
-  console.log('Playlist folder:', folderName);
         break;
       case 'video':
         folderName = metadata.title || 'Unknown Video';
-  console.log('Video folder:', folderName);
         break;
       case 'date':
         folderName = new Date().toISOString().split('T')[0];
-  console.log('Date folder:', folderName);
         break;
       case 'channel-date':
         const channelName = metadata.channelName || 'Unknown Channel';
         const date = new Date().toISOString().split('T')[0];
         folderName = `${channelName}/${date}`;
-  console.log('Channel-Date folder:', folderName);
         break;
       case 'channel-video':
         const channelName2 = metadata.channelName || 'Unknown Channel';
         const videoTitle = metadata.title || 'Unknown Video';
         folderName = `${channelName2}/${videoTitle}`;
-  console.log('Channel-Video folder:', folderName);
         break;
       case 'date-channel':
         const date2 = new Date().toISOString().split('T')[0];
         const channelName3 = metadata.channelName || 'Unknown Channel';
         folderName = `${date2}/${channelName3}`;
-  console.log('Date-Channel folder:', folderName);
         break;
       case 'channel-playlist':
         const channelName4 = metadata.channelName || 'Unknown Channel';
         const playlistName = metadata.playlistName || 'No Playlist';
         folderName = `${channelName4}/${playlistName}`;
-  console.log('Channel-Playlist folder:', folderName);
         break;
       case 'custom':
-
         if (this.settings.customFolderPattern) {
-          console.log('Using custom pattern:', this.settings.customFolderPattern);
           folderName = this.applyTemplate(this.settings.customFolderPattern, metadata);
-
           folderName = folderName.replace('.png', '');
-          console.log('Custom folder after template:', folderName);
-        } else {
-          console.warn('WARNING: Custom folder selected but no pattern provided!');
         }
         break;
       default:
-        console.error('ERROR: Unknown organization type:', this.settings.organizeFolders);
         return '';
     }
 
-    console.log('Raw folder name before cleaning:', folderName);
-
-
-
     const pathParts = folderName.split('/');
-    console.log('Path parts before cleaning:', pathParts);
-    
     const cleanedParts = pathParts.map(part => 
       part
-        .replace(/[<>:"|?*\\]/g, '_') // Remove illegal chars but keep forward slash
+        .replace(/[<>:"|?*\\]/g, '_')
         .replace(/\s+/g, ' ')
         .trim()
         .substring(0, 50)
     ).filter(part => part.length > 0);
-    
-    console.log('Path parts after cleaning:', cleanedParts);
-    
-    folderName = cleanedParts.join('/');
-  console.log('Final cleaned folder path:', folderName);
-    console.log('=== FOLDER PATH GENERATION END ===');
 
+    folderName = cleanedParts.join('/');
     return folderName;
   }
 
@@ -1150,8 +760,6 @@ ${iitMadrasHints}`;
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Tool button clicked:', btn.dataset.tool);
-        
         currentTool = btn.dataset.tool;
         overlay.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -1204,8 +812,6 @@ ${iitMadrasHints}`;
       
 
       pushToUndoStack();
-      
-      console.log('Mouse down at:', startX, startY, 'Tool:', currentTool);
     });
 
     canvas.addEventListener('mousemove', (e) => {
@@ -1354,7 +960,6 @@ ${iitMadrasHints}`;
         
 
         storeOriginalImage();
-        console.log('Mouse up - drawing completed');
       }
     });
 
@@ -1362,8 +967,6 @@ ${iitMadrasHints}`;
     overlay.querySelector('.download-btn').addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Download button clicked');
-      
       const annotatedDataUrl = canvas.toDataURL('image/png');
       this.downloadScreenshot(annotatedDataUrl, filename);
       document.body.removeChild(overlay);
@@ -1373,8 +976,6 @@ ${iitMadrasHints}`;
     overlay.querySelector('.close-btn').addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      console.log('Close button clicked');
-      
       document.body.removeChild(overlay);
     });
   }
@@ -1447,7 +1048,79 @@ ${iitMadrasHints}`;
   async updateSettings() {
 
     this.settings = await window.storageManager.getSettings();
-    console.log('ScreenshotManager: Settings updated', this.settings);
+  }
+
+  sanitizeFilePart(value, maxLength = 100) {
+    if (!value || typeof value !== 'string') {
+      return '';
+    }
+
+    return value
+      .replace(/[\t\n\r]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .replace(/[<>:"/\\|?*]/g, '_')
+      .trim()
+      .substring(0, maxLength);
+  }
+
+  getYouTubePlayerDetails() {
+    try {
+      const initialDetails = window.ytInitialPlayerResponse?.videoDetails;
+      if (initialDetails && typeof initialDetails.title === 'string') {
+        return initialDetails;
+      }
+
+      const ytPlayerArgs = window.ytplayer?.config?.args;
+      if (ytPlayerArgs?.player_response) {
+        const response = typeof ytPlayerArgs.player_response === 'string'
+          ? JSON.parse(ytPlayerArgs.player_response)
+          : ytPlayerArgs.player_response;
+
+        if (response?.videoDetails) {
+          return response.videoDetails;
+        }
+      }
+    } catch (error) {
+      console.warn('Error accessing YouTube player details:', error);
+    }
+
+    return null;
+  }
+
+  getYouTubePlaylistTitleFromData() {
+    try {
+      const data = window.ytInitialData;
+      if (!data) return '';
+
+      const playlistContainer = data?.contents?.twoColumnWatchNextResults?.playlist;
+      if (!playlistContainer) return '';
+
+      const sources = [
+        playlistContainer.playlist?.title,
+        playlistContainer.playlistPanelRenderer?.title,
+        playlistContainer.playlistPanelRenderer?.header?.playlistHeaderRenderer?.title
+      ];
+
+      for (const source of sources) {
+        if (!source) continue;
+        if (typeof source === 'string' && source.trim()) {
+          return source.trim();
+        }
+        if (source.simpleText && source.simpleText.trim()) {
+          return source.simpleText.trim();
+        }
+        if (Array.isArray(source.runs)) {
+          const text = source.runs.map(run => run.text).join('').trim();
+          if (text) {
+            return text;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Error accessing YouTube playlist data:', error);
+    }
+
+    return '';
   }
 
 
@@ -1462,48 +1135,50 @@ ${iitMadrasHints}`;
       channelName: this.getChannelName(),
       playlistName: this.getPlaylistName()
     };
-
-    console.log('Extracted video metadata:', metadata);
     return metadata;
   }
 
   getVideoTitle() {
-    const hostname = window.location.hostname;
+    const hostname = window.location.hostname.toLowerCase();
     let title = '';
 
     try {
       if (hostname.includes('youtube.com')) {
-
-        const selectors = [
-          'h1.ytd-video-primary-info-renderer',
-          '.ytd-video-primary-info-renderer h1',
-          'h1.style-scope.ytd-video-primary-info-renderer',
-          '.ytp-title-text',
-          '#container h1',
-          'ytd-video-primary-info-renderer h1'
-        ];
-        
-        for (const selector of selectors) {
-          const titleElement = document.querySelector(selector);
-          if (titleElement && titleElement.textContent.trim()) {
-            title = titleElement.textContent.trim();
-            break;
-          }
+        const videoDetails = this.getYouTubePlayerDetails();
+        if (videoDetails?.title) {
+          title = videoDetails.title;
         }
-        
 
         if (!title) {
-          title = document.title.replace(' - YouTube', '');
+          const selectors = [
+            'ytd-watch-metadata h1 > yt-formatted-string',
+            'ytd-watch-metadata #title h1',
+            '#title.ytd-watch-metadata h1',
+            '#title h1.ytd-watch-metadata',
+            '#container h1.ytd-watch-metadata',
+            '.ytp-title-text'
+          ];
+
+          for (const selector of selectors) {
+            const titleElement = document.querySelector(selector);
+            if (titleElement && titleElement.textContent.trim()) {
+              title = titleElement.textContent.trim();
+              break;
+            }
+          }
+        }
+
+        if (!title && document.title) {
+          title = document.title.replace(/ - YouTube$/, '');
         }
       } else if (hostname.includes('vimeo.com')) {
-
         const selectors = [
           '.player_title',
           'h1[data-test-id="title"]',
           '.clip_info-wrapper h1',
           '.title'
         ];
-        
+
         for (const selector of selectors) {
           const titleElement = document.querySelector(selector);
           if (titleElement && titleElement.textContent.trim()) {
@@ -1511,18 +1186,17 @@ ${iitMadrasHints}`;
             break;
           }
         }
-        
-        if (!title) {
-          title = document.title.replace(' on Vimeo', '');
+
+        if (!title && document.title) {
+          title = document.title.replace(/ on Vimeo$/, '');
         }
       } else if (hostname.includes('twitch.tv')) {
-
         const selectors = [
           '[data-a-target="stream-title"]',
           '.channel-info-content h2',
           '.tw-title'
         ];
-        
+
         for (const selector of selectors) {
           const titleElement = document.querySelector(selector);
           if (titleElement && titleElement.textContent.trim()) {
@@ -1530,12 +1204,11 @@ ${iitMadrasHints}`;
             break;
           }
         }
-        
-        if (!title) {
-          title = document.title.replace(' - Twitch', '');
+
+        if (!title && document.title) {
+          title = document.title.replace(/ - Twitch$/, '');
         }
       } else {
-
         title = document.title;
       }
     } catch (error) {
@@ -1543,32 +1216,43 @@ ${iitMadrasHints}`;
       title = document.title;
     }
 
-
-    return title.replace(/[<>:"/\\|?*]/g, '_').substring(0, 100);
+    return this.sanitizeFilePart(title, 100);
   }
 
   getChannelName() {
-    const hostname = window.location.hostname;
+    const hostname = window.location.hostname.toLowerCase();
     let channelName = '';
 
     try {
       if (hostname.includes('youtube.com')) {
+        const videoDetails = this.getYouTubePlayerDetails();
+        if (videoDetails?.author) {
+          channelName = videoDetails.author;
+        }
 
         const selectors = [
-          'ytd-channel-name a',
-          '#channel-name a',
-          '.ytd-channel-name a',
-          'a.yt-simple-endpoint.style-scope.yt-formatted-string',
-          '.ytd-video-owner-renderer .ytd-channel-name a',
-          '#owner-text a',
-          '.owner-text a'
+          'ytd-video-owner-renderer #channel-name yt-formatted-string a',
+          'ytd-watch-metadata #owner-name a',
+          'ytd-watch-metadata ytd-channel-name a',
+          '#owner-text a.yt-simple-endpoint',
+          '#channel-name a.yt-simple-endpoint'
         ];
         
-        for (const selector of selectors) {
-          const channelElement = document.querySelector(selector);
-          if (channelElement && channelElement.textContent.trim()) {
-            channelName = channelElement.textContent.trim();
-            break;
+        if (!channelName) {
+          for (const selector of selectors) {
+            const channelElement = document.querySelector(selector);
+            if (channelElement && channelElement.textContent.trim()) {
+              channelName = channelElement.textContent.trim();
+              break;
+            }
+          }
+        }
+
+        if (!channelName) {
+          const metaAuthor = document.querySelector('meta[itemprop="author"]') ||
+            document.querySelector('link[itemprop="name"]');
+          if (metaAuthor?.content) {
+            channelName = metaAuthor.content;
           }
         }
       } else if (hostname.includes('vimeo.com')) {
@@ -1614,12 +1298,11 @@ ${iitMadrasHints}`;
       console.warn('Error extracting channel name:', error);
     }
 
-
-    return channelName.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50);
+    return this.sanitizeFilePart(channelName, 50);
   }
 
   getPlaylistName() {
-    const hostname = window.location.hostname;
+    const hostname = window.location.hostname.toLowerCase();
     let playlistName = '';
 
     try {
@@ -1629,18 +1312,22 @@ ${iitMadrasHints}`;
         const playlistId = urlParams.get('list');
         
         if (playlistId) {
+          playlistName = this.getYouTubePlaylistTitleFromData();
 
-          const playlistSelectors = [
-            '.ytd-playlist-header-renderer h1',
-            '.ytd-playlist-sidebar-renderer .title',
-            '.playlist-title'
-          ];
-          
-          for (const selector of playlistSelectors) {
-            const playlistElement = document.querySelector(selector);
-            if (playlistElement && playlistElement.textContent.trim()) {
-              playlistName = playlistElement.textContent.trim();
-              break;
+          if (!playlistName) {
+            const playlistSelectors = [
+              'ytd-playlist-panel-renderer #header #title-text',
+              'ytd-playlist-panel-renderer #header h3',
+              'ytd-playlist-panel-renderer #title a',
+              'ytd-engagement-panel-section-list-renderer[visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED"] ytd-playlist-panel-renderer #header #title-text'
+            ];
+
+            for (const selector of playlistSelectors) {
+              const playlistElement = document.querySelector(selector);
+              if (playlistElement && playlistElement.textContent.trim()) {
+                playlistName = playlistElement.textContent.trim();
+                break;
+              }
             }
           }
         }
@@ -1649,8 +1336,7 @@ ${iitMadrasHints}`;
       console.warn('Error extracting playlist name:', error);
     }
 
-
-    return playlistName.replace(/[<>:"/\\|?*]/g, '_').substring(0, 50);
+    return this.sanitizeFilePart(playlistName, 50);
   }
 
   getCurrentChapter() {
@@ -1880,8 +1566,6 @@ ${iitMadrasHints}`;
         ctx.fillStyle = color;
         ctx.font = `${lineWidth * 8}px Arial`;
         ctx.fillText(text, x, y);
-        
-        console.log('Text added:', text, 'at position:', x, y);
       }
       document.body.removeChild(textOverlay);
     };
@@ -1905,107 +1589,49 @@ ${iitMadrasHints}`;
   }
 
   async waitForVideoElement(maxWaitTime = 5000) {
-    console.log('ScreenshotManager: Waiting for video element to load...');
-    
     const startTime = Date.now();
     const pollInterval = 150;
     
-
     const hostname = window.location.hostname.toLowerCase();
     const isIITMadras = hostname.includes('seek.onlinedegree.iitm.ac.in') ||
                        hostname.includes('iitm.ac.in') ||
                        (hostname.includes('seek.') && hostname.includes('iit'));
     
-    if (isIITMadras) {
-      console.log('ScreenshotManager: IIT Madras detected - using ultra-aggressive video detection');
-    }
-    
     return new Promise((resolve) => {
       const checkForVideo = () => {
-
         let video = this.findVideoElement();
         
-
         if (!video) {
-
           const allVideos = document.querySelectorAll('video');
-          console.log(`ScreenshotManager: Found ${allVideos.length} video elements, analyzing...`);
-          
           for (const videoEl of allVideos) {
-
             if (videoEl.readyState >= 1 ||
                 videoEl.networkState !== HTMLMediaElement.NETWORK_EMPTY ||
                 videoEl.currentTime > 0 ||
                 videoEl.duration > 0 ||
-                (videoEl.src || videoEl.currentSrc) ||
+                videoEl.src || videoEl.currentSrc ||
                 (videoEl.clientWidth > 50 && videoEl.clientHeight > 50)) {
-              
-              console.log('ScreenshotManager: Found potentially ready video:', {
-                readyState: videoEl.readyState,
-                networkState: videoEl.networkState,
-                currentTime: videoEl.currentTime,
-                duration: videoEl.duration,
-                hasSource: !!(videoEl.src || videoEl.currentSrc),
-                clientSize: `${videoEl.clientWidth}x${videoEl.clientHeight}`,
-                videoSize: `${videoEl.videoWidth}x${videoEl.videoHeight}`
-              });
-              
               video = videoEl;
               break;
             }
           }
-          
 
           if (!video && isIITMadras && allVideos.length > 0) {
-            console.log('ScreenshotManager: IIT Madras ultra-aggressive - accepting any video element');
             video = allVideos[0];
-            console.log('ScreenshotManager: IIT Madras fallback video selected:', {
-              element: video.tagName,
-              src: video.src || video.currentSrc || 'no source',
-              classList: Array.from(video.classList),
-              id: video.id,
-              readyState: video.readyState,
-              clientRect: video.getBoundingClientRect()
-            });
           }
         }
         
         if (video) {
-          console.log('ScreenshotManager: Video element found after waiting');
           resolve(video);
           return;
         }
         
         const elapsed = Date.now() - startTime;
         if (elapsed >= maxWaitTime) {
-          console.log('ScreenshotManager: Timeout waiting for video element');
-          
-
           const allVideos = document.querySelectorAll('video');
-          if (allVideos.length > 0) {
-            console.log('ScreenshotManager: Videos found but none suitable:');
-            allVideos.forEach((v, i) => {
-              console.log(`Video ${i + 1}:`, {
-                readyState: v.readyState,
-                networkState: v.networkState,
-                videoSize: `${v.videoWidth}x${v.videoHeight}`,
-                clientSize: `${v.clientWidth}x${v.clientHeight}`,
-                src: v.src || v.currentSrc || 'no source',
-                classList: Array.from(v.classList),
-                id: v.id,
-                parentElement: v.parentElement?.tagName,
-                style: getComputedStyle(v).display
-              });
-            });
-            
-
-            if (isIITMadras) {
-              console.log('ScreenshotManager: IIT Madras final fallback - using first video regardless');
-              resolve(allVideos[0]);
-              return;
-            }
+          if (isIITMadras && allVideos.length > 0) {
+            resolve(allVideos[0]);
+            return;
           }
-          
           resolve(null);
           return;
         }
@@ -2020,11 +1646,6 @@ ${iitMadrasHints}`;
   async checkSiteConfiguration() {
     const hostname = window.location.hostname;
     const isEnabledSite = await window.storageManager.isCurrentSiteEnabled();
-    
-    console.log('ScreenshotManager: Site configuration check:');
-    console.log('- Hostname:', hostname);
-    console.log('- Is enabled site:', isEnabledSite);
-    
     return {
       hostname,
       isEnabledSite

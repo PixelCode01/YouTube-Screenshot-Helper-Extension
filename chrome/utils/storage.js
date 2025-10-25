@@ -3,14 +3,14 @@
 class StorageManager {
   constructor() {
     this.defaultSettings = {
-  enabledSites: ['youtube.com', 'youtube-nocookie.com', 'vimeo.com', 'twitch.tv'],
+      enabledSites: ['youtube.com', 'youtube-nocookie.com', 'vimeo.com', 'twitch.tv'],
       fullscreenShortcut: 'shift+enter',
       fullscreenOnly: false,
       autoHideControls: true,
       uploadToCloud: false,
       annotationMode: false,
       cloudService: 'none',
-  cloudFolderSelections: {},
+      cloudFolderSelections: {},
       screenshotQuality: 0.9,
       filenameTemplate: '',
       debugMode: false,
@@ -18,7 +18,6 @@ class StorageManager {
       captureDelay: 100,
       preventDefault: true,
       themePreference: 'auto',
-
       includeYoutube: true,
       includeVideoTitle: true,
       includeChannelName: false,
@@ -28,56 +27,28 @@ class StorageManager {
       includeDate: true,
       includeTime: false,
       titleSeparator: ' - ',
-
       showFullscreenPopup: false,
       fullscreenPopupDuration: 3000,
-
       useCustomPath: false,
       customDownloadPath: '',
-
-  silentDownloads: false,
-
+      silentDownloads: false,
       organizeFolders: 'none',
       customFolderPattern: '{channel}/{date}',
-
       disablePreviewByDefault: false
     };
   }
 
   async getSettings() {
     try {
-      console.log('=== STORAGE MANAGER: GET SETTINGS DEBUG ===');
-      
-
       if (!this.isExtensionContextValid()) {
         console.warn('Extension context invalidated, using default settings');
         return this.defaultSettings;
       }
-      
-      console.log('Fetching settings from chrome.storage.sync...');
       const settings = await chrome.storage.sync.get(this.defaultSettings);
-      
-      console.log('Raw settings from storage:', settings);
-      console.log('Folder organization specific settings:');
-      console.log('- organizeFolders:', settings.organizeFolders);
-      console.log('- customFolderPattern:', settings.customFolderPattern);
-      console.log('- useCustomPath:', settings.useCustomPath);
-      console.log('- customDownloadPath:', settings.customDownloadPath);
-      
       const mergedSettings = { ...this.defaultSettings, ...settings };
-      console.log('Final merged settings (folder org):', {
-        organizeFolders: mergedSettings.organizeFolders,
-        customFolderPattern: mergedSettings.customFolderPattern,
-        useCustomPath: mergedSettings.useCustomPath,
-        customDownloadPath: mergedSettings.customDownloadPath
-      });
-      console.log('=== STORAGE MANAGER: GET SETTINGS END ===');
-      
       return mergedSettings;
     } catch (error) {
       console.error('Error getting settings:', error);
-      
-
       if (error.message && (
           error.message.includes('Extension context invalidated') ||
           error.message.includes('receiving end does not exist') ||
@@ -86,28 +57,15 @@ class StorageManager {
         console.warn('Extension context invalidated, using default settings');
         return this.defaultSettings;
       }
-      
       return this.defaultSettings;
     }
   }
 
   isExtensionContextValid() {
     try {
-
-      if (!chrome || !chrome.runtime) {
-        return false;
-      }
-      
-
-      if (chrome.runtime.id === undefined) {
-        return false;
-      }
-      
-
-      if (!chrome.storage || !chrome.storage.sync) {
-        return false;
-      }
-      
+      if (!chrome || !chrome.runtime) return false;
+      if (chrome.runtime.id === undefined) return false;
+      if (!chrome.storage || !chrome.storage.sync) return false;
       return true;
     } catch (error) {
       console.error('Extension context validation failed:', error);
@@ -117,46 +75,36 @@ class StorageManager {
 
   async setSetting(key, value) {
     try {
-
       if (!this.isExtensionContextValid()) {
         console.warn('Extension context invalidated, cannot save setting');
         return false;
       }
-      
       await chrome.storage.sync.set({ [key]: value });
       return true;
     } catch (error) {
       console.error('Error setting:', key, error);
-      
-
       if (error.message && error.message.includes('Extension context invalidated')) {
         console.warn('Extension context invalidated, cannot save setting');
         return false;
       }
-      
       return false;
     }
   }
 
   async setSettings(settings) {
     try {
-
       if (!this.isExtensionContextValid()) {
         console.warn('Extension context invalidated, cannot save settings');
         return false;
       }
-      
       await chrome.storage.sync.set(settings);
       return true;
     } catch (error) {
       console.error('Error setting multiple settings:', error);
-      
-
       if (error.message && error.message.includes('Extension context invalidated')) {
         console.warn('Extension context invalidated, cannot save settings');
         return false;
       }
-      
       return false;
     }
   }
@@ -166,14 +114,10 @@ class StorageManager {
     const settings = await this.getSettings();
     const hostname = window.location.hostname;
     const isDirectMatch = settings.enabledSites.some(site => hostname.includes(site));
-    if (isDirectMatch) {
-      return true;
-    }
-
+    if (isDirectMatch) return true;
     if (hostname.includes('youtube-nocookie.com')) {
       return settings.enabledSites.some(site => site.includes('youtube.com'));
     }
-
     return false;
   }
 
@@ -201,7 +145,6 @@ class StorageManager {
     Object.entries(replacements).forEach(([placeholder, value]) => {
       filename = filename.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value || '');
     });
-
 
     filename = filename
       .replace(/[<>:"/\\|?*]/g, '-')

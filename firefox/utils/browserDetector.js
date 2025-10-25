@@ -210,15 +210,6 @@ class BrowserDetector {
   
   logBrowserInfo() {
     const info = this.getBrowserInfo();
-    console.log('=== Browser Detection Results ===');
-    console.log(`Browser: ${info.name} ${info.version}`);
-    console.log(`Major Version: ${info.majorVersion}`);
-    console.log(`Engine: ${info.engine}`);
-    console.log(`User Agent: ${info.userAgent}`);
-    console.log(`Is Edge: ${info.isEdge}`);
-    console.log(`Is Firefox: ${info.isFirefox}`);
-    console.log(`Is Chrome: ${info.isChrome}`);
-    console.log('=== End Browser Detection ===');
   }
 }
 

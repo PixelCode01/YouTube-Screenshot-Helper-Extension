@@ -12,7 +12,6 @@ class ErrorHandler {
       ? this.browserDetector.isFirefox()
       : false;
     this.isBrowserDetected = true;
-    console.log(`ErrorHandler: Browser detected as ${this.browserDetector.getBrowserName()}`);
   }
 
   
@@ -61,13 +60,11 @@ class ErrorHandler {
 
 
     if (this.isEdge && this.isEdgeSpecificError(error)) {
-      console.log('Applying Edge-specific error handling');
       errorInfo.edgeSpecific = true;
       this.handleEdgeSpecificError(error, operation);
     }
 
     if (this.isFirefox && this.isFirefoxSpecificError(error)) {
-      console.log('Detected Firefox-specific limitation:', error.message);
       errorInfo.firefoxSpecific = true;
       errorInfo.recommendation = 'This feature may be unavailable in Firefox. Check release notes for alternatives.';
     }
@@ -76,7 +73,6 @@ class ErrorHandler {
     if (errorPattern) {
       const recoveryStrategy = getRecoveryStrategy(errorPattern.recovery);
       if (recoveryStrategy) {
-        console.log(`Recovery strategy: ${recoveryStrategy.description}`);
         errorInfo.recoveryStrategy = recoveryStrategy;
       }
     }
@@ -135,8 +131,6 @@ class ErrorHandler {
 
     if (operation.includes('download') && 
         (message.includes('path') || message.includes('file'))) {
-      console.log('Edge download path error detected, will use fallback path');
-
     }
     
 

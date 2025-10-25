@@ -1,50 +1,32 @@
-
-
-console.log('YouTube Screenshot Helper: Content script loaded');
-
 class ScreenshotExtension {
   constructor() {
-        this.isInitialized = false;
+    this.isInitialized = false;
     this.settings = null;
-    this.videoMetadata = {};
     this.init();
   }
 
   async init() {
     try {
-
       await this.waitForUtilities();
       
-
       this.settings = await window.storageManager.getSettings();
       
-
       this.setupStorageListener();
       
-
       const isEnabledSite = await window.storageManager.isCurrentSiteEnabled();
       if (!isEnabledSite) {
-        console.log('YouTube Screenshot Helper: Not enabled for this site - waiting for click to activate');
-
         this.isInitialized = true;
         return;
       }
 
-
-            this.setupMessageListeners();
+      this.setupMessageListeners();
       this.setupMutationObserver();
-      this.setupMetadataListener();
       
-
       this.setupFullscreenListener();
       
-
       this.waitForVideoContent();
       
       this.isInitialized = true;
-      console.log('YouTube Screenshot Helper: Initialized successfully');
-      
-
       this.showReadyNotification();
       
     } catch (error) {
@@ -53,7 +35,6 @@ class ScreenshotExtension {
   }
 
   async waitForUtilities() {
-
     let attempts = 0;
     const maxAttempts = 50;
     
@@ -70,8 +51,7 @@ class ScreenshotExtension {
   }
 
   setupMessageListeners() {
-
-    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       this.handleMessage(message, sender, sendResponse);
       return true;
     });
@@ -84,18 +64,16 @@ class ScreenshotExtension {
         break;
         
       case 'captureScreenshot':
-
         if (!this.isInitialized) {
-          console.log('YouTube Screenshot Helper: Initializing for custom site via user action');
           this.setupMessageListeners();
           this.setupMutationObserver();
           this.setupFullscreenListener();
           this.isInitialized = true;
         }
         
-                if (window.screenshotManager) {
+        if (window.screenshotManager) {
           try {
-            await window.screenshotManager.captureScreenshot(this.videoMetadata);
+            await window.screenshotManager.captureScreenshot();
             sendResponse({ success: true });
           } catch (error) {
             console.error('Screenshot capture failed:', error);
@@ -130,7 +108,6 @@ class ScreenshotExtension {
   }
 
   setupMutationObserver() {
-
     const observer = new MutationObserver((mutations) => {
       this.handleDOMChanges(mutations);
     });
@@ -143,15 +120,7 @@ class ScreenshotExtension {
     });
   }
 
-  setupMetadataListener() {
-    document.addEventListener('metadataUpdated', (e) => {
-      console.log('Content script received metadata:', e.detail);
-      this.videoMetadata = e.detail;
-    });
-  }
-
   handleDOMChanges(mutations) {
-
     const hostname = window.location.hostname;
     
     if (hostname.includes('youtube.com')) {
@@ -161,18 +130,15 @@ class ScreenshotExtension {
     } else if (hostname.includes('twitch.tv')) {
       this.handleTwitchChanges(mutations);
     } else {
-
       this.handleGenericSiteChanges(mutations);
     }
   }
 
   handleGenericSiteChanges(mutations) {
-
     mutations.forEach(mutation => {
       if (mutation.type === 'childList') {
         mutation.addedNodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
-
             let videos = [];
             if (node.tagName === 'VIDEO') {
               videos.push(node);
@@ -181,7 +147,6 @@ class ScreenshotExtension {
             }
             
             videos.forEach(video => {
-              console.log('YouTube Screenshot Helper: New video element detected on custom site');
               this.attachVideoListeners(video);
             });
           }
@@ -191,15 +156,12 @@ class ScreenshotExtension {
   }
 
   handleYouTubeChanges(mutations) {
-
     mutations.forEach(mutation => {
       if (mutation.type === 'childList') {
-
         mutation.addedNodes.forEach(node => {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const video = node.querySelector ? node.querySelector('video') : null;
             if (video || node.tagName === 'VIDEO') {
-              console.log('YouTube Screenshot Helper: New video element detected');
               this.attachVideoListeners(video || node);
             }
           }
@@ -208,25 +170,17 @@ class ScreenshotExtension {
     });
   }
 
-  handleVimeoChanges(mutations) {
+  handleVimeoChanges(mutations) {}
 
-    console.log('Vimeo DOM changes detected');
-  }
-
-  handleTwitchChanges(mutations) {
-
-    console.log('Twitch DOM changes detected');
-  }
+  handleTwitchChanges(mutations) {}
 
   waitForVideoContent() {
-
     let attempts = 0;
     const maxAttempts = 30;
     
     const checkForVideo = () => {
       const videoElement = this.findVideoElement();
       if (videoElement) {
-        console.log('YouTube Screenshot Helper: Video found on page');
         this.attachVideoListeners(videoElement);
         return;
       }
@@ -234,36 +188,15 @@ class ScreenshotExtension {
       attempts++;
       if (attempts < maxAttempts) {
         setTimeout(checkForVideo, 1000);
-      } else {
-        console.log('YouTube Screenshot Helper: No video found after waiting');
       }
     };
     
-
     setTimeout(checkForVideo, 1000);
   }
 
   attachVideoListeners(video) {
     if (!video || video.hasScreenshotListeners) return;
-    
     video.hasScreenshotListeners = true;
-    
-
-    video.addEventListener('loadedmetadata', () => {
-      console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
-    });
-
-    video.addEventListener('play', () => {
-      console.log('Video started playing');
-    });
-
-    video.addEventListener('pause', () => {
-      console.log('Video paused');
-    });
-
-    video.addEventListener('fullscreenchange', () => {
-      console.log('Fullscreen state changed:', this.isInFullscreen());
-    });
   }
 
   findVideoElement() {
@@ -297,7 +230,6 @@ class ScreenshotExtension {
   async updateSettings() {
     this.settings = await window.storageManager.getSettings();
     
-
     if (window.keyHandler) {
       await window.keyHandler.updateSettings();
     }
@@ -337,7 +269,6 @@ class ScreenshotExtension {
       'Shift+KeyX': 'Shift+X',
       'Shift+KeyY': 'Shift+Y',
       'Shift+KeyZ': 'Shift+Z',
-
       'KeyS': 'S',
       'KeyA': 'A',
       'KeyB': 'B',
@@ -391,26 +322,15 @@ class ScreenshotExtension {
   showReadyNotification() {
     if (!this.settings.showNotifications) return;
     
-
     const globalShortcut = 'Ctrl+Shift+S';
     const notification = document.createElement('div');
     notification.className = 'screenshot-ready-notification';
-    const notificationContent = document.createElement('div');
-    notificationContent.className = 'notification-content';
-
-    const title = document.createElement('strong');
-    title.textContent = 'YouTube Screenshot Helper';
-
-    const lineBreak = document.createElement('br');
-
-    const message = document.createElement('span');
-    message.textContent = `Ready! Press ${globalShortcut} to capture screenshots`;
-
-    notificationContent.appendChild(title);
-    notificationContent.appendChild(lineBreak);
-    notificationContent.appendChild(message);
-
-    notification.appendChild(notificationContent);
+    notification.innerHTML = `
+      <div class="notification-content">
+        <strong>YouTube Screenshot Helper</strong><br>
+        Ready! Press ${globalShortcut} to capture screenshots
+      </div>
+    `;
     
     notification.style.cssText = `
       position: fixed;
@@ -432,12 +352,10 @@ class ScreenshotExtension {
 
     document.body.appendChild(notification);
 
-
     setTimeout(() => {
       notification.style.opacity = '1';
       notification.style.transform = 'translateX(0)';
     }, 100);
-
 
     setTimeout(() => {
       notification.style.opacity = '0';
@@ -452,7 +370,6 @@ class ScreenshotExtension {
   }
 
   setupFullscreenListener() {
-
     document.addEventListener('fullscreenchange', () => {
       this.handleFullscreenChange();
     });
@@ -473,7 +390,6 @@ class ScreenshotExtension {
   async handleFullscreenChange() {
     const isFullscreen = this.isInFullscreen();
 
-
     const existingPopups = document.querySelectorAll('.fullscreen-screenshot-popup');
     existingPopups.forEach(popup => popup.remove());
     const existingStyles = document.querySelector('#fullscreen-popup-styles');
@@ -482,30 +398,22 @@ class ScreenshotExtension {
     }
 
     if (isFullscreen && this.settings.showFullscreenPopup) {
-
         await this.updateSettings();
         
         const shortcut = this.settings.fullscreenShortcut || 'shift+enter';
         const keyDisplayName = this.getShortcutDisplayName(shortcut);
 
-    const popup = document.createElement('div');
-    popup.className = 'fullscreen-screenshot-popup';
-
-    const popupContent = document.createElement('div');
-    popupContent.className = 'popup-content';
-    popupContent.append('Press ');
-
-    const shortcutElement = document.createElement('strong');
-    shortcutElement.textContent = keyDisplayName;
-
-    popupContent.appendChild(shortcutElement);
-    popupContent.append(' to pause and capture screenshot');
-
-    popup.appendChild(popupContent);
+        const popup = document.createElement('div');
+        popup.className = 'fullscreen-screenshot-popup';
+        popup.innerHTML = `
+            <div class="popup-content">
+                Press <strong>${keyDisplayName}</strong> to pause and capture screenshot
+            </div>
+        `;
 
         const style = document.createElement('style');
         style.id = 'fullscreen-popup-styles';
-    style.textContent = `
+        style.innerHTML = `
             .fullscreen-screenshot-popup {
                 position: fixed;
                 top: 20px;
@@ -558,16 +466,13 @@ class ScreenshotExtension {
   }
 
   setupStorageListener() {
-
-    browser.storage.onChanged.addListener(async (changes, namespace) => {
+    chrome.storage.onChanged.addListener(async (changes, namespace) => {
       if (namespace === 'sync') {
-        console.log('YouTube Screenshot Helper: Storage changed, updating settings');
         await this.updateSettings();
       }
     });
   }
 }
-
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {

@@ -13,7 +13,13 @@ const CLOUD_ROOT_LABELS = {
 const SIMPLE_CLOUD_SELECTION = {
   id: 'simple-cloud-root',
   name: 'Simple Cloud',
-  path: 'Simple Cloud / Shared Links'
+  path: 'Simple Cloud (No sign-in needed)'
+};
+
+const CLOUD_DESCRIPTIONS = {
+  'simple-cloud': 'No sign-in required! Screenshots get instant shareable links that expire after 1 week.',
+  'google-drive': 'Sign in once to save screenshots permanently to your Google Drive.',
+  'one-drive': 'Sign in once to save screenshots permanently to your Microsoft OneDrive.'
 };
 
 
@@ -51,8 +57,8 @@ class CloudStorageManager {
       }
 
       const [localData, syncData] = await Promise.all([
-        browser.storage.local.get(['cloudAuthTokens']),
-        browser.storage.sync.get(['cloudFolderSelections'])
+        chrome.storage.local.get(['cloudAuthTokens']),
+        chrome.storage.sync.get(['cloudFolderSelections'])
       ]);
 
       this.authTokens = localData.cloudAuthTokens || {};
@@ -75,7 +81,7 @@ class CloudStorageManager {
 
   async saveAuthTokens() {
     try {
-      await browser.storage.local.set({ cloudAuthTokens: this.authTokens });
+      await chrome.storage.local.set({ cloudAuthTokens: this.authTokens });
     } catch (error) {
       console.error('Failed to save auth tokens:', error);
     }
@@ -83,7 +89,7 @@ class CloudStorageManager {
 
   async saveFolderSelections() {
     try {
-      await browser.storage.sync.set({ cloudFolderSelections: this.folderSelections });
+      await chrome.storage.sync.set({ cloudFolderSelections: this.folderSelections });
     } catch (error) {
       console.error('Failed to save folder selections:', error);
     }
@@ -195,13 +201,11 @@ class CloudStorageManager {
 
   async authenticateGoogleDrive({ interactive = true } = {}) {
     if (!window.CLOUD_CONFIG || !window.CLOUD_CONFIG.GOOGLE_DRIVE_CLIENT_ID ||
-        window.CLOUD_CONFIG.GOOGLE_DRIVE_CLIENT_ID === 'YOUR_GOOGLE_DRIVE_CLIENT_ID_HERE') {
-      throw new Error('Google Drive client ID not configured. Add it from the Settings > Cloud Provider Setup panel.');
+        window.CLOUD_CONFIG.GOOGLE_DRIVE_CLIENT_ID.length === 0) {
+      throw new Error('Google Drive needs configuration. Please set up your client ID in Settings, or use Simple Cloud for instant uploads!');
     }
 
-  console.log('Starting Google Drive authentication flow');
-
-    const redirectUri = browser.identity.getRedirectURL();
+    const redirectUri = chrome.identity.getRedirectURL();
     const clientId = window.CLOUD_CONFIG.GOOGLE_DRIVE_CLIENT_ID;
     const scopes = window.CLOUD_CONFIG.GOOGLE_DRIVE.scopes || ['https://www.googleapis.com/auth/drive.file'];
 
@@ -213,14 +217,14 @@ class CloudStorageManager {
       `&prompt=select_account`;
 
     try {
-      const responseUrl = await browser.identity.launchWebAuthFlow({
+      const responseUrl = await chrome.identity.launchWebAuthFlow({
         url: authUrl,
         interactive
       });
 
       const tokenInfo = this.parseAuthResponse(responseUrl);
       if (!tokenInfo) {
-        throw new Error('Unable to parse Google Drive authentication response');
+        throw new Error('Unable to sign in to Google Drive. Please try again.');
       }
 
       this.authTokens['google-drive'] = tokenInfo;
@@ -228,12 +232,9 @@ class CloudStorageManager {
 
       return tokenInfo;
     } catch (error) {
-  console.error('Google Drive authentication failed', error);
-
       if (error?.message?.includes('Authorization page could not be loaded')) {
-        throw new Error('Authentication cancelled by user');
+        throw new Error('Sign-in cancelled. No problem!');
       }
-
       throw error;
     }
   }
@@ -410,13 +411,11 @@ class CloudStorageManager {
 
   async authenticateOneDrive({ interactive = true } = {}) {
     if (!window.CLOUD_CONFIG || !window.CLOUD_CONFIG.ONEDRIVE_CLIENT_ID ||
-        window.CLOUD_CONFIG.ONEDRIVE_CLIENT_ID === 'YOUR_ONEDRIVE_CLIENT_ID_HERE') {
-      throw new Error('OneDrive client ID not configured. Add it from the Settings > Cloud Provider Setup panel.');
+        window.CLOUD_CONFIG.ONEDRIVE_CLIENT_ID.length === 0) {
+      throw new Error('OneDrive needs configuration. Please set up your client ID in Settings, or use Simple Cloud for instant uploads!');
     }
 
-  console.log('Starting OneDrive authentication flow');
-
-    const redirectUri = browser.identity.getRedirectURL();
+    const redirectUri = chrome.identity.getRedirectURL();
     const clientId = window.CLOUD_CONFIG.ONEDRIVE_CLIENT_ID;
     const scopes = window.CLOUD_CONFIG.ONEDRIVE.scopes || ['Files.ReadWrite'];
 
@@ -429,14 +428,14 @@ class CloudStorageManager {
       `&prompt=select_account`;
 
     try {
-      const responseUrl = await browser.identity.launchWebAuthFlow({
+      const responseUrl = await chrome.identity.launchWebAuthFlow({
         url: authUrl,
         interactive
       });
 
       const tokenInfo = this.parseAuthResponse(responseUrl);
       if (!tokenInfo) {
-        throw new Error('Unable to parse OneDrive authentication response');
+        throw new Error('Unable to sign in to OneDrive. Please try again.');
       }
 
       this.authTokens['one-drive'] = tokenInfo;
@@ -444,12 +443,9 @@ class CloudStorageManager {
 
       return tokenInfo;
     } catch (error) {
-  console.error('OneDrive authentication failed', error);
-
       if (error?.message?.includes('Authorization page could not be loaded')) {
-        throw new Error('Authentication cancelled by user');
+        throw new Error('Sign-in cancelled. No problem!');
       }
-
       throw error;
     }
   }
@@ -683,7 +679,8 @@ class CloudStorageManager {
           return {
             service: 'simple-cloud',
             shareUrl: parsed.shareUrl,
-            expiresAt: parsed.expiresAt || null
+            expiresAt: parsed.expiresAt || null,
+            message: 'Screenshot uploaded! Shareable link created (expires in 1 week)'
           };
         }
       } catch (error) {
@@ -691,7 +688,7 @@ class CloudStorageManager {
       }
     }
 
-    throw new Error('Simple Cloud upload failed. Please check your network connection and try again.');
+    throw new Error('Simple Cloud upload failed. Check your internet connection and try again, or switch to Google Drive/OneDrive for reliable uploads.');
   }
 
 
@@ -876,3 +873,5 @@ class CloudStorageManager {
 }
 
 window.cloudStorageManager = new CloudStorageManager();
+window.CLOUD_DESCRIPTIONS = CLOUD_DESCRIPTIONS;
+window.CLOUD_ROOT_LABELS = CLOUD_ROOT_LABELS;

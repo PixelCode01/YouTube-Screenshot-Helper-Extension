@@ -31,8 +31,6 @@ A browser extension that hides player controls, captures the current frame, and 
 
 - [Install from Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/ddamehdnkfbjjgpfelaapilddkpcjeop), or load the `edge` directory using the same Developer Mode flow as Chrome.
 
-> **Heads-up:** The Edge Add-ons store still serves an older build with known bugs. A fixed release is pending review by Microsoft; use the unpacked install above for the latest code until the listing updates.
-
 ### Firefox (temporary load)
 
 1. Open `about:debugging#/runtime/this-firefox`.
@@ -40,8 +38,6 @@ A browser extension that hides player controls, captures the current frame, and 
 3. Repeat after browser restarts unless the build is signed through AMO.
 
 - [Install from Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/youtube-screenshot-helper/).
-
-> **Heads-up:** Mozilla Add-ons currently hosts an outdated build with bugs. A corrected version is awaiting AMO review; prefer the temporary load flow above until the listing is refreshed.
 
 Firefox uses a Manifest V2 background page. Cloud uploads remain disabled until `browser.identity` supports Manifest V3 OAuth flows.
 
@@ -67,12 +63,18 @@ The extension pauses the video if necessary, hides controls when configured, cap
 
 ## Cloud Upload Setup
 
-Configure credentials in `utils/cloudConfig.js` for each browser bundle:
+For Google Drive and OneDrive integration:
+
+1. Create OAuth credentials through the respective cloud provider's developer console:
+   - **Google Drive**: [Google Cloud Console](https://console.cloud.google.com/)
+   - **OneDrive**: [Azure Portal](https://portal.azure.com/)
+
+2. Configure the credentials in `utils/cloudConfig.js` for each browser bundle:
 
 ```javascript
 window.CLOUD_CONFIG = {
-  GOOGLE_DRIVE_CLIENT_ID: 'replace-with-client-id',
-  ONEDRIVE_CLIENT_ID: 'replace-with-client-id',
+  GOOGLE_DRIVE_CLIENT_ID: 'your-google-drive-client-id-here',
+  ONEDRIVE_CLIENT_ID: 'your-onedrive-client-id-here',
   GOOGLE_DRIVE: {
     scopes: ['https://www.googleapis.com/auth/drive.file']
   },
@@ -81,17 +83,18 @@ window.CLOUD_CONFIG = {
   }
 };
 ```
-
-Chromium builds rely on `chrome.identity.getRedirectURL()` for OAuth redirects. Firefox currently disables the identity-based paths. Store secrets outside the repository and inject them during packaging.
+Chromium builds use `chrome.identity.getRedirectURL()` for OAuth redirects. Firefox currently disables identity-based cloud upload paths due to API limitations.
 
 ## Supported Permissions
 
-- `activeTab` for capturing the current page
-- `downloads` for saving frames and managing optional silent mode
-- `notifications` for capture results
-- `scripting` for injecting capture scripts
-- `storage` for user preferences
-- `identity` (Chromium only) for OAuth-powered cloud uploads
+- `activeTab`: Captures the current page content
+- `downloads`: Saves screenshot files and manages download behavior
+- `notifications`: Displays capture result notifications
+- `scripting`: Injects capture scripts into video pages
+- `storage`: Stores user preferences and settings
+- `identity`: (Chromium only) Enables OAuth-based cloud uploads
+
+All permissions are necessary for core functionality. No user data is transmitted to external servers except when explicitly using cloud upload features.
 
 ## Troubleshooting
 
@@ -109,7 +112,6 @@ Enable debug mode from **Settings > Advanced** to expose detailed console loggin
 
 - `chrome/`, `edge/`, and `firefox/` contain browser-specific manifests while sharing core logic across `content`, `background`, `popup`, `options`, and `utils` directories.
 - The build scripts are placeholders; add bundling, linting, or packaging steps as needed for your workflow.
-- Empty folders such as `scripts/` are safe to remove if unused.
 
 ## Media Gallery
 

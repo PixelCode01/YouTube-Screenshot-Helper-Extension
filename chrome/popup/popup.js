@@ -1,5 +1,3 @@
-console.log('YouTube Screenshot Helper: Popup loaded');
-
 class PopupManager {
   constructor() {
     this.currentTab = null;
@@ -211,7 +209,6 @@ class PopupManager {
       this.updatePageInfo(response);
       
     } catch (error) {
-      console.log('Content script not loaded or tab not supported');
       this.updateStatusIndicator({ initialized: false });
       this.updatePageInfo({ 
         initialized: false, 
@@ -298,12 +295,10 @@ class PopupManager {
       if (this.currentTab) {
         chrome.tabs.sendMessage(this.currentTab.id, {
           action: 'updateSettings'
-        }).catch(() => {
-        });
+        }).catch(() => {});
       }
       
       this.showNotification('Setting updated', 'success');
-      
     } catch (error) {
       console.error('Failed to update setting:', error);
       this.showNotification('Failed to update setting', 'error');
@@ -331,10 +326,4 @@ class PopupManager {
 
 document.addEventListener('DOMContentLoaded', () => {
   new PopupManager();
-});
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'popupUpdate') {
-    console.log('Popup update received:', message);
-  }
 });

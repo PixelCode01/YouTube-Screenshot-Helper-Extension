@@ -545,12 +545,12 @@
       <section class="tab-content" id="advanced">
         <div class="settings-group">
           <h2>Cloud Storage</h2>
-          <p class="group-desc">Automatically upload screenshots to cloud storage services</p>
+          <p class="group-desc">Automatically upload your screenshots to the cloud</p>
           
           <div class="setting-item">
             <div class="setting-info">
-              <label for="uploadToCloud">Enable Cloud Upload</label>
-              <p class="setting-desc">Automatically upload screenshots to your preferred cloud service</p>
+              <label for="uploadToCloud">Enable Cloud Backup</label>
+              <p class="setting-desc">Turn on to automatically upload screenshots and get shareable links</p>
             </div>
             <div class="setting-control">
               <label class="toggle">
@@ -562,40 +562,55 @@
 
           <div class="setting-item" id="cloudServiceContainer" style="display: none;">
             <div class="setting-info">
-              <label for="cloudService">Cloud Service</label>
-              <p class="setting-desc">Choose your preferred cloud storage provider</p>
+              <label for="cloudService">Cloud Provider</label>
+              <p class="setting-desc">
+                <strong>Simple Cloud (Recommended)</strong> - No sign-in required!<br>
+                <span style="font-size: 13px; color: #555;">
+                  Uses free temporary file hosting services (file.io or tmpfiles.org) to upload your screenshots and generate shareable links. 
+                  Links expire after 1 week. No account needed - it just works!
+                </span>
+                <br><br>
+                <strong>Google Drive / OneDrive</strong> - For permanent storage<br>
+                <span style="font-size: 13px; color: #555;">
+                  Requires one-time OAuth authentication. Your files are stored permanently in your own cloud account.
+                  Click "Connect" button after selecting to sign in with your account.
+                </span>
+              </p>
             </div>
             <div class="setting-control">
               <select id="cloudService">
-                <option value="none">None</option>
-                <option value="google-drive">Google Drive (Requires Setup)</option>
-                <option value="one-drive">Microsoft OneDrive (Requires Setup)</option>
+                <option value="simple-cloud">Simple Cloud (Recommended - No setup needed!)</option>
+                <option value="google-drive">Google Drive (Permanent storage)</option>
+                <option value="one-drive">Microsoft OneDrive (Permanent storage)</option>
               </select>
             </div>
           </div>
 
           <div class="setting-item" id="cloudStatusContainer" style="display: none;">
             <div class="setting-info">
-              <label>Authentication Status</label>
-              <p class="setting-desc">Current connection status with your cloud service</p>
+              <label>Status</label>
+              <p class="setting-desc" id="cloudStatusDesc">Your cloud backup status</p>
             </div>
             <div class="setting-control">
               <div id="cloudStatus" class="cloud-status">
                 <div class="cloud-status-line">
-                  <span class="status-indicator">error</span>
+                  <span class="status-icon"></span>
                   <span class="status-text">Not connected</span>
                 </div>
                 <div class="cloud-action-row">
-                  <button class="btn btn-outline" id="connectCloudBtn">Sign in</button>
+                  <button class="btn btn-primary" id="connectCloudBtn" style="display: none;">Connect Now</button>
                   <button class="btn btn-outline" id="chooseCloudFolderBtn" style="display: none;">Choose Folder</button>
-                  <button class="btn btn-secondary" id="disconnectCloudBtn" style="display: none;">Sign out</button>
+                  <button class="btn btn-secondary" id="disconnectCloudBtn" style="display: none;">Disconnect</button>
                 </div>
                 <div class="cloud-folder-summary" id="cloudFolderSummary" style="display: none;">
                   <div class="summary-line">
-                    <span class="summary-label">Upload location:</span>
+                    <span class="summary-label">Save location:</span>
                     <span class="summary-value" id="cloudFolderSummaryValue">Root</span>
                   </div>
-                  <p class="summary-hint">We'll mirror your folder organization underneath this folder.</p>
+                  <p class="summary-hint">Your folder structure will be preserved in the cloud</p>
+                </div>
+                <div class="cloud-info-box" id="cloudInfoBox" style="display: none; margin-top: 10px; padding: 12px; background: #e7f3ff; border-left: 4px solid #2196F3; border-radius: 4px;">
+                  <p style="margin: 0; font-size: 13px; color: #1565c0;"></p>
                 </div>
               </div>
             </div>

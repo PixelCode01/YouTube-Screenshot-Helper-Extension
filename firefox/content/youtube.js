@@ -1,6 +1,4 @@
 
-
-
 class YouTubeHandler {
   constructor() {
     this.playerAPI = null;
@@ -8,7 +6,6 @@ class YouTubeHandler {
   }
 
   init() {
-    console.log('YouTube Screenshot Helper: YouTube handler initialized');
     this.waitForYouTubePlayer();
   }
 
@@ -19,7 +16,6 @@ class YouTubeHandler {
                     document.querySelector('video');
       
       if (player) {
-        console.log('YouTube player found');
         this.setupYouTubeIntegration();
         return true;
       }
@@ -47,13 +43,13 @@ class YouTubeHandler {
   }
 
   setupKeyboardOverrides() {
-
-
     document.addEventListener('keydown', (event) => {
       if (window.keyHandler && window.keyHandler.shouldHandleKey(event)) {
         event.stopPropagation();
         event.preventDefault();
-
+        
+        if (!window.keyHandler || !window.storageManager) return false;
+        window.keyHandler.handleKeyPress(event);
       }
     }, true);
   }
@@ -61,13 +57,8 @@ class YouTubeHandler {
   setupPlayerStateMonitoring() {
     const video = document.querySelector('video');
     if (video) {
-      video.addEventListener('play', () => {
-        console.log('YouTube: Video started playing');
-      });
-      
-      video.addEventListener('pause', () => {
-        console.log('YouTube: Video paused');
-      });
+      video.addEventListener('play', () => {});
+      video.addEventListener('pause', () => {});
     }
   }
 
@@ -86,18 +77,7 @@ class YouTubeHandler {
     const screenshotBtn = document.createElement('button');
     screenshotBtn.className = 'ytp-button screenshot-btn';
     screenshotBtn.title = 'Take Screenshot (Ctrl+Shift+S)';
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const icon = document.createElementNS(svgNS, 'svg');
-  icon.setAttribute('width', '24');
-  icon.setAttribute('height', '24');
-  icon.setAttribute('viewBox', '0 0 24 24');
-  icon.setAttribute('fill', 'currentColor');
-
-  const path = document.createElementNS(svgNS, 'path');
-  path.setAttribute('d', 'M21,17H7V3H21M21,1H7A2,2 0 0,0 5,3V17A2,2 0 0,0 7,19H21A2,2 0 0,0 23,17V3A2,2 0 0,0 21,1M3,5H1V21A2,2 0 0,0 3,23H19V21H3M15.5,11L13.5,13.5L11.5,11.5L9,15H19L15.5,11Z');
-
-  icon.appendChild(path);
-  screenshotBtn.appendChild(icon);
+    screenshotBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M21,17H7V3H21M21,1H7A2,2 0 0,0 5,3V17A2,2 0 0,0 7,19H21A2,2 0 0,0 23,17V3A2,2 0 0,0 21,1M3,5H1V21A2,2 0 0,0 3,23H19V21H3M15.5,11L13.5,13.5L11.5,11.5L9,15H19L15.5,11Z"/></svg>';
 
     screenshotBtn.addEventListener('click', async (e) => {
       e.preventDefault();
@@ -109,45 +89,21 @@ class YouTubeHandler {
     });
 
     const fullscreenBtn = controlsBar.querySelector('.ytp-fullscreen-button');
-    if (fullscreenBtn) {
+    if (fullscreenBtn && fullscreenBtn.parentNode === controlsBar) {
       controlsBar.insertBefore(screenshotBtn, fullscreenBtn);
     } else {
       controlsBar.appendChild(screenshotBtn);
     }
-
-    console.log('YouTube: Screenshot button added to player controls');
   }
 
   onVideoChanged() {
-    const metadata = this.getVideoMetadata();
-    document.dispatchEvent(new CustomEvent('metadataUpdated', { detail: metadata }));
-    console.log('YouTube: Dispatched metadataUpdated event');
-
-
-    console.log('YouTube: Video changed, refreshing screenshot button');
     setTimeout(() => {
       this.addScreenshotButton();
     }, 1000);
   }
 
   onFullscreenChange() {
-    const isFullscreen = !!(
-      document.fullscreenElement ||
-      document.webkitFullscreenElement
-    );
-    
-    console.log('YouTube: Fullscreen state changed:', isFullscreen);
-  }
-
-  getVideoMetadata() {
-    const metadata = {
-      title: document.title.replace(' - YouTube', ''),
-      channel: document.querySelector('#owner #channel-name a')?.textContent || '',
-      playlist: document.querySelector('.ytd-playlist-panel-renderer .title')?.textContent || '',
-      chapter: document.querySelector('.ytp-chapter-title-content')?.textContent || '',
-    };
-    console.log('YouTube metadata collected:', metadata);
-    return metadata;
+    const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
   }
 
   setupNavigationHandler() {
@@ -161,7 +117,6 @@ class YouTubeHandler {
     }).observe(document, { subtree: true, childList: true });
   }
 }
-
 
 const youtubeHostPatterns = ['youtube.com', 'youtube-nocookie.com'];
 if (youtubeHostPatterns.some(domain => window.location.hostname.includes(domain))) {

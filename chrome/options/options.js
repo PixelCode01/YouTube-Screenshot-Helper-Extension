@@ -1,6 +1,3 @@
-
-console.log('YouTube Screenshot Helper: Options page loaded');
-
 class OptionsManager {
   constructor() {
     this.settings = {};
@@ -71,7 +68,6 @@ class OptionsManager {
 
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        console.log('Tab clicked:', e.target.dataset.tab);
         this.switchTab(e.target.dataset.tab);
       });
     });
@@ -101,7 +97,6 @@ class OptionsManager {
     this.setupToggle('preventDefault');
     this.setupToggle('showFullscreenPopup');
     this.setupToggle('useCustomPath', () => {
-      console.log('OPTIONS: useCustomPath toggled to:', this.settings.useCustomPath);
       this.updateCustomPathVisibility();
     });
     this.setupToggle('silentDownloads');
@@ -158,7 +153,6 @@ class OptionsManager {
 
     this.setupControl('customDownloadPath', 'input', (e) => {
   const inputValue = e.target.value;
-  console.log('OPTIONS: customDownloadPath changed to:', JSON.stringify(inputValue));
       
 
       const isAbsolute = inputValue.startsWith('/') || inputValue.match(/^[a-zA-Z]:\\/);
@@ -192,14 +186,12 @@ class OptionsManager {
 
 
     this.setupControl('organizeFolders', 'change', (e) => {
-  console.log('OPTIONS: organizeFolders changed to:', e.target.value);
       this.updateSetting('organizeFolders', e.target.value);
       this.updateFolderOrganizationVisibility();
       this.updateFolderPreview();
     });
 
     this.setupControl('customFolderPattern', 'input', (e) => {
-  console.log('OPTIONS: customFolderPattern changed to:', e.target.value);
       this.updateSetting('customFolderPattern', e.target.value);
       this.updateFolderPreview();
     });
@@ -296,32 +288,23 @@ class OptionsManager {
   }
 
   async updateSetting(key, value) {
-  console.log(`OPTIONS: updateSetting called with key="${key}", value=${JSON.stringify(value)}`);
     
 
     if (key === 'useCustomPath' || key === 'customDownloadPath') {
-  console.log('Save path setting update:');
-  console.log(`  - Key: ${key}`);
-  console.log(`  - Value: ${JSON.stringify(value)}`);
-  console.log(`  - Value type: ${typeof value}`);
-  console.log('  - Current settings before update:', this.settings);
     }
     
     this.settings[key] = value;
     
     try {
       await chrome.storage.sync.set({ [key]: value });
-  console.log(`Setting updated successfully: ${key} = ${JSON.stringify(value)}`);
       
 
       if (key === 'useCustomPath' || key === 'customDownloadPath') {
         setTimeout(async () => {
           const verification = await chrome.storage.sync.get([key]);
-          console.log(`Save path verification: ${key} saved as:`, verification[key]);
           if (verification[key] !== value) {
             console.error(`Save path verification failed: expected ${JSON.stringify(value)}, received ${JSON.stringify(verification[key])}`);
           } else {
-            console.log(`Save path verification passed: ${key} correctly saved`);
           }
         }, 100);
       }
@@ -776,8 +759,24 @@ class OptionsManager {
         return 'Google Drive';
       case 'one-drive':
         return 'Microsoft OneDrive';
+      case 'simple-cloud':
+        return 'Simple Cloud';
       default:
         return 'Cloud Storage';
+    }
+  }
+
+  getCloudProviderDescription(service) {
+    const key = this.normalizeCloudServiceKey(service);
+    switch (key) {
+      case 'simple-cloud':
+        return 'No sign-in required! Screenshots get instant shareable links that expire after 1 week.';
+      case 'google-drive':
+        return 'Sign in once to save screenshots permanently to your Google Drive.';
+      case 'one-drive':
+        return 'Sign in once to save screenshots permanently to your Microsoft OneDrive.';
+      default:
+        return 'Cloud storage provider';
     }
   }
 
@@ -807,8 +806,9 @@ class OptionsManager {
       return current;
     }
 
+    // Default to simple-cloud for best user experience (no sign-in needed)
     if (!current || current === 'none') {
-      const defaultService = 'google-drive';
+      const defaultService = 'simple-cloud';
       this.settings.cloudService = defaultService;
 
       const select = document.getElementById('cloudService');
@@ -920,19 +920,25 @@ class OptionsManager {
     const statusContainer = document.getElementById('cloudStatus');
     if (!statusContainer) return;
 
-    const statusIndicator = statusContainer.querySelector('.status-indicator');
+    const statusIcon = statusContainer.querySelector('.status-icon');
     const statusText = statusContainer.querySelector('.status-text');
+    const statusDesc = document.getElementById('cloudStatusDesc');
+    const infoBox = document.getElementById('cloudInfoBox');
     const connectBtn = document.getElementById('connectCloudBtn');
     const chooseBtn = document.getElementById('chooseCloudFolderBtn');
     const disconnectBtn = document.getElementById('disconnectCloudBtn');
 
+    // Hide all action buttons initially
+    if (connectBtn) connectBtn.style.display = 'none';
+    if (chooseBtn) chooseBtn.style.display = 'none';
+    if (disconnectBtn) disconnectBtn.style.display = 'none';
+    if (infoBox) infoBox.style.display = 'none';
+
     if (!this.settings.uploadToCloud || serviceKey === 'none') {
-  if (statusIndicator) statusIndicator.textContent = 'info';
-      if (statusText) statusText.textContent = 'Cloud upload disabled';
+      if (statusIcon) statusIcon.textContent = '';
+      if (statusText) statusText.textContent = 'Cloud backup disabled';
+      if (statusDesc) statusDesc.textContent = 'Enable cloud backup to get started';
       statusContainer.className = 'cloud-status';
-      if (connectBtn) connectBtn.style.display = 'none';
-      if (chooseBtn) chooseBtn.style.display = 'none';
-      if (disconnectBtn) disconnectBtn.style.display = 'none';
       this.updateCloudFolderSummary();
       return;
     }
@@ -940,13 +946,39 @@ class OptionsManager {
     await this.ensureCloudScriptsLoaded();
     const providerName = this.getCloudProviderName(serviceKey);
 
+    // Simple Cloud doesn't require authentication
+    if (serviceKey === 'simple-cloud') {
+      if (statusIcon) statusIcon.textContent = '';
+      if (statusText) statusText.textContent = 'Simple Cloud is ready!';
+      if (statusDesc) statusDesc.textContent = 'No setup needed - you\'re all set!';
+      if (infoBox) {
+        infoBox.style.display = 'block';
+        infoBox.style.background = '#d4edda';
+        infoBox.style.borderColor = '#28a745';
+        infoBox.querySelector('p').style.color = '#155724';
+        infoBox.querySelector('p').textContent = 'Perfect! Your screenshots will automatically get shareable links. Links expire after 1 week. Just take a screenshot and the link will be ready!';
+      }
+      statusContainer.className = 'cloud-status connected';
+      this.updateCloudFolderSummary();
+      return;
+    }
+
+    // Check configuration for Google Drive / OneDrive
     if (!this.validateCloudConfiguration(serviceKey)) {
-  if (statusIndicator) statusIndicator.textContent = 'warn';
-      if (statusText) statusText.textContent = `${providerName} needs configuration`;
+      if (statusIcon) statusIcon.textContent = '';
+      if (statusText) statusText.textContent = `${providerName} not configured`;
+      if (statusDesc) statusDesc.textContent = 'OAuth client ID required';
+      if (infoBox) {
+        infoBox.style.display = 'block';
+        infoBox.style.background = '#fff3cd';
+        infoBox.style.borderColor = '#ffc107';
+        infoBox.querySelector('p').style.color = '#856404';
+        infoBox.querySelector('p').textContent = `${providerName} requires OAuth client ID setup. This is a technical process. Click the button below for detailed setup instructions, or use Simple Cloud for instant uploads with no configuration.`;
+      }
       statusContainer.className = 'cloud-status warning';
       if (connectBtn) {
         connectBtn.style.display = 'inline-flex';
-        connectBtn.textContent = `Configure ${providerName}`;
+        connectBtn.textContent = `Setup ${providerName}`;
         connectBtn.disabled = false;
       }
       if (chooseBtn) chooseBtn.style.display = 'none';
@@ -960,12 +992,20 @@ class OptionsManager {
     if (isConnected) {
       await this.ensureDefaultFolderSelection(serviceKey, { interactive: false });
 
-  if (statusIndicator) statusIndicator.textContent = 'ok';
+      if (statusIcon) statusIcon.textContent = '';
       if (statusText) statusText.textContent = `${providerName} connected`;
+      if (statusDesc) statusDesc.textContent = 'Your screenshots will be saved securely';
+      if (infoBox) {
+        infoBox.style.display = 'block';
+        infoBox.style.background = '#d4edda';
+        infoBox.style.borderColor = '#28a745';
+        infoBox.querySelector('p').style.color = '#155724';
+        infoBox.querySelector('p').textContent = `Connected to ${providerName}. Your screenshots are backed up automatically!`;
+      }
       statusContainer.className = 'cloud-status connected';
       if (connectBtn) {
         connectBtn.style.display = 'inline-flex';
-        connectBtn.textContent = `Reconnect ${providerName}`;
+        connectBtn.textContent = `Reconnect`;
         connectBtn.disabled = false;
       }
       if (chooseBtn) {
@@ -978,8 +1018,13 @@ class OptionsManager {
       }
       this.updateCloudFolderSummary();
     } else {
-  if (statusIndicator) statusIndicator.textContent = 'error';
-      if (statusText) statusText.textContent = `${providerName} not connected`;
+      if (statusIcon) statusIcon.textContent = '';
+      if (statusText) statusText.textContent = `Connect to ${providerName}`;
+      if (statusDesc) statusDesc.textContent = 'One-time sign-in required';
+      if (infoBox) {
+        infoBox.style.display = 'block';
+        infoBox.querySelector('p').textContent = `We'll securely connect to your ${providerName} account. You only need to do this once.`;
+      }
       statusContainer.className = 'cloud-status error';
       if (connectBtn) {
         connectBtn.style.display = 'inline-flex';
@@ -989,9 +1034,6 @@ class OptionsManager {
       if (chooseBtn) {
         chooseBtn.style.display = 'inline-flex';
         chooseBtn.disabled = true;
-      }
-      if (disconnectBtn) {
-        disconnectBtn.style.display = 'none';
       }
       this.updateCloudFolderSummary();
     }
@@ -1008,6 +1050,13 @@ class OptionsManager {
       return;
     }
 
+    // Simple Cloud always ready
+    if (serviceKey === 'simple-cloud') {
+      summaryValue.textContent = 'Instant shareable links (auto-generated)';
+      summary.style.display = 'block';
+      return;
+    }
+
     const isConnected = window.cloudStorageManager?.isAuthenticated?.(serviceKey);
     if (!isConnected) {
       summary.style.display = 'none';
@@ -1021,7 +1070,7 @@ class OptionsManager {
     if (selection && (selection.path || selection.name)) {
       summaryValue.textContent = selection.path || selection.name;
     } else {
-      summaryValue.textContent = `${rootLabel} (root)`;
+      summaryValue.textContent = `${rootLabel} (root folder)`;
     }
 
     summary.style.display = 'block';
@@ -1031,11 +1080,17 @@ class OptionsManager {
     const serviceKey = this.normalizeCloudServiceKey(this.settings.cloudService);
     const providerName = this.getCloudProviderName(serviceKey);
     const statusContainer = document.getElementById('cloudStatus');
-    const statusIndicator = statusContainer?.querySelector('.status-indicator');
+    const statusIcon = statusContainer?.querySelector('.status-icon');
     const statusText = statusContainer?.querySelector('.status-text');
 
     if (!this.settings.uploadToCloud || serviceKey === 'none') {
-      this.showToast('Enable cloud upload and pick a service first.', 'warning');
+      this.showToast('Please enable cloud backup first!', 'warning');
+      return;
+    }
+
+    // Simple Cloud doesn't need connection
+    if (serviceKey === 'simple-cloud') {
+      this.showToast('Simple Cloud is already ready! Just take a screenshot to get a shareable link.', 'success');
       return;
     }
 
@@ -1044,7 +1099,7 @@ class OptionsManager {
     }
 
     if (this.isConnecting) {
-      this.showToast('Connection already in progress, please wait...', 'warning');
+      this.showToast('Connection in progress, please wait...', 'warning');
       return;
     }
 
@@ -1056,17 +1111,32 @@ class OptionsManager {
       if (!this.validateCloudConfiguration(serviceKey)) {
         const docsUrl = serviceKey === 'google-drive'
           ? 'https://developers.google.com/drive/api/quickstart/js'
-          : 'https://learn.microsoft.com/azure/active-directory/develop/quickstart-register-app?tabs=azure-portal';
-        this.showToast(`${providerName} client ID not configured. Opening setup instructions...`, 'warning');
-        chrome.tabs.create({ url: docsUrl });
-
-  if (statusIndicator) statusIndicator.textContent = 'warn';
-        if (statusText) statusText.textContent = 'Requires configuration';
-        statusContainer.className = 'cloud-status warning';
+          : 'https://learn.microsoft.com/azure/active-directory/develop/quickstart-register-app';
+        
+        const confirmSetup = confirm(
+          `${providerName} Setup Required\n\n` +
+          `This requires creating OAuth credentials, which is a technical process:\n\n` +
+          `1. Create a Google Cloud / Azure account\n` +
+          `2. Register an application\n` +
+          `3. Configure OAuth consent screen\n` +
+          `4. Generate client ID credentials\n` +
+          `5. Add the credentials to this extension\n\n` +
+          `This process can take 10-15 minutes.\n\n` +
+          `Alternative: Use "Simple Cloud" for instant uploads with no setup.\n\n` +
+          `Do you want to continue with ${providerName} setup?`
+        );
+        
+        if (confirmSetup) {
+          this.showToast('Opening setup documentation...', 'info');
+          chrome.tabs.create({ url: docsUrl });
+        } else {
+          this.showToast('Setup cancelled. Consider using Simple Cloud for easy uploads!', 'info');
+        }
+        
         return;
       }
 
-  if (statusIndicator) statusIndicator.textContent = 'busy';
+      if (statusIcon) statusIcon.textContent = '';
       if (statusText) statusText.textContent = `Connecting to ${providerName}...`;
       statusContainer.className = 'cloud-status connecting';
 
@@ -1080,16 +1150,22 @@ class OptionsManager {
     } catch (error) {
       console.error(`${providerName} connection failed:`, error);
       let errorMessage = error?.message || 'Unknown error';
+      let friendlyMessage = `Connection failed`;
+      
       if (errorMessage.includes('timed out')) {
-        errorMessage = 'Connection timed out. Please try again.';
+        friendlyMessage = 'Connection timed out. Please try again.';
       } else if (errorMessage.includes('cancelled')) {
-        errorMessage = 'Authentication was cancelled.';
+        friendlyMessage = 'Sign-in was cancelled. No worries!';
+      } else if (errorMessage.includes('not configured')) {
+        friendlyMessage = `${providerName} needs to be configured first.`;
+      } else {
+        friendlyMessage = `Couldn't connect to ${providerName}. Try again or use Simple Cloud instead!`;
       }
 
-  if (statusIndicator) statusIndicator.textContent = 'error';
+      if (statusIcon) statusIcon.textContent = '';
       if (statusText) statusText.textContent = 'Connection failed';
       statusContainer.className = 'cloud-status error';
-      this.showToast(`${providerName} connection failed: ${errorMessage}`, 'error');
+      this.showToast(friendlyMessage, 'error');
     } finally {
       this.isConnecting = false;
       this.updateCloudStatus();
@@ -1101,14 +1177,20 @@ class OptionsManager {
     const providerName = this.getCloudProviderName(serviceKey);
 
     if (!this.settings.uploadToCloud || serviceKey === 'none') {
-      this.showToast('Enable cloud upload before choosing a folder.', 'warning');
+      this.showToast('Enable cloud backup first!', 'warning');
+      return;
+    }
+
+    // Simple Cloud doesn't support custom folders
+    if (serviceKey === 'simple-cloud') {
+      this.showToast('Simple Cloud uses automatic links - no folder selection needed!', 'info');
       return;
     }
 
     await this.ensureCloudScriptsLoaded();
 
     if (!window.cloudStorageManager?.isAuthenticated(serviceKey)) {
-      this.showToast(`Sign in to ${providerName} first.`, 'warning');
+      this.showToast(`Please sign in to ${providerName} first!`, 'warning');
       return;
     }
 
@@ -1118,14 +1200,14 @@ class OptionsManager {
         return;
       }
 
-  await window.cloudStorageManager.setSelectedFolder(serviceKey, selection);
-  await this.persistCloudFolderSelection(serviceKey, selection);
+      await window.cloudStorageManager.setSelectedFolder(serviceKey, selection);
+      await this.persistCloudFolderSelection(serviceKey, selection);
 
       this.updateCloudFolderSummary();
-      this.showToast(`Uploads will go to ${selection.path || selection.name} on ${providerName}.`, 'success');
+      this.showToast(`Folder set! Screenshots will go to "${selection.name}" on ${providerName}`, 'success');
     } catch (error) {
       console.error('Failed to choose folder:', error);
-      this.showToast(`Failed to choose folder: ${error.message}`, 'error');
+      this.showToast(`Couldn't access folders: ${error.message}`, 'error');
     }
   }
 
@@ -1137,18 +1219,22 @@ class OptionsManager {
       return;
     }
 
+    if (serviceKey === 'simple-cloud') {
+      this.showToast('Simple Cloud is always ready - no need to disconnect!', 'info');
+      return;
+    }
+
     await this.ensureCloudScriptsLoaded();
 
     try {
       await window.cloudStorageManager.clearAuthentication(serviceKey);
       await window.cloudStorageManager.setSelectedFolder(serviceKey, null);
+      await this.persistCloudFolderSelection(serviceKey, null);
 
-  await this.persistCloudFolderSelection(serviceKey, null);
-
-      this.showToast(`${providerName} disconnected`, 'success');
+      this.showToast(`Disconnected from ${providerName}`, 'success');
     } catch (error) {
       console.error('Failed to disconnect service:', error);
-      this.showToast(`Failed to disconnect: ${error.message}`, 'error');
+      this.showToast(`Disconnect failed: ${error.message}`, 'error');
     }
 
     this.updateCloudStatus();

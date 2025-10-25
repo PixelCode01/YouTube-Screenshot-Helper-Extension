@@ -1,5 +1,3 @@
-console.log('YouTube Screenshot Helper: Content script loaded');
-
 class ScreenshotExtension {
   constructor() {
     this.isInitialized = false;
@@ -17,7 +15,6 @@ class ScreenshotExtension {
       
       const isEnabledSite = await window.storageManager.isCurrentSiteEnabled();
       if (!isEnabledSite) {
-        console.log('YouTube Screenshot Helper: Not enabled for this site - waiting for click to activate');
         this.isInitialized = true;
         return;
       }
@@ -30,8 +27,6 @@ class ScreenshotExtension {
       this.waitForVideoContent();
       
       this.isInitialized = true;
-      console.log('YouTube Screenshot Helper: Initialized successfully');
-      
       this.showReadyNotification();
       
     } catch (error) {
@@ -57,8 +52,8 @@ class ScreenshotExtension {
 
   setupMessageListeners() {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  this.handleMessage(message, sender, sendResponse);
-  return true;
+      this.handleMessage(message, sender, sendResponse);
+      return true;
     });
   }
 
@@ -70,7 +65,6 @@ class ScreenshotExtension {
         
       case 'captureScreenshot':
         if (!this.isInitialized) {
-          console.log('YouTube Screenshot Helper: Initializing for custom site via user action');
           this.setupMessageListeners();
           this.setupMutationObserver();
           this.setupFullscreenListener();
@@ -153,7 +147,6 @@ class ScreenshotExtension {
             }
             
             videos.forEach(video => {
-              console.log('YouTube Screenshot Helper: New video element detected on custom site');
               this.attachVideoListeners(video);
             });
           }
@@ -169,7 +162,6 @@ class ScreenshotExtension {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const video = node.querySelector ? node.querySelector('video') : null;
             if (video || node.tagName === 'VIDEO') {
-              console.log('YouTube Screenshot Helper: New video element detected');
               this.attachVideoListeners(video || node);
             }
           }
@@ -178,31 +170,24 @@ class ScreenshotExtension {
     });
   }
 
-  handleVimeoChanges(mutations) {
-    console.log('Vimeo DOM changes detected');
-  }
+  handleVimeoChanges(mutations) {}
 
-  handleTwitchChanges(mutations) {
-    console.log('Twitch DOM changes detected');
-  }
+  handleTwitchChanges(mutations) {}
 
   waitForVideoContent() {
     let attempts = 0;
-  const maxAttempts = 30;
+    const maxAttempts = 30;
     
     const checkForVideo = () => {
       const videoElement = this.findVideoElement();
       if (videoElement) {
-        console.log('YouTube Screenshot Helper: Video found on page');
         this.attachVideoListeners(videoElement);
         return;
       }
       
       attempts++;
       if (attempts < maxAttempts) {
-  setTimeout(checkForVideo, 1000);
-      } else {
-        console.log('YouTube Screenshot Helper: No video found after waiting');
+        setTimeout(checkForVideo, 1000);
       }
     };
     
@@ -211,24 +196,7 @@ class ScreenshotExtension {
 
   attachVideoListeners(video) {
     if (!video || video.hasScreenshotListeners) return;
-    
     video.hasScreenshotListeners = true;
-    
-    video.addEventListener('loadedmetadata', () => {
-      console.log('Video metadata loaded:', video.videoWidth, 'x', video.videoHeight);
-    });
-
-    video.addEventListener('play', () => {
-      console.log('Video started playing');
-    });
-
-    video.addEventListener('pause', () => {
-      console.log('Video paused');
-    });
-
-    video.addEventListener('fullscreenchange', () => {
-      console.log('Fullscreen state changed:', this.isInFullscreen());
-    });
   }
 
   findVideoElement() {
@@ -500,7 +468,6 @@ class ScreenshotExtension {
   setupStorageListener() {
     chrome.storage.onChanged.addListener(async (changes, namespace) => {
       if (namespace === 'sync') {
-        console.log('YouTube Screenshot Helper: Storage changed, updating settings');
         await this.updateSettings();
       }
     });

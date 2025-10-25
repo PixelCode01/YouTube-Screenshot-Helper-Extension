@@ -6,7 +6,7 @@ class KeyHandler {
     this.isListening = false;
     this.boundKeyHandler = this.handleKeyPress.bind(this);
     this.lastTriggerTime = 0;
-  this.debounceDelay = 500;
+    this.debounceDelay = 500;
     this.init();
   }
 
@@ -27,48 +27,26 @@ class KeyHandler {
     
     document.removeEventListener('keydown', this.boundKeyHandler, true);
     this.isListening = false;
-    console.log('KeyHandler: Stopped listening for keypresses');
   }
 
   async handleKeyPress(event) {
-
     const currentTime = Date.now();
-    if (currentTime - this.lastTriggerTime < this.debounceDelay) {
-      console.log('KeyHandler: Debounced - ignoring rapid keypress');
-      return;
-    }
-
+    if (currentTime - this.lastTriggerTime < this.debounceDelay) return;
 
     if (!this.settings) {
       this.settings = await window.storageManager.getSettings();
     }
 
-
     const shouldHandle = this.shouldHandleKey(event);
-    
-    if (!shouldHandle) {
-      return;
-    }
-
+    if (!shouldHandle) return;
 
     this.lastTriggerTime = currentTime;
 
-
     const isFullscreen = this.isInFullscreen();
-    
-    if (this.settings.fullscreenOnly && !isFullscreen) {
-      console.log('KeyHandler: Fullscreen required but not in fullscreen mode');
-      return;
-    }
-
+    if (this.settings.fullscreenOnly && !isFullscreen) return;
 
     const isEnabledSite = await window.storageManager.isCurrentSiteEnabled();
-    
-    if (!isEnabledSite) {
-      console.log('KeyHandler: Site not enabled');
-      return;
-    }
-
+    if (!isEnabledSite) return;
 
     if (this.settings.preventDefault) {
       event.preventDefault();
@@ -76,45 +54,24 @@ class KeyHandler {
       event.stopImmediatePropagation();
     }
 
-    console.log('KeyHandler: Triggering screenshot capture');
-    
-
     const configuredKey = this.settings.fullscreenShortcut || this.settings.shortcutKey || 'shift+enter';
-    
-
     const isShiftEnter = event.code === 'Enter' && event.shiftKey;
     
-
     let forcePreview = false;
     let skipAnnotation = false;
     
     if (isShiftEnter && configuredKey === 'shift+enter') {
-
       if (this.settings.annotationMode === true && !this.settings.disablePreviewByDefault) {
-
         forcePreview = true;
         skipAnnotation = false;
       } else {
-
         forcePreview = false;
         skipAnnotation = true;
       }
     } else {
-
       forcePreview = false;
       skipAnnotation = false;
     }
-    
-    console.log('=== KEY HANDLER DEBUG ===');
-    console.log('KeyHandler: Event details:');
-    console.log('  - event.code:', event.code);
-    console.log('  - event.shiftKey:', event.shiftKey);
-    console.log('  - configuredKey:', configuredKey);
-    console.log('  - isShiftEnter:', isShiftEnter);
-    console.log('  - forcePreview:', forcePreview);
-    console.log('  - skipAnnotation:', skipAnnotation);
-    console.log('=== END KEY HANDLER DEBUG ===');
-    
 
     if (window.screenshotManager) {
       window.screenshotManager.captureScreenshot({}, forcePreview, skipAnnotation);
@@ -124,31 +81,18 @@ class KeyHandler {
   }
 
   shouldHandleKey(event) {
-
     const key = this.settings.fullscreenShortcut || this.settings.shortcutKey || 'shift+enter';
+    if (this.isInputFocused()) return false;
     
-    console.log('KeyHandler: Checking key press - event.code:', event.code, 'setting key:', key);
-    
-
-    if (this.isInputFocused()) {
-      console.log('KeyHandler: Input focused, ignoring keypress');
-      return false;
-    }
-    
-
     switch (key.toLowerCase()) {
-
       case 'space':
         return event.code === 'Space' && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey;
       case 'enter':
         return event.code === 'Enter' && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey;
-        
-
       case 'shift+enter':
         return event.code === 'Enter' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
       case 'shift+space':
         return event.code === 'Space' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
-        
 
       case 'shift+keys':
         return event.code === 'KeyS' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
@@ -202,8 +146,6 @@ class KeyHandler {
         return event.code === 'KeyY' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
       case 'shift+keyz':
         return event.code === 'KeyZ' && event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey;
-        
-
       case 'keys':
         return event.code === 'KeyS' && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey;
       case 'keya':
@@ -275,11 +217,9 @@ class KeyHandler {
   isInputFocused() {
     const activeElement = document.activeElement;
     if (!activeElement) return false;
-
     const inputTypes = ['input', 'textarea', 'select'];
     const isInput = inputTypes.includes(activeElement.tagName.toLowerCase());
     const isContentEditable = activeElement.contentEditable === 'true';
-    
     return isInput || isContentEditable;
   }
 

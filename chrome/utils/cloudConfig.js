@@ -1,5 +1,5 @@
-const DEFAULT_GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_DRIVE_CLIENT_ID_HERE';
-const DEFAULT_ONEDRIVE_CLIENT_ID = 'YOUR_ONEDRIVE_CLIENT_ID_HERE';
+const DEFAULT_GOOGLE_CLIENT_ID = '';
+const DEFAULT_ONEDRIVE_CLIENT_ID = '';
 const CLOUD_CREDENTIALS_KEY = 'cloudCredentials';
 
 const credentialsState = {
@@ -26,9 +26,9 @@ const CLOUD_CONFIG = {
   isConfigured(service) {
     switch (service) {
       case 'google':
-        return this.GOOGLE_DRIVE_CLIENT_ID && this.GOOGLE_DRIVE_CLIENT_ID !== DEFAULT_GOOGLE_CLIENT_ID;
+        return this.GOOGLE_DRIVE_CLIENT_ID && this.GOOGLE_DRIVE_CLIENT_ID.length > 0;
       case 'onedrive':
-        return this.ONEDRIVE_CLIENT_ID && this.ONEDRIVE_CLIENT_ID !== DEFAULT_ONEDRIVE_CLIENT_ID;
+        return this.ONEDRIVE_CLIENT_ID && this.ONEDRIVE_CLIENT_ID.length > 0;
       default:
         return false;
     }
@@ -65,7 +65,7 @@ const CLOUD_CONFIG = {
       const stored = result?.[CLOUD_CREDENTIALS_KEY] || {};
       this.setCredentials(stored, { persist: false });
     } catch (error) {
-      console.warn('CLOUD_CONFIG: Failed to load credentials from storage', error);
+      console.warn('Failed to load credentials from storage', error);
     }
 
     return this.getCredentials();
@@ -96,7 +96,7 @@ const CLOUD_CONFIG = {
             }
           });
         } catch (error) {
-          console.warn('CLOUD_CONFIG: Failed to persist credentials', error);
+          console.warn('Failed to persist credentials', error);
         }
       }
     }
@@ -119,7 +119,7 @@ const initializeCredentials = () => {
       return CLOUD_CONFIG.getCredentials();
     })
     .catch((error) => {
-      console.warn('CLOUD_CONFIG: Unable to load stored credentials', error);
+      console.warn('Unable to load stored credentials', error);
       return CLOUD_CONFIG.getCredentials();
     });
 };
@@ -129,5 +129,5 @@ CLOUD_CONFIG.ready = initializeCredentials();
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = CLOUD_CONFIG;
 } else if (typeof window !== 'undefined') {
-    window.CLOUD_CONFIG = CLOUD_CONFIG;
+  window.CLOUD_CONFIG = CLOUD_CONFIG;
 }

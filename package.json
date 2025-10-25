@@ -7,8 +7,8 @@
     "build": "echo 'Extension ready for loading in Chrome'",
     "package": "zip -r youtube-screenshot-helper.zip . -x '*.git*' 'node_modules/*' 'package*.json' 'README.md'",
     "dev": "echo 'Load extension in Chrome Developer Mode from this directory'",
-    "lint": "echo 'TODO: set up ESLint someday'",
-    "test": "echo 'Tests? What tests? (TODO: add proper testing)'"
+    "lint": "echo 'Linting not configured'",
+    "test": "echo 'Tests not configured'"
   },
   "keywords": [
     "youtube",
